@@ -34,6 +34,8 @@ const MarkdownMessage: React.FC<MarkdownMessageProps> = React.memo(({ content, i
         }
     }
 
+    // 不處理內容，保持原樣
+
     return (
         <ReactMarkdown
             remarkPlugins={[remarkGfm]}
@@ -132,7 +134,7 @@ const MarkdownMessage: React.FC<MarkdownMessageProps> = React.memo(({ content, i
                     </h3>
                 ),
                 p: ({ children }) => (
-                    <p className={`mb-3 last:mb-0 ${getTextColor()}`}>
+                    <p className={`${getTextColor()}`}>
                         {children}
                     </p>
                 ),
