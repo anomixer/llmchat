@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { Send, Bot, User, Settings, Trash2, Moon, Sun, Plus, MessageSquare, Paperclip, X, Mic, MicOff, Volume2, VolumeX, Download } from 'lucide-react'
 import MarkdownMessage from './MarkdownMsg'
 
@@ -136,6 +136,26 @@ const App: React.FC = () => {
     })
     const [input, setInput] = useState('')
     const [isLoading, setIsLoading] = useState(false)
+
+    // 防抖輸入處理，避免頻繁的高度調整
+    const inputTimeoutRef = useRef<number | null>(null)
+
+    const setInputDebounced = useCallback((value: string) => {
+        setInput(value)
+
+        // 清除之前的定時器
+        if (inputTimeoutRef.current) {
+            clearTimeout(inputTimeoutRef.current)
+        }
+
+        // 設置新的定時器來調整高度
+        inputTimeoutRef.current = setTimeout(() => {
+            if (textareaRef.current) {
+                textareaRef.current.style.height = 'auto'
+                textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px'
+            }
+        }, 100) // 100ms 防抖
+    }, [])
     const [showSettings, setShowSettings] = useState(false)
     const [showConversations, setShowConversations] = useState(false)
     const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -166,6 +186,9 @@ const App: React.FC = () => {
     const streamingModeEnabled = true
     const [streamingMessage, setStreamingMessage] = useState('')
     const [streamingThinking, setStreamingThinking] = useState('')
+
+    // 用於存儲最終串流狀態的 ref
+    const finalStateRef = useRef({ content: '', thinking: '' })
     const [expandedThinking, setExpandedThinking] = useState<Set<string>>(new Set())
     const [expandedFiles, setExpandedFiles] = useState<Set<string>>(new Set())
     const [showStreamingThinking, setShowStreamingThinking] = useState(false)
@@ -191,15 +214,29 @@ const App: React.FC = () => {
         const container = messagesContainerRef.current
         if (!container) return true
 
-        const threshold = 100 // 距離底部100px內算作底部
-        return container.scrollHeight - container.scrollTop - container.clientHeight < threshold
+        // 使用百分比計算：距離底部5%內算作底部
+        const scrollTop = container.scrollTop
+        const scrollHeight = container.scrollHeight
+        const clientHeight = container.clientHeight
+        const scrollPercent = (scrollTop / (scrollHeight - clientHeight)) * 100
+
+        // 如果內容高度小於等於容器高度，總是算作底部
+        if (scrollHeight <= clientHeight) return true
+
+        // 距離底部2%內算作底部（即滾動到98%位置）
+        return scrollPercent > 98
     }
 
     // 處理滾動事件
     const handleScroll = () => {
         if (isNearBottom()) {
+            // 無論是否在串流中，只要用戶滾動到底部附近就重新啟用自動滾動
             setShouldAutoScroll(true)
+        } else if (isStreaming) {
+            // 在串流過程中，如果沒有在底部附近就禁用自動滾動
+            setShouldAutoScroll(false)
         } else {
+            // 非串流狀態下，遠離底部時禁用自動滾動
             setShouldAutoScroll(false)
         }
     }
@@ -221,6 +258,8 @@ const App: React.FC = () => {
                 newSet.delete(messageId)
             } else {
                 newSet.add(messageId)
+                // 展開時滾動到底部
+                setTimeout(() => scrollToBottom(), 100)
             }
             return newSet
         })
@@ -307,12 +346,7 @@ const App: React.FC = () => {
         }
     }, [shouldAutoScroll])
 
-    useEffect(() => {
-        if (textareaRef.current) {
-            textareaRef.current.style.height = 'auto'
-            textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px'
-        }
-    }, [input])
+    // 移除舊的高度調整 useEffect，因為現在在防抖函數中處理
 
     // 初始化主題類別
     useEffect(() => {
@@ -649,6 +683,7 @@ const App: React.FC = () => {
         setStreamingMessage('')
         setStreamingThinking('')
         resetStreamParser() // 重置串流解析器狀態
+        finalStateRef.current = { content: '', thinking: '' } // 重置最終狀態
 
         try {
             const currentConversation = conversations.find(c => c.id === conversationId)
@@ -692,16 +727,25 @@ const App: React.FC = () => {
                                 const data = JSON.parse(line)
                                 console.log('Parsed stream data:', data)
 
+                                // 處理 content 字段（可能包含標籤式思考）
                                 if (data.message?.content) {
-                                    // 處理串流內容的增量解析
                                     const { thinking, content } = processStreamChunk(data.message.content)
-
-                                    // 更新狀態
                                     setStreamingThinking(thinking)
                                     setStreamingMessage(content)
-                                } else if (data.message?.thinking) {
-                                    // 對於支援原生 thinking 的模型
-                                    setStreamingThinking(prev => prev + data.message.thinking)
+                                    finalStateRef.current.content = content
+                                    // 只在有實際思考內容時才設置，避免覆蓋原生 thinking
+                                    if (thinking) {
+                                        finalStateRef.current.thinking = thinking
+                                    }
+                                }
+
+                                // 處理 thinking 字段（原生 thinking 模型）
+                                if (data.message?.thinking) {
+                                    setStreamingThinking(prev => {
+                                        const newThinking = prev + data.message.thinking
+                                        finalStateRef.current.thinking = newThinking
+                                        return newThinking
+                                    })
                                 }
 
                                 if (data.done) {
@@ -715,21 +759,9 @@ const App: React.FC = () => {
                         }
                     }
 
-                    // 獲取最終的串流消息內容和thinking
-                    const [finalContent, finalThinking] = await Promise.all([
-                        new Promise<string>((resolve) => {
-                            setStreamingMessage(current => {
-                                resolve(current)
-                                return current
-                            })
-                        }),
-                        new Promise<string>((resolve) => {
-                            setStreamingThinking(current => {
-                                resolve(current)
-                                return current
-                            })
-                        })
-                    ])
+                    // 使用 finalStateRef 獲取最終狀態，避免狀態更新時機問題
+                    const finalContent = finalStateRef.current.content
+                    const finalThinking = finalStateRef.current.thinking
 
                     console.log('Stream completed, final response:', finalContent, 'thinking:', finalThinking)
                     // 流式回應完成
@@ -867,6 +899,15 @@ const App: React.FC = () => {
             return () => clearTimeout(timeoutId)
         }
     }, [settings.apiUrl])
+
+    // 清理輸入框防抖定時器
+    useEffect(() => {
+        return () => {
+            if (inputTimeoutRef.current) {
+                clearTimeout(inputTimeoutRef.current)
+            }
+        }
+    }, [])
 
     const sendMessage = async () => {
         console.log('Starting streaming message...')
@@ -1530,7 +1571,7 @@ const App: React.FC = () => {
                         <textarea
                             ref={textareaRef}
                             value={input}
-                            onChange={(e) => setInput(e.target.value)}
+                            onChange={(e) => setInputDebounced(e.target.value)}
                             onKeyPress={handleKeyPress}
                             placeholder="輸入您的訊息... (Shift+Enter 換行)"
                             className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none min-h-[52px] max-h-32 transition-colors ${isDarkMode

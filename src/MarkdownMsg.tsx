@@ -10,7 +10,7 @@ interface MarkdownMessageProps {
     isUser?: boolean
 }
 
-const MarkdownMessage: React.FC<MarkdownMessageProps> = ({ content, isDarkMode, isUser = false }) => {
+const MarkdownMessage: React.FC<MarkdownMessageProps> = React.memo(({ content, isDarkMode, isUser = false }) => {
     const [copiedBlocks, setCopiedBlocks] = React.useState<Set<string>>(new Set())
 
     const getTextColor = () => {
@@ -209,6 +209,6 @@ const MarkdownMessage: React.FC<MarkdownMessageProps> = ({ content, isDarkMode, 
             {content}
         </ReactMarkdown>
     )
-}
+})
 
 export default MarkdownMessage
