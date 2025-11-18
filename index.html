@@ -6,11 +6,55 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>LLMChat</title>
+    <style>
+        /* 載入畫面樣式 */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            color: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        .loading-screen .loading-content {
+            font-size: 1.125rem;
+            font-weight: 500;
+            text-align: center;
+            padding: 2rem;
+            background: rgba(30, 41, 59, 0.8);
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+    </style>
 </head>
 
 <body>
-    <div id="root">LLMChat v251118 載入中...</div>
+    <div class="loading-screen">
+        <div class="loading-content">LLMChat v251118 載入中...</div>
+    </div>
+    <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <script>
+        // 當React應用載入時隱藏載入畫面
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                const loadingScreen = document.querySelector('.loading-screen');
+                if (loadingScreen) {
+                    loadingScreen.style.display = 'none';
+                }
+            }, 100);
+        });
+    </script>
 </body>
 
 </html>

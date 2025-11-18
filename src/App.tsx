@@ -373,6 +373,7 @@ const App: React.FC = () => {
         }
         setConversations(prev => [...prev, newConversation])
         setCurrentConversationId(newConversation.id)
+        setShouldAutoScroll(true) // 創建新對話時啟用自動滾動
     }
 
     // 切換對話
