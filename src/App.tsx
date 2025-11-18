@@ -532,6 +532,26 @@ const App: React.FC = () => {
         URL.revokeObjectURL(url)
     }
 
+    // 解析思考標籤的輔助函數
+    const parseThinkingTags = (content: string) => {
+        const thinkRegex = /<think>(.*?)<\/think>/gs
+        const thinkingParts: string[] = []
+        let finalContent = content
+        let match
+
+        // 提取所有完整的 <think> 區塊
+        while ((match = thinkRegex.exec(content)) !== null) {
+            thinkingParts.push(match[1])
+            // 從最終內容中移除思考標籤
+            finalContent = finalContent.replace(match[0], '')
+        }
+
+        return {
+            thinking: thinkingParts.join('\n'),
+            content: finalContent.trim()
+        }
+    }
+
     // 流式發送消息
     const sendStreamingMessage = async () => {
         if ((!input.trim() && attachedFiles.length === 0) || isLoading) return
@@ -597,6 +617,7 @@ const App: React.FC = () => {
 
             const reader = response.body?.getReader()
             const decoder = new TextDecoder()
+            let accumulatedContent = ''
 
             if (reader) {
                 try {
@@ -619,8 +640,17 @@ const App: React.FC = () => {
                                 console.log('Parsed stream data:', data)
 
                                 if (data.message?.content) {
-                                    setStreamingMessage(prev => prev + data.message.content)
+                                    // 累積內容
+                                    accumulatedContent += data.message.content
+
+                                    // 解析思考標籤
+                                    const { thinking, content } = parseThinkingTags(accumulatedContent)
+
+                                    // 更新狀態
+                                    setStreamingThinking(thinking)
+                                    setStreamingMessage(content)
                                 } else if (data.message?.thinking) {
+                                    // 對於支援原生 thinking 的模型
                                     setStreamingThinking(prev => prev + data.message.thinking)
                                 }
 
