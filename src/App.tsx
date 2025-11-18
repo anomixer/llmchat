@@ -826,7 +826,7 @@ const App: React.FC = () => {
                     <Bot className={`h-6 w-6 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
                     <h1 className={`text-xl font-semibold transition-colors ${isDarkMode ? 'text-white' : 'text-gray-900'
                         }`}>LLMChat <span className={`text-xs font-extralight transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                            }`}>v1.2.0</span></h1>
+                            }`}>v251118</span></h1>
                     <button
                         onClick={() => setShowSettings(prev => !prev)}
                         className={`px-2 py-1 text-xs rounded-md transition-colors cursor-pointer ${isDarkMode
@@ -1232,6 +1232,7 @@ const App: React.FC = () => {
                                                 <MarkdownMessage
                                                     content={contentLines.join('\n')}
                                                     isDarkMode={isDarkMode}
+                                                    isUser={message.role === 'user'}
                                                 />
 
                                                 {/* 附加檔案部分 */}
@@ -1369,6 +1370,7 @@ const App: React.FC = () => {
                                     <MarkdownMessage
                                         content={streamingMessage || '正在生成回應...'}
                                         isDarkMode={isDarkMode}
+                                        isUser={false}
                                     />
                                     <div className="flex space-x-1 mt-2">
                                         <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
