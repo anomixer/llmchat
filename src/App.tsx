@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, Bot, User, Settings, Trash2, Moon, Sun, Plus, MessageSquare, Paperclip, X, Mic, MicOff, Volume2, VolumeX, Download } from 'lucide-react'
+import { Send, Bot, User, Settings, Trash2, Moon, Sun, Plus, MessageSquare, Paperclip, X, Mic, MicOff, Volume2, VolumeX, Download, Square } from 'lucide-react'
 import MarkdownMessage from './MarkdownMsg'
 
 // Web Speech API types
@@ -63,6 +63,7 @@ interface Message {
     thinking?: string
     timestamp: Date
     expandedFiles?: boolean
+    interrupted?: boolean
 }
 
 interface Conversation {
@@ -186,12 +187,16 @@ const App: React.FC = () => {
     const streamingModeEnabled = true
     const [streamingMessage, setStreamingMessage] = useState('')
     const [streamingThinking, setStreamingThinking] = useState('')
+    const [stopRequested, setStopRequested] = useState(false)
+    const [stopConfirmText, setStopConfirmText] = useState('')
 
     // 用於存儲最終串流狀態的 ref
     const finalStateRef = useRef({ content: '', thinking: '' })
     const [expandedThinking, setExpandedThinking] = useState<Set<string>>(new Set())
     const [expandedFiles, setExpandedFiles] = useState<Set<string>>(new Set())
     const [showStreamingThinking, setShowStreamingThinking] = useState(false)
+    // 用於控制串流是否應該繼續的 ref
+    const shouldContinueStreamingRef = useRef(true)
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const textareaRef = useRef<HTMLTextAreaElement>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
@@ -691,6 +696,9 @@ const App: React.FC = () => {
         setStreamingThinking('')
         resetStreamParser() // 重置串流解析器狀態
         finalStateRef.current = { content: '', thinking: '' } // 重置最終狀態
+        shouldContinueStreamingRef.current = true // 重置串流繼續標誌
+        setStopRequested(false) // 重置停止請求狀態
+        setStopConfirmText('') // 重置確認文字
 
         try {
             const currentConversation = conversations.find(c => c.id === conversationId)
@@ -716,7 +724,7 @@ const App: React.FC = () => {
 
             if (reader) {
                 try {
-                    while (true) {
+                    while (shouldContinueStreamingRef.current) {
                         const { done, value } = await reader.read()
                         if (done) {
                             console.log('Stream reader done')
@@ -730,6 +738,11 @@ const App: React.FC = () => {
                         const lines = chunk.split('\n').filter(line => line.trim())
 
                         for (const line of lines) {
+                            // 檢查是否在中斷過程中
+                            if (!shouldContinueStreamingRef.current) {
+                                break
+                            }
+
                             try {
                                 const data = JSON.parse(line)
                                 console.log('Parsed stream data:', data)
@@ -764,6 +777,11 @@ const App: React.FC = () => {
                                 // 忽略解析錯誤
                             }
                         }
+
+                        // 如果在中斷過程中，跳出外層循環
+                        if (!shouldContinueStreamingRef.current) {
+                            break
+                        }
                     }
 
                     // 使用 finalStateRef 獲取最終狀態，避免狀態更新時機問題
@@ -771,13 +789,18 @@ const App: React.FC = () => {
                     const finalThinking = finalStateRef.current.thinking
 
                     console.log('Stream completed, final response:', finalContent, 'thinking:', finalThinking)
+
+                    // 檢查是否被用戶中斷
+                    const wasInterrupted = !shouldContinueStreamingRef.current
+
                     // 流式回應完成
                     const assistantMessage: Message = {
                         id: (Date.now() + 1).toString(),
                         role: 'assistant',
-                        content: finalContent,
+                        content: wasInterrupted ? finalContent + '\n\n(用戶中斷)' : finalContent,
                         thinking: finalThinking || undefined,
-                        timestamp: new Date()
+                        timestamp: new Date(),
+                        interrupted: wasInterrupted
                     }
 
                     setConversations(prev => prev.map(c =>
@@ -795,6 +818,18 @@ const App: React.FC = () => {
                     }
                 } finally {
                     reader.releaseLock()
+
+                    // 如果被中斷，確保最終狀態已更新
+                    if (!shouldContinueStreamingRef.current) {
+                        // 處理剩餘的buffer內容
+                        if (streamParserState.pendingBuffer.length > 0) {
+                            const { thinking, content } = processStreamChunk('')
+                            finalStateRef.current.content += content
+                            if (thinking) {
+                                finalStateRef.current.thinking += thinking
+                            }
+                        }
+                    }
                 }
             }
         } catch (error) {
@@ -815,6 +850,8 @@ const App: React.FC = () => {
             setIsStreaming(false)
             setStreamingMessage('')
             setStreamingThinking('')
+            setStopRequested(false) // 清除停止請求狀態
+            setStopConfirmText('') // 清除確認文字
             // 發送完成後自動聚焦到輸入框
             setTimeout(() => {
                 textareaRef.current?.focus()
@@ -920,6 +957,31 @@ const App: React.FC = () => {
         console.log('Starting streaming message...')
         setIsStreaming(true) // 立即設置串流狀態
         await sendStreamingMessage()
+    }
+
+    // 處理發送按鈕點擊
+    const handleSendClick = () => {
+        if (isStreaming) {
+            // 在串流過程中，按鈕用於停止
+            if (!stopRequested) {
+                // 第一次點擊，顯示確認提示
+                setStopRequested(true)
+                setStopConfirmText('再按一次停止生成')
+                // 設置定時器，5秒後重置狀態
+                setTimeout(() => {
+                    setStopRequested(false)
+                    setStopConfirmText('')
+                }, 5000)
+            } else {
+                // 第二次點擊，真正停止
+                shouldContinueStreamingRef.current = false
+                setStopRequested(false)
+                setStopConfirmText('')
+            }
+        } else {
+            // 非串流狀態，正常發送
+            sendMessage()
+        }
     }
 
 
@@ -1575,19 +1637,26 @@ const App: React.FC = () => {
                 )}
                 <div className="flex items-end space-x-3">
                     <div className="flex-1 relative">
-                        <textarea
-                            ref={textareaRef}
-                            value={input}
-                            onChange={(e) => setInputDebounced(e.target.value)}
-                            onKeyPress={handleKeyPress}
-                            placeholder="輸入您的訊息... (Shift+Enter 換行)"
-                            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none min-h-[52px] max-h-32 transition-colors ${isDarkMode
-                                ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
-                                : 'bg-white border-gray-300'
-                                }`}
-                            rows={1}
-                            disabled={isLoading}
-                        />
+                        <div className="relative">
+                            <textarea
+                                ref={textareaRef}
+                                value={input}
+                                onChange={(e) => setInputDebounced(e.target.value)}
+                                onKeyPress={handleKeyPress}
+                                placeholder="輸入您的訊息... (Shift+Enter 換行)"
+                                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none min-h-[52px] max-h-32 transition-colors ${isDarkMode
+                                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+                                    : 'bg-white border-gray-300'
+                                    }`}
+                                rows={1}
+                                disabled={isLoading}
+                            />
+                            {stopConfirmText && (
+                                <div className={`absolute right-6 top-1/2 transform -translate-y-1/2 text-sm font-medium pointer-events-none transition-colors ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>
+                                    再按一次停止生成 →
+                                </div>
+                            )}
+                        </div>
                     </div>
                     {/* 檔案上傳按鈕 */}
                     <input
@@ -1625,16 +1694,29 @@ const App: React.FC = () => {
                         <Paperclip className="h-5 w-5" />
                     </button>
                     <button
-                        onClick={sendMessage}
-                        disabled={(!input.trim() && attachedFiles.length === 0) || isLoading || availableModels.length === 0}
-                        className={`p-3 rounded-lg transition-colors ${(input.trim() || attachedFiles.length > 0) && !isLoading && availableModels.length > 0
-                            ? 'bg-blue-600 text-white hover:bg-blue-700'
+                        onClick={handleSendClick}
+                        disabled={(!input.trim() && attachedFiles.length === 0) && !isStreaming || availableModels.length === 0}
+                        className={`p-3 rounded-lg transition-colors ${(input.trim() || attachedFiles.length > 0 || isStreaming) && availableModels.length > 0
+                            ? isStreaming
+                                ? stopRequested
+                                    ? 'bg-red-600 text-white hover:bg-red-700 animate-pulse'
+                                    : 'bg-orange-600 text-white hover:bg-orange-700'
+                                : 'bg-blue-600 text-white hover:bg-blue-700'
                             : isDarkMode
                                 ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
                                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                             }`}
+                        title={isStreaming ? (stopRequested ? '確認停止生成' : '停止生成') : '發送消息'}
                     >
-                        <Send className="h-5 w-5" />
+                        {isStreaming ? (
+                            stopRequested ? (
+                                <span className="text-xs font-medium">停止</span>
+                            ) : (
+                                <Square className="h-5 w-5" />
+                            )
+                        ) : (
+                            <Send className="h-5 w-5" />
+                        )}
                     </button>
                 </div>
             </div>
