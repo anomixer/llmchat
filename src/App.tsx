@@ -407,9 +407,9 @@ const App: React.FC = () => {
     const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(event.target.files || [])
         const validFiles = files.filter(file => {
-            // 限制檔案大小 (10MB)
-            if (file.size > 10 * 1024 * 1024) {
-                alert(`檔案 ${file.name} 太大，請選擇小於 10MB 的檔案`)
+            // 限制檔案大小 (50MB)
+            if (file.size > 50 * 1024 * 1024) {
+                alert(`檔案 ${file.name} 太大，請選擇小於 50MB 的檔案`)
                 return false
             }
             // 限制檔案類型
@@ -435,10 +435,16 @@ const App: React.FC = () => {
     // 讀取檔案內容
     const readFileContent = (file: File): Promise<string> => {
         return new Promise((resolve, reject) => {
-            const reader = new FileReader()
-            reader.onload = () => resolve(reader.result as string)
-            reader.onerror = () => reject(reader.error)
-            reader.readAsText(file)
+            // 檢查檔案類型
+            if (file.type === 'application/pdf') {
+                // PDF檔案無法在前端直接讀取內容
+                resolve(`[PDF檔案: ${file.name}]\n注意：PDF內容無法在瀏覽器中直接解析。如需分析PDF內容，請考慮將PDF轉換為文字檔案後上傳，或使用支援PDF解析的服務。`)
+            } else {
+                const reader = new FileReader()
+                reader.onload = () => resolve(reader.result as string)
+                reader.onerror = () => reject(reader.error)
+                reader.readAsText(file)
+            }
         })
     }
 
@@ -1612,7 +1618,7 @@ const App: React.FC = () => {
                             ? 'text-gray-400 hover:text-blue-400 hover:bg-gray-700'
                             : 'text-gray-500 hover:text-blue-600 hover:bg-gray-100'
                             }`}
-                        title="附加檔案"
+                        title="附加檔案 (支援圖片、文字、PDF、JSON，最大50MB)"
                         disabled={isLoading}
                     >
                         <Paperclip className="h-5 w-5" />
