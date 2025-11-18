@@ -532,23 +532,75 @@ const App: React.FC = () => {
         URL.revokeObjectURL(url)
     }
 
-    // 解析思考標籤的輔助函數
-    const parseThinkingTags = (content: string) => {
-        const thinkRegex = /<think>(.*?)<\/think>/gs
-        const thinkingParts: string[] = []
-        let finalContent = content
-        let match
+    // 串流思考標籤解析器狀態
+    let streamParserState = {
+        inThinkTag: false,
+        accumulatedThinking: '',
+        accumulatedContent: '',
+        pendingBuffer: '' // 待處理的buffer
+    }
 
-        // 提取所有完整的 <think> 區塊
-        while ((match = thinkRegex.exec(content)) !== null) {
-            thinkingParts.push(match[1])
-            // 從最終內容中移除思考標籤
-            finalContent = finalContent.replace(match[0], '')
+    // 重置解析器狀態
+    const resetStreamParser = () => {
+        streamParserState = {
+            inThinkTag: false,
+            accumulatedThinking: '',
+            accumulatedContent: '',
+            pendingBuffer: ''
+        }
+    }
+
+    // 處理串流內容的增量解析
+    const processStreamChunk = (chunk: string) => {
+        streamParserState.pendingBuffer += chunk
+
+        // 持續處理直到不能再處理
+        let continueProcessing = true
+        while (continueProcessing && streamParserState.pendingBuffer.length > 0) {
+            continueProcessing = false
+
+            if (!streamParserState.inThinkTag) {
+                // 尋找 <think> 標籤
+                const thinkStart = streamParserState.pendingBuffer.indexOf('<think>')
+
+                if (thinkStart !== -1) {
+                    // 找到 <think> 標籤
+                    const contentBeforeTag = streamParserState.pendingBuffer.substring(0, thinkStart)
+                    streamParserState.accumulatedContent += contentBeforeTag
+                    streamParserState.inThinkTag = true
+                    streamParserState.pendingBuffer = streamParserState.pendingBuffer.substring(thinkStart + 7) // 移除 '<think>'
+                    continueProcessing = true // 繼續處理剩餘內容
+                }
+                // 如果沒有找到 <think>，保留在buffer中
+            } else {
+                // 在思考標籤內，尋找 </think> 標籤
+                const thinkEnd = streamParserState.pendingBuffer.indexOf('</think>')
+
+                if (thinkEnd !== -1) {
+                    // 找到 </think> 標籤
+                    const thinkingContent = streamParserState.pendingBuffer.substring(0, thinkEnd)
+                    streamParserState.accumulatedThinking += thinkingContent
+                    streamParserState.inThinkTag = false
+                    streamParserState.pendingBuffer = streamParserState.pendingBuffer.substring(thinkEnd + 8) // 移除 '</think>'
+                    continueProcessing = true // 繼續處理剩餘內容
+                }
+                // 如果沒有找到 </think>，保留在buffer中
+            }
+        }
+
+        // 將剩餘的buffer內容加到對應的累積內容中
+        if (streamParserState.pendingBuffer.length > 0) {
+            if (streamParserState.inThinkTag) {
+                streamParserState.accumulatedThinking += streamParserState.pendingBuffer
+            } else {
+                streamParserState.accumulatedContent += streamParserState.pendingBuffer
+            }
+            streamParserState.pendingBuffer = ''
         }
 
         return {
-            thinking: thinkingParts.join('\n'),
-            content: finalContent.trim()
+            thinking: streamParserState.accumulatedThinking,
+            content: streamParserState.accumulatedContent
         }
     }
 
@@ -596,6 +648,7 @@ const App: React.FC = () => {
         setIsLoading(true)
         setStreamingMessage('')
         setStreamingThinking('')
+        resetStreamParser() // 重置串流解析器狀態
 
         try {
             const currentConversation = conversations.find(c => c.id === conversationId)
@@ -640,11 +693,8 @@ const App: React.FC = () => {
                                 console.log('Parsed stream data:', data)
 
                                 if (data.message?.content) {
-                                    // 累積內容
-                                    accumulatedContent += data.message.content
-
-                                    // 解析思考標籤
-                                    const { thinking, content } = parseThinkingTags(accumulatedContent)
+                                    // 處理串流內容的增量解析
+                                    const { thinking, content } = processStreamChunk(data.message.content)
 
                                     // 更新狀態
                                     setStreamingThinking(thinking)
