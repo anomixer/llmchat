@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-TW">
+<html lang="zh-TW" id="html-root">
 
 <head>
     <meta charset="UTF-8" />
@@ -41,11 +41,55 @@
 
 <body>
     <div class="loading-screen">
-        <div class="loading-content">LLMChat v251119 載入中...</div>
+        <div class="loading-content" id="loading-text">LLMChat v251119 載入中...</div>
     </div>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
     <script>
+        // 根據瀏覽器語言設定載入文字和HTML語言屬性
+        (function () {
+            // 載入文字的語言映射
+            const loadingTexts = {
+                'zh-TW': 'LLMChat v251119 載入中...',
+                'zh-CN': 'LLMChat v251119 加载中...',
+                'en': 'LLMChat v251119 Loading...',
+                'ja': 'LLMChat v251119 読み込み中...',
+                'ko': 'LLMChat v251119 로딩 중...'
+            };
+
+            // 檢測瀏覽器語言
+            const browserLang = navigator.language || navigator.userLanguage;
+            let detectedLang = 'zh-TW'; // 預設繁體中文
+
+            // 根據瀏覽器語言匹配支援的語言
+            if (browserLang.startsWith('zh-CN') || browserLang.startsWith('zh-SG')) {
+                detectedLang = 'zh-CN';
+            } else if (browserLang.startsWith('zh-')) {
+                detectedLang = 'zh-TW';
+            } else if (browserLang.startsWith('ja')) {
+                detectedLang = 'ja';
+            } else if (browserLang.startsWith('ko')) {
+                detectedLang = 'ko';
+            } else if (browserLang.startsWith('en')) {
+                detectedLang = 'en';
+            }
+
+            // 更新載入文字
+            const loadingText = document.getElementById('loading-text');
+            if (loadingText && loadingTexts[detectedLang]) {
+                loadingText.textContent = loadingTexts[detectedLang];
+            }
+
+            // 更新HTML語言屬性
+            const htmlRoot = document.getElementById('html-root');
+            if (htmlRoot) {
+                htmlRoot.setAttribute('lang', detectedLang);
+            }
+
+            // 將檢測到的語言儲存到localStorage，供React應用使用
+            localStorage.setItem('browserLanguage', detectedLang);
+        })();
+
         // 當React應用載入時隱藏載入畫面
         window.addEventListener('load', function () {
             setTimeout(function () {

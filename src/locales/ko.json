@@ -1,0 +1,120 @@
+{
+    "app": {
+        "title": "LLMChat",
+        "version": "v251119",
+        "loading": "로딩 중...",
+        "welcome": {
+            "title": "AI와 대화를 시작하세요!",
+            "subtitle": "질문을 입력하거나 말하세요. 최선을 다해 답변하겠습니다.",
+            "fileHint": "파일을 업로드할 수도 있습니다. 분석과 요약을 도와드리겠습니다."
+        }
+    },
+    "conversation": {
+        "defaultTitle": "대화",
+        "list": "대화 목록",
+        "empty": "대화가 없습니다",
+        "messages": "개의 메시지 ·",
+        "delete": {
+            "confirm": "대화 \"{{title}}\"을(를) 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.",
+            "button": "대화 삭제"
+        },
+        "clear": {
+            "confirm": "현재 대화의 모든 내용을 지우시겠습니까? 이 작업은 취소할 수 없습니다.",
+            "button": "대화 지우기 (Ctrl + K)"
+        },
+        "new": "새 대화 (Ctrl + I)",
+        "export": {
+            "button": "대화 내보내기",
+            "json": "JSON으로 내보내기",
+            "markdown": "Markdown으로 내보내기"
+        }
+    },
+    "buttons": {
+        "send": "메시지 보내기",
+        "stop": "생성 중지",
+        "stopConfirm": "한 번 더 눌러 생성 중지 →",
+        "stopAction": "중지"
+    },
+    "header": {
+        "model": {
+            "none": "모델이 선택되지 않음",
+            "openSettings": "클릭하여 설정 열기",
+            "closeSettings": "클릭하여 설정 닫기"
+        },
+        "conversations": {
+            "button": "대화 목록 (Ctrl + B)",
+            "panel": "대화 목록"
+        },
+        "settings": {
+            "button": "설정 (Ctrl + , )"
+        },
+        "theme": {
+            "light": "밝은 모드로 전환",
+            "dark": "어두운 모드로 전환"
+        },
+        "fullscreen": {
+            "enter": "전체 화면으로",
+            "exit": "전체 화면 종료"
+        },
+        "github": "GitHub에서 보기"
+    },
+    "settings": {
+        "panels": {
+            "llm": "LLM 구성",
+            "generation": "생성 매개변수"
+        },
+        "api": {
+            "url": "API URL (Ollama/OpenAI API 주소)",
+            "key": "API 키 (인증이 필요한 API 서비스용)",
+            "keyPlaceholder": "API 키 입력 (선택사항)"
+        },
+        "model": {
+            "label": "모델 (사용할 AI 모델 선택)",
+            "loading": "(로딩 중...)",
+            "none": "(모델을 찾을 수 없음)",
+            "placeholder": "로딩 중...",
+            "noModels": "사용 가능한 모델이 없습니다"
+        },
+        "parameters": {
+            "temperature": "온도: {{value}} (출력 무작위성 제어 0-2: 낮음=결정론적, 논리적, 일관성; 높음=다양성, 창의성, 놀라움)",
+            "topP": "Top P: {{value}} (코어 샘플링 확률 제어 0-1: 높음=높은 확률; 낮음=낮은 확률)",
+            "topK": "Top K: {{value}} (후보 토큰 수 제한 1-100: 높음=샘플링 많음; 낮음=샘플링 적음)",
+            "maxTokens": "최대 컨텍스트: {{value}} (응답의 최대 컨텍스트 길이 설정 4096-262144)"
+        }
+    },
+    "messages": {
+        "user": "사용자",
+        "assistant": "어시스턴트",
+        "thinking": "생각 과정",
+        "files": "첨부 파일",
+        "interrupted": "(사용자가 중단)",
+        "error": "죄송합니다. 오류가 발생했습니다. 백엔드 서비스가 정상적으로 실행되고 있는지 확인해주세요.",
+        "generating": "응답 생성 중...",
+        "voice": {
+          "play": "음성 재생",
+          "stop": "음성 중지"
+        }
+    },
+    "input": {
+        "placeholder": "메시지를 입력하세요... (Shift+Enter로 줄바꿈)",
+        "voice": {
+            "start": "음성 입력",
+            "stop": "음성 입력 중지",
+            "unsupported": "브라우저가 음성 인식을 지원하지 않습니다"
+        },
+        "files": {
+            "button": "파일 첨부 (이미지, 텍스트, PDF, JSON 지원, 최대 50MB)",
+            "sizeError": "파일 {{name}}이(가) 너무 큽니다. 50MB 미만의 파일을 선택하세요",
+            "typeError": "파일 유형 {{type}}은(는) 지원되지 않습니다"
+        }
+    },
+    "language": {
+        "selector": "언어",
+        "zh-TW": "번체 중국어",
+        "zh-CN": "간체 중국어",
+        "en": "영어",
+        "ja": "일본어",
+        "ko": "한국어"
+    },
+    "systemPrompt": "당신은 도움이 되는 AI 어시스턴트입니다. 사용자의 질문에 한국어로 답변해 주세요."
+}

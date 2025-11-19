@@ -88,7 +88,7 @@ app.post('/api/chat', async (req, res) => {
             model: settings?.model || 'llama2',
             temperature: settings?.temperature || 0.7,
             maxTokens: settings?.maxTokens || 2048,
-            systemPrompt: settings?.systemPrompt || '你是一個有用的AI助手，請用繁體中文回答用戶的問題。',
+            systemPrompt: settings?.systemPrompt || getSystemPrompt(req.body.language),
             apiUrl: settings?.apiUrl || 'http://localhost:11434',
             apiKey: settings?.apiKey || ''
         }
@@ -161,12 +161,24 @@ app.post('/api/chat/stream', async (req, res) => {
         res.setHeader('Cache-Control', 'no-cache')
         res.setHeader('Connection', 'keep-alive')
 
+        // 根據語言選擇系統提示
+        const getSystemPrompt = (language) => {
+            const prompts = {
+                'zh-TW': '你是一個有用的AI助手，請用繁體中文回答用戶的問題。',
+                'zh-CN': '你是一个有用的AI助手，请用简体中文回答用户的问题。',
+                'en': 'You are a helpful AI assistant. Please answer user questions in English.',
+                'ja': 'あなたは役立つAIアシスタントです。ユーザーの質問に日本語で答えてください。',
+                'ko': '당신은 도움이 되는 AI 어시스턴트입니다. 사용자의 질문에 한국어로 답변해 주세요.'
+            }
+            return prompts[language] || prompts['zh-TW'] // 預設為繁體中文
+        }
+
         // 設置預設設定
         const chatSettings = {
             model: settings?.model || 'llama2',
             temperature: settings?.temperature || 0.7,
             maxTokens: settings?.maxTokens || 2048,
-            systemPrompt: settings?.systemPrompt || '你是一個有用的AI助手，請用繁體中文回答用戶的問題。',
+            systemPrompt: settings?.systemPrompt || getSystemPrompt(req.body.language),
             apiUrl: settings?.apiUrl || 'http://localhost:11434',
             apiKey: settings?.apiKey || ''
         }

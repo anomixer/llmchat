@@ -1,0 +1,120 @@
+{
+    "app": {
+        "title": "LLMChat",
+        "version": "v251119",
+        "loading": "Loading...",
+        "welcome": {
+            "title": "Start chatting with AI!",
+            "subtitle": "Enter or speak your question, and I'll do my best to answer.",
+            "fileHint": "You can also upload files, and I'll help analyze and summarize them."
+        }
+    },
+    "conversation": {
+        "defaultTitle": "Conversation",
+        "list": "Conversations",
+        "empty": "No conversations yet",
+        "messages": "messages ·",
+        "delete": {
+            "confirm": "Are you sure you want to delete conversation \"{{title}}\"? This action cannot be undone.",
+            "button": "Delete conversation"
+        },
+        "clear": {
+            "confirm": "Are you sure you want to clear all content in the current conversation? This action cannot be undone.",
+            "button": "Clear conversation (Ctrl + K)"
+        },
+        "new": "New conversation (Ctrl + I)",
+        "export": {
+            "button": "Export conversation",
+            "json": "Export as JSON",
+            "markdown": "Export as Markdown"
+        }
+    },
+    "buttons": {
+        "send": "Send message",
+        "stop": "Stop generation",
+        "stopConfirm": "Press again to stop generation →",
+        "stopAction": "Stop"
+    },
+    "header": {
+        "model": {
+            "none": "No model selected",
+            "openSettings": "Click to open settings",
+            "closeSettings": "Click to close settings"
+        },
+        "conversations": {
+            "button": "Conversations (Ctrl + B)",
+            "panel": "Conversations"
+        },
+        "settings": {
+            "button": "Settings (Ctrl + , )"
+        },
+        "theme": {
+            "light": "Switch to light mode",
+            "dark": "Switch to dark mode"
+        },
+        "fullscreen": {
+            "enter": "Enter fullscreen",
+            "exit": "Exit fullscreen"
+        },
+        "github": "View on GitHub"
+    },
+    "settings": {
+        "panels": {
+            "llm": "LLM Configuration",
+            "generation": "Generation Parameters"
+        },
+        "api": {
+            "url": "API URL (Ollama/OpenAI API address)",
+            "key": "API Key (for authenticated API services)",
+            "keyPlaceholder": "Enter API Key (optional)"
+        },
+        "model": {
+            "label": "Model (Select AI model to use)",
+            "loading": "(Loading...)",
+            "none": "(No models found)",
+            "placeholder": "Loading...",
+            "noModels": "No models available"
+        },
+        "parameters": {
+            "temperature": "Temperature: {{value}} (Controls output randomness 0-2: Low=deterministic, logical, consistent; High=diverse, creative, surprising)",
+            "topP": "Top P: {{value}} (Controls core sampling probability 0-1: High=high probability; Low=low probability)",
+            "topK": "Top K: {{value}} (Limits candidate token count 1-100: High=more sampling; Low=less sampling)",
+            "maxTokens": "Max Context: {{value}} (Sets maximum context length for responses 4096-262144)"
+        }
+    },
+    "messages": {
+        "user": "User",
+        "assistant": "Assistant",
+        "thinking": "Thinking process",
+        "files": "Attached files",
+        "interrupted": "(User interrupted)",
+        "error": "Sorry, an error occurred. Please check if the backend service is running properly.",
+        "generating": "Generating response...",
+        "voice": {
+            "play": "Voice playback",
+            "stop": "Stop voice"
+        }
+    },
+    "input": {
+        "placeholder": "Enter your message... (Shift+Enter for new line)",
+        "voice": {
+            "start": "Voice input",
+            "stop": "Stop voice input",
+            "unsupported": "Your browser does not support voice recognition"
+        },
+        "files": {
+            "button": "Attach files (supports images, text, PDF, JSON, max 50MB)",
+            "sizeError": "File {{name}} is too large, please select files smaller than 50MB",
+            "typeError": "File type {{type}} is not supported"
+        }
+    },
+    "language": {
+        "selector": "Language",
+        "zh-TW": "Traditional Chinese",
+        "zh-CN": "Simplified Chinese",
+        "en": "English",
+        "ja": "Japanese",
+        "ko": "Korean"
+    },
+    "systemPrompt": "You are a helpful AI assistant. Please answer user questions in English."
+}

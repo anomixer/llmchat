@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { Send, Bot, User, Settings, Trash2, Moon, Sun, Plus, MessageSquare, Paperclip, X, Mic, MicOff, Volume2, VolumeX, Download, Square, Maximize2, Minimize2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import MarkdownMessage from './MarkdownMsg'
+import { Header } from './components/Header'
 
 // Web Speech API types
 declare global {
@@ -85,10 +87,12 @@ interface ChatSettings {
 }
 
 const App: React.FC = () => {
+    const { t, i18n } = useTranslation()
+
     // 創建初始對話
     const createInitialConversation = (): Conversation => ({
         id: Date.now().toString(),
-        title: `對話 1`,
+        title: `${t('conversation.defaultTitle')} 1`,
         messages: [],
         createdAt: new Date(),
         updatedAt: new Date()
@@ -381,7 +385,7 @@ const App: React.FC = () => {
     const createNewConversation = () => {
         const newConversation: Conversation = {
             id: Date.now().toString(),
-            title: `對話 ${conversations.length + 1}`,
+            title: `${t('conversation.defaultTitle')} ${conversations.length + 1}`,
             messages: [],
             createdAt: new Date(),
             updatedAt: new Date()
@@ -402,7 +406,7 @@ const App: React.FC = () => {
         const conversation = conversations.find(c => c.id === conversationId)
         if (!conversation) return
 
-        const confirmed = window.confirm(`確定要刪除對話「${conversation.title}」嗎？此操作無法復原。`)
+        const confirmed = window.confirm(t('conversation.delete.confirm', { title: conversation.title }))
         if (!confirmed) return
 
         setConversations(prev => prev.filter(c => c.id !== conversationId))
@@ -425,13 +429,13 @@ const App: React.FC = () => {
         const validFiles = files.filter(file => {
             // 限制檔案大小 (50MB)
             if (file.size > 50 * 1024 * 1024) {
-                alert(`檔案 ${file.name} 太大，請選擇小於 50MB 的檔案`)
+                alert(t('input.files.sizeError', { name: file.name }))
                 return false
             }
             // 限制檔案類型
             const allowedTypes = ['image/', 'text/', 'application/pdf', 'application/json']
             if (!allowedTypes.some(type => file.type.startsWith(type))) {
-                alert(`檔案類型 ${file.type} 不支援`)
+                alert(t('input.files.typeError', { type: file.type }))
                 return false
             }
             return true
@@ -454,7 +458,7 @@ const App: React.FC = () => {
             // 檢查檔案類型
             if (file.type === 'application/pdf') {
                 // PDF檔案無法在前端直接讀取內容
-                resolve(`[PDF檔案: ${file.name}]\n注意：PDF內容無法在瀏覽器中直接解析。如需分析PDF內容，請考慮將PDF轉換為文字檔案後上傳，或使用支援PDF解析的服務。`)
+                resolve(`[PDF檔案: ${file.name}]\n${t('input.files.pdfNote')}`)
             } else {
                 const reader = new FileReader()
                 reader.onload = () => resolve(reader.result as string)
@@ -467,7 +471,7 @@ const App: React.FC = () => {
     // 初始化語音識別
     const initSpeechRecognition = () => {
         if (!('SpeechRecognition' in window) && !('webkitSpeechRecognition' in window)) {
-            alert('您的瀏覽器不支援語音識別功能')
+            alert(t('input.voice.unsupported'))
             return null
         }
 
@@ -476,7 +480,16 @@ const App: React.FC = () => {
 
         recognition.continuous = false
         recognition.interimResults = false
-        recognition.lang = 'zh-TW'
+
+        // 根據當前語言設定語音識別語言
+        const languageMap: { [key: string]: string } = {
+            'zh-TW': 'zh-TW',
+            'zh-CN': 'zh-CN',
+            'en': 'en-US',
+            'ja': 'ja-JP',
+            'ko': 'ko-KR'
+        }
+        recognition.lang = languageMap[i18n.language] || 'zh-TW'
 
         recognition.onstart = () => {
             setIsRecording(true)
@@ -518,7 +531,7 @@ const App: React.FC = () => {
     // 語音輸出
     const speakText = (text: string) => {
         if (!('speechSynthesis' in window)) {
-            alert('您的瀏覽器不支援語音合成功能')
+            alert(t('messages.voice.unsupported'))
             return
         }
 
@@ -529,7 +542,16 @@ const App: React.FC = () => {
         }
 
         const utterance = new SpeechSynthesisUtterance(text)
-        utterance.lang = 'zh-TW'
+
+        // 根據當前語言設定語音合成語言
+        const languageMap: { [key: string]: string } = {
+            'zh-TW': 'zh-TW',
+            'zh-CN': 'zh-CN',
+            'en': 'en-US',
+            'ja': 'ja-JP',
+            'ko': 'ko-KR'
+        }
+        utterance.lang = languageMap[i18n.language] || 'zh-TW'
         utterance.rate = 1
         utterance.pitch = 1
 
@@ -557,16 +579,16 @@ const App: React.FC = () => {
             mimeType = 'application/json'
         } else if (format === 'markdown') {
             content = `# ${conversation.title}\n\n`
-            content += `創建時間: ${conversation.createdAt.toLocaleString('zh-TW')}\n`
-            content += `最後更新: ${conversation.updatedAt.toLocaleString('zh-TW')}\n\n`
+            content += `${t('conversation.export.created')}: ${conversation.createdAt.toLocaleString(i18n.language)}\n`
+            content += `${t('conversation.export.updated')}: ${conversation.updatedAt.toLocaleString(i18n.language)}\n\n`
             content += `---\n\n`
 
             conversation.messages.forEach((message, index) => {
-                const role = message.role === 'user' ? '用戶' : '助手'
-                content += `## ${role} (${message.timestamp.toLocaleString('zh-TW')})\n\n`
+                const role = message.role === 'user' ? t('messages.user') : t('messages.assistant')
+                content += `## ${role} (${message.timestamp.toLocaleString(i18n.language)})\n\n`
                 content += `${message.content}\n\n`
                 if (message.role === 'assistant' && message.thinking) {
-                    content += `**思考過程：**\n\n${message.thinking}\n\n`
+                    content += `**${t('messages.thinking')}：**\n\n${message.thinking}\n\n`
                 }
                 if (index < conversation.messages.length - 1) {
                     content += `---\n\n`
@@ -721,7 +743,8 @@ const App: React.FC = () => {
                 body: JSON.stringify({
                     message: userMessage.content,
                     settings: settings,
-                    history: currentConversation?.messages || []
+                    history: currentConversation?.messages || [],
+                    language: i18n.language
                 }),
             })
 
@@ -812,7 +835,7 @@ const App: React.FC = () => {
                     const assistantMessage: Message = {
                         id: (Date.now() + 1).toString(),
                         role: 'assistant',
-                        content: wasInterrupted ? finalContent + '\n\n(用戶中斷)' : finalContent,
+                        content: wasInterrupted ? finalContent + '\n\n**' + t('messages.interrupted') + '**' : finalContent,
                         thinking: finalThinking || undefined,
                         timestamp: new Date(),
                         interrupted: wasInterrupted
@@ -852,7 +875,7 @@ const App: React.FC = () => {
             const errorMessage: Message = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
-                content: '抱歉，發生錯誤。請檢查後端服務是否正常運行。',
+                content: t('messages.error'),
                 timestamp: new Date()
             }
             setConversations(prev => prev.map(c =>
@@ -922,12 +945,12 @@ const App: React.FC = () => {
         const handleClickOutside = (event: MouseEvent) => {
             // 關閉導出菜單
             const menu = document.getElementById('export-menu')
-            const button = document.querySelector('[title="導出對話"]')
-            if (menu && button && !menu.contains(event.target as Node) && !button.contains(event.target as Node)) {
+            const exportButton = document.querySelector('[data-button="export"]')
+            if (menu && exportButton && !menu.contains(event.target as Node) && !exportButton.contains(event.target as Node)) {
                 menu.classList.add('hidden')
             }
 
-            // 關閉對話列表面板
+            // 關閉對話列表面板 - 點擊任何地方都關閉，除了對話列表面板和按鈕本身
             const conversationsPanel = document.querySelector('[data-panel="conversations"]')
             const conversationsButton = document.querySelector('[data-button="conversations"]')
             if (showConversations && conversationsPanel && conversationsButton &&
@@ -938,7 +961,7 @@ const App: React.FC = () => {
             // 關閉設定面板 - 排除模型按鈕
             const settingsPanel = document.querySelector('[data-panel="settings"]')
             const settingsButton = document.querySelector('[data-button="settings"]')
-            const modelButton = document.querySelector('[title*="點擊"]') // 模型按鈕有動態title
+            const modelButton = document.querySelector('[data-button="model"]')
             if (showSettings && settingsPanel && settingsButton &&
                 !settingsPanel.contains(event.target as Node) && !settingsButton.contains(event.target as Node) &&
                 !modelButton?.contains(event.target as Node)) {
@@ -1024,7 +1047,7 @@ const App: React.FC = () => {
 
     const clearChat = () => {
         if (currentConversationId) {
-            const confirmed = window.confirm('確定要清除當前對話的所有內容嗎？此操作無法復原。')
+            const confirmed = window.confirm(t('conversation.clear.confirm'))
             if (!confirmed) return
 
             setConversations(prev => prev.map(c =>
@@ -1037,160 +1060,21 @@ const App: React.FC = () => {
 
     return (
         <div className={`flex flex-col h-full transition-colors ${isFullscreen ? 'fullscreen-app' : ''}`}>
-            {/* Header */}
-            <div className={`shadow-sm border-b px-4 py-3 flex items-center justify-between transition-colors ${isDarkMode
-                ? 'bg-gray-800 border-gray-700'
-                : 'bg-white border-gray-200'
-                }`}>
-                <div className="flex items-center space-x-2">
-                    <Bot className={`h-6 w-6 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
-                    <h1 className={`text-xl font-semibold transition-colors ${isDarkMode ? 'text-white' : 'text-gray-900'
-                        }`}>LLMChat <span className={`text-xs font-extralight transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                            }`}>v251119</span></h1>
-                    <button
-                        onClick={() => setShowSettings(prev => !prev)}
-                        className={`px-2 py-1 text-xs rounded-md transition-colors cursor-pointer ${isDarkMode
-                            ? 'bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600'
-                            : 'bg-gray-100 text-gray-600 border border-gray-300 hover:bg-gray-200'
-                            }`}
-                        title={showSettings ? '點擊關閉設定' : '點擊開啟設定'}
-                    >
-                        {settings.model || '未選擇模型'}
-                    </button>
-                </div>
-                <div className="flex items-center space-x-2">
-                    {/* GitHub 連結 */}
-                    <a
-                        href="https://github.com/anomixer/llmchat"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`p-1 rounded transition-colors ${isDarkMode
-                            ? 'text-gray-400 hover:text-gray-200'
-                            : 'text-gray-500 hover:text-gray-700'
-                            }`}
-                        title="在 GitHub 上查看"
-                    >
-                        <img
-                            src="/github.svg"
-                            alt="GitHub"
-                            className={`h-5 w-5 ${isDarkMode ? 'filter invert' : ''}`}
-                        />
-                    </a>
-                    {/* 對話列表按鈕 */}
-                    <button
-                        onClick={() => setShowConversations(!showConversations)}
-                        className={`p-2 rounded-lg transition-colors ${showConversations
-                            ? (isDarkMode ? 'text-green-400 bg-gray-700' : 'text-green-600 bg-green-50')
-                            : (isDarkMode
-                                ? 'text-gray-400 hover:text-green-400 hover:bg-gray-700'
-                                : 'text-gray-500 hover:text-green-600 hover:bg-green-50')
-                            }`}
-                        title="對話列表 (Ctrl + B)"
-                        data-button="conversations"
-                    >
-                        <MessageSquare className="h-5 w-5" />
-                    </button>
-                    {/* 新對話按鈕 */}
-                    <button
-                        onClick={createNewConversation}
-                        className={`p-2 rounded-lg transition-colors ${isDarkMode
-                            ? 'text-blue-400 hover:bg-gray-700'
-                            : 'text-blue-600 hover:bg-blue-50'
-                            }`}
-                        title="新對話 (Ctrl + I)"
-                    >
-                        <Plus className="h-5 w-5" />
-                    </button>
-                    {/* 導出按鈕 */}
-                    <div className="relative">
-                        <button
-                            onClick={() => {
-                                const menu = document.getElementById('export-menu')
-                                if (menu) menu.classList.toggle('hidden')
-                            }}
-                            className={`p-2 rounded-lg transition-colors ${isDarkMode
-                                ? 'text-gray-400 hover:text-green-400 hover:bg-gray-700'
-                                : 'text-gray-500 hover:text-green-600 hover:bg-green-50'
-                                }`}
-                            title="導出對話"
-                        >
-                            <Download className="h-5 w-5" />
-                        </button>
-                        <div
-                            id="export-menu"
-                            className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg z-10 hidden border border-gray-200 dark:border-gray-700"
-                        >
-                            <div className="py-1">
-                                <button
-                                    onClick={() => {
-                                        exportConversation('json')
-                                        document.getElementById('export-menu')?.classList.add('hidden')
-                                    }}
-                                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                >
-                                    導出為 JSON
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        exportConversation('markdown')
-                                        document.getElementById('export-menu')?.classList.add('hidden')
-                                    }}
-                                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                >
-                                    導出為 Markdown
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    {/* 清除對話按鈕 */}
-                    <button
-                        onClick={clearChat}
-                        className={`p-2 rounded-lg transition-colors ${isDarkMode
-                            ? 'text-gray-400 hover:text-red-400 hover:bg-gray-700'
-                            : 'text-gray-500 hover:text-red-600 hover:bg-red-50'
-                            }`}
-                        title="清除對話 (Ctrl + K)"
-                    >
-                        <Trash2 className="h-5 w-5" />
-                    </button>
-                    {/* 主題切換按鈕 */}
-                    <button
-                        onClick={toggleTheme}
-                        className={`p-2 rounded-lg transition-colors ${isDarkMode
-                            ? 'text-yellow-400 hover:bg-gray-700'
-                            : 'text-gray-500 hover:bg-gray-100'
-                            }`}
-                        title={isDarkMode ? '切換到亮色模式' : '切換到暗色模式'}
-                    >
-                        {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-                    </button>
-                    {/* 全螢幕切換按鈕 */}
-                    <button
-                        onClick={toggleFullscreen}
-                        className={`p-2 rounded-lg transition-colors ${isDarkMode
-                            ? 'text-gray-400 hover:text-green-400 hover:bg-gray-700'
-                            : 'text-gray-500 hover:text-green-600 hover:bg-gray-100'
-                            }`}
-                        title={isFullscreen ? '退出全螢幕' : '進入全螢幕'}
-                    >
-                        {isFullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
-                    </button>
-                    {/* 設定按鈕 */}
-                    <button
-                        onClick={() => setShowSettings(!showSettings)}
-                        className={`p-2 rounded-lg transition-colors ${showSettings
-                            ? (isDarkMode ? 'text-blue-400 bg-gray-700' : 'text-blue-600 bg-blue-50')
-                            : (isDarkMode
-                                ? 'text-gray-400 hover:text-blue-400 hover:bg-gray-700'
-                                : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50')
-                            }`}
-                        title="設定 (Ctrl + , )"
-                        data-button="settings"
-                    >
-                        <Settings className="h-5 w-5" />
-                    </button>
-                </div>
-            </div>
+            <Header
+                isDarkMode={isDarkMode}
+                isFullscreen={isFullscreen}
+                showSettings={showSettings}
+                showConversations={showConversations}
+                settings={settings}
+                conversations={conversations}
+                onToggleTheme={toggleTheme}
+                onToggleFullscreen={toggleFullscreen}
+                onToggleSettings={() => setShowSettings(!showSettings)}
+                onToggleConversations={() => setShowConversations(!showConversations)}
+                onNewConversation={createNewConversation}
+                onClearChat={clearChat}
+                onExportConversation={exportConversation}
+            />
 
             {/* Conversations Panel */}
             {showConversations && (
@@ -1201,13 +1085,13 @@ const App: React.FC = () => {
                     <div className="space-y-2">
                         <h3 className={`text-sm font-semibold transition-colors ${isDarkMode ? 'text-gray-200' : 'text-gray-800'
                             }`}>
-                            對話列表
+                            {t('conversation.list')}
                         </h3>
                         <div className="max-h-60 overflow-y-auto space-y-1">
                             {conversations.length === 0 ? (
                                 <p className={`text-sm transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
                                     }`}>
-                                    尚無對話
+                                    {t('conversation.empty')}
                                 </p>
                             ) : (
                                 conversations
@@ -1226,7 +1110,7 @@ const App: React.FC = () => {
                                                     {conversation.title}
                                                 </p>
                                                 <p className="text-xs opacity-70">
-                                                    {conversation.messages.length} 條消息 · {conversation.updatedAt.toLocaleDateString('zh-TW')}
+                                                    {conversation.messages.length} {t('conversation.messages')} · {conversation.updatedAt.toLocaleDateString(i18n.language)}
                                                 </p>
                                             </div>
                                             <button
@@ -1238,7 +1122,7 @@ const App: React.FC = () => {
                                                     ? 'text-gray-400 hover:text-red-400 hover:bg-gray-600'
                                                     : 'text-gray-500 hover:text-red-600 hover:bg-red-50'
                                                     }`}
-                                                title="刪除對話"
+                                                title={t('conversation.delete.button')}
                                             >
                                                 <Trash2 className="h-3 w-3" />
                                             </button>
@@ -1261,13 +1145,13 @@ const App: React.FC = () => {
                         <div className="space-y-4">
                             <h3 className={`text-sm font-semibold transition-colors ${isDarkMode ? 'text-gray-200' : 'text-gray-800'
                                 }`}>
-                                LLM 配置
+                                {t('settings.panels.llm')}
                             </h3>
 
                             <div>
                                 <label className={`block text-sm font-medium mb-1 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
                                     }`}>
-                                    API URL (Ollama/OpenAI API 地址)
+                                    {t('settings.api.url')}
                                 </label>
                                 <input
                                     type="text"
@@ -1284,13 +1168,13 @@ const App: React.FC = () => {
                             <div>
                                 <label className={`block text-sm font-medium mb-1 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
                                     }`}>
-                                    API Key (用於需要驗證的 API 服務)
+                                    {t('settings.api.key')}
                                 </label>
                                 <input
                                     type="password"
                                     value={settings.apiKey}
                                     onChange={(e) => setSettings(prev => ({ ...prev, apiKey: e.target.value }))}
-                                    placeholder="輸入 API Key (可選)"
+                                    placeholder={t('settings.api.keyPlaceholder')}
                                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDarkMode
                                         ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
                                         : 'bg-white border-gray-300'
@@ -1301,9 +1185,9 @@ const App: React.FC = () => {
                             <div>
                                 <label className={`block text-sm font-medium mb-1 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
                                     }`}>
-                                    模型 (選擇要使用的 AI 模型) {isLoadingModels && <span className="text-xs text-gray-500">(載入中...)</span>}
+                                    {t('settings.model.label')} {isLoadingModels && <span className="text-xs text-gray-500">({t('settings.model.loading')})</span>}
                                     {availableModels.length === 0 && !isLoadingModels && (
-                                        <span className="text-xs text-red-500 ml-2">(未找到模型)</span>
+                                        <span className="text-xs text-red-500 ml-2">({t('settings.model.none')})</span>
                                     )}
                                 </label>
                                 <select
@@ -1316,7 +1200,7 @@ const App: React.FC = () => {
                                         }`}
                                 >
                                     {isLoadingModels ? (
-                                        <option value="">載入中...</option>
+                                        <option value="">{t('settings.model.placeholder')}</option>
                                     ) : availableModels.length > 0 ? (
                                         availableModels.map(model => (
                                             <option key={model.id} value={model.id}>
@@ -1324,7 +1208,7 @@ const App: React.FC = () => {
                                             </option>
                                         ))
                                     ) : (
-                                        <option value="">沒有可用模型</option>
+                                        <option value="">{t('settings.model.noModels')}</option>
                                     )}
                                 </select>
                             </div>
@@ -1334,13 +1218,13 @@ const App: React.FC = () => {
                         <div className="space-y-4">
                             <h3 className={`text-sm font-semibold transition-colors ${isDarkMode ? 'text-gray-200' : 'text-gray-800'
                                 }`}>
-                                生成參數
+                                {t('settings.panels.generation')}
                             </h3>
 
                             <div>
                                 <label className={`block text-sm font-medium mb-1 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
                                     }`}>
-                                    溫度: <span className="text-blue-600 dark:text-blue-400 font-semibold">{settings.temperature}</span> (控制輸出的隨機性參數 0-2：低溫=確定、邏輯、一致；高溫=多樣、創造、驚喜)
+                                    {t('settings.parameters.temperature', { value: settings.temperature })}
                                 </label>
                                 <input
                                     type="range"
@@ -1357,7 +1241,7 @@ const App: React.FC = () => {
                             <div>
                                 <label className={`block text-sm font-medium mb-1 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
                                     }`}>
-                                    Top P: <span className="text-blue-600 dark:text-blue-400 font-semibold">{settings.topP}</span> (控制核心採樣的機率參數 0-1：高=高機率；低=低機率)
+                                    {t('settings.parameters.topP', { value: settings.topP })}
                                 </label>
                                 <input
                                     type="range"
@@ -1374,7 +1258,7 @@ const App: React.FC = () => {
                             <div>
                                 <label className={`block text-sm font-medium mb-1 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
                                     }`}>
-                                    Top K: <span className="text-blue-600 dark:text-blue-400 font-semibold">{settings.topK}</span> (限制候選Token的數量參數 1-100：高=取樣多；低=取樣少)
+                                    {t('settings.parameters.topK', { value: settings.topK })}
                                 </label>
                                 <input
                                     type="range"
@@ -1391,7 +1275,7 @@ const App: React.FC = () => {
                             <div>
                                 <label className={`block text-sm font-medium mb-1 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
                                     }`}>
-                                    最大 Context 數: <span className="text-blue-600 dark:text-blue-400 font-semibold">{settings.maxTokens}</span> (設定生成回應的最大上下文長度 4096-262144)
+                                    {t('settings.parameters.maxTokens', { value: settings.maxTokens })}
                                 </label>
                                 <input
                                     type="range"
@@ -1417,9 +1301,9 @@ const App: React.FC = () => {
                         }`}>
                         <Bot className={`h-12 w-12 mx-auto mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-300'
                             }`} />
-                        <p className="text-lg mb-2">開始與 AI 對話吧！</p>
-                        <p className="text-sm">輸入或說出您的問題，我會盡力為您回答。</p>
-                        <p className="text-sm">您也可以上傳檔案，我來幫您分析與歸納。</p>
+                        <p className="text-lg mb-2">{t('app.welcome.title')}</p>
+                        <p className="text-sm">{t('app.welcome.subtitle')}</p>
+                        <p className="text-sm">{t('app.welcome.fileHint')}</p>
                     </div>
                 ) : (
                     currentMessages.map((message) => (
@@ -1483,7 +1367,7 @@ const App: React.FC = () => {
                                                                             : 'text-gray-600 hover:text-gray-800')
                                                                         }`}
                                                                 >
-                                                                    <span>附加檔案</span>
+                                                                    <span>{t('messages.files')}</span>
                                                                     <svg
                                                                         className={`w-4 h-4 transition-transform ${expandedFiles.has(message.id) ? 'rotate-90' : ''}`}
                                                                         fill="none"
@@ -1519,7 +1403,7 @@ const App: React.FC = () => {
                                                         ? 'text-gray-400 hover:text-green-400 hover:bg-gray-700'
                                                         : 'text-gray-500 hover:text-green-600 hover:bg-gray-100'
                                                     }`}
-                                                title={isSpeaking ? '停止語音' : '語音播放'}
+                                                title={isSpeaking ? t('messages.voice.stop') : t('messages.voice.play')}
                                             >
                                                 {isSpeaking ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
                                             </button>
@@ -1532,7 +1416,7 @@ const App: React.FC = () => {
                                                             : 'text-gray-600 hover:text-gray-800'
                                                             }`}
                                                     >
-                                                        <span>思考過程</span>
+                                                        <span>{t('messages.thinking')}</span>
                                                         <svg
                                                             className={`w-4 h-4 transition-transform ${expandedThinking.has(message.id) ? 'rotate-90' : ''}`}
                                                             fill="none"
@@ -1557,7 +1441,7 @@ const App: React.FC = () => {
                                 </div>
                                 <p className={`text-xs mt-1 transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
                                     }`}>
-                                    {message.timestamp.toLocaleTimeString('zh-TW')}
+                                    {message.timestamp.toLocaleTimeString(i18n.language)}
                                 </p>
                             </div>
                         </div>
@@ -1599,7 +1483,7 @@ const App: React.FC = () => {
                                     : 'bg-white text-gray-900 border border-gray-200'
                                     }`}>
                                     <MarkdownMessage
-                                        content={streamingMessage || '正在生成回應...'}
+                                        content={streamingMessage || t('messages.generating')}
                                         isDarkMode={isDarkMode}
                                         isUser={false}
                                     />
@@ -1617,7 +1501,7 @@ const App: React.FC = () => {
                                                     : 'text-gray-600 hover:text-gray-800'
                                                     }`}
                                             >
-                                                <span>思考過程</span>
+                                                <span>{t('messages.thinking')}</span>
                                                 <svg
                                                     className={`w-4 h-4 transition-transform ${showStreamingThinking ? 'rotate-90' : ''}`}
                                                     fill="none"
@@ -1684,7 +1568,7 @@ const App: React.FC = () => {
                                 value={input}
                                 onChange={(e) => setInputDebounced(e.target.value)}
                                 onKeyPress={handleKeyPress}
-                                placeholder="輸入您的訊息... (Shift+Enter 換行)"
+                                placeholder={t('input.placeholder')}
                                 className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none min-h-[52px] max-h-32 transition-colors ${isDarkMode
                                     ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
                                     : 'bg-white border-gray-300'
@@ -1694,7 +1578,7 @@ const App: React.FC = () => {
                             />
                             {stopConfirmText && (
                                 <div className={`absolute right-6 top-1/2 transform -translate-y-1/2 text-sm font-medium pointer-events-none transition-colors ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>
-                                    再按一次停止生成 →
+                                    {t('buttons.stopConfirm')}
                                 </div>
                             )}
                         </div>
@@ -1717,7 +1601,7 @@ const App: React.FC = () => {
                                 ? 'text-gray-400 hover:text-red-400 hover:bg-gray-700'
                                 : 'text-gray-500 hover:text-red-600 hover:bg-gray-100'
                             }`}
-                        title={isRecording ? '停止語音輸入' : '語音輸入'}
+                        title={isRecording ? t('input.voice.stop') : t('input.voice.start')}
                         disabled={isLoading}
                     >
                         {isRecording ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
@@ -1729,7 +1613,7 @@ const App: React.FC = () => {
                             ? 'text-gray-400 hover:text-blue-400 hover:bg-gray-700'
                             : 'text-gray-500 hover:text-blue-600 hover:bg-gray-100'
                             }`}
-                        title="附加檔案 (支援圖片、文字、PDF、JSON，最大50MB)"
+                        title={t('input.files.button')}
                         disabled={isLoading}
                     >
                         <Paperclip className="h-5 w-5" />
@@ -1747,11 +1631,11 @@ const App: React.FC = () => {
                                 ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
                                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                             }`}
-                        title={isStreaming ? (stopRequested ? '確認停止生成' : '停止生成') : '發送消息'}
+                        title={isStreaming ? (stopRequested ? t('buttons.stopAction') : t('buttons.stop')) : t('buttons.send')}
                     >
                         {isStreaming ? (
                             stopRequested ? (
-                                <span className="text-xs font-medium">停止</span>
+                                <span className="text-xs font-medium">{t('buttons.stopAction')}</span>
                             ) : (
                                 <Square className="h-5 w-5" />
                             )

@@ -1,0 +1,120 @@
+{
+    "app": {
+        "title": "LLMChat",
+        "version": "v251119",
+        "loading": "読み込み中...",
+        "welcome": {
+            "title": "AIとの会話を始めましょう！",
+            "subtitle": "質問を入力または話しかけてください。ベストを尽くして回答します。",
+            "fileHint": "ファイルをアップロードすることもできます。分析と要約をお手伝いします。"
+        }
+    },
+    "conversation": {
+        "defaultTitle": "会話",
+        "list": "会話リスト",
+        "empty": "会話がありません",
+        "messages": "件のメッセージ ·",
+        "delete": {
+            "confirm": "会話「{{title}}」を削除してもよろしいですか？この操作は元に戻せません。",
+            "button": "会話を削除"
+        },
+        "clear": {
+            "confirm": "現在の会話のすべての内容をクリアしてもよろしいですか？この操作は元に戻せません。",
+            "button": "会話をクリア (Ctrl + K)"
+        },
+        "new": "新規会話 (Ctrl + I)",
+        "export": {
+            "button": "会話をエクスポート",
+            "json": "JSONとしてエクスポート",
+            "markdown": "Markdownとしてエクスポート"
+        }
+    },
+    "buttons": {
+        "send": "メッセージを送信",
+        "stop": "生成を停止",
+        "stopConfirm": "もう一度押して生成を停止 →",
+        "stopAction": "停止"
+    },
+    "header": {
+        "model": {
+            "none": "モデルが選択されていません",
+            "openSettings": "クリックして設定を開く",
+            "closeSettings": "クリックして設定を閉じる"
+        },
+        "conversations": {
+            "button": "会話リスト (Ctrl + B)",
+            "panel": "会話リスト"
+        },
+        "settings": {
+            "button": "設定 (Ctrl + , )"
+        },
+        "theme": {
+            "light": "ライトモードに切り替え",
+            "dark": "ダークモードに切り替え"
+        },
+        "fullscreen": {
+            "enter": "フルスクリーンに入る",
+            "exit": "フルスクリーンを終了"
+        },
+        "github": "GitHubで表示"
+    },
+    "settings": {
+        "panels": {
+            "llm": "LLM設定",
+            "generation": "生成パラメータ"
+        },
+        "api": {
+            "url": "API URL (Ollama/OpenAI APIアドレス)",
+            "key": "APIキー (認証が必要なAPIサービス用)",
+            "keyPlaceholder": "APIキーを入力 (オプション)"
+        },
+        "model": {
+            "label": "モデル (使用するAIモデルを選択)",
+            "loading": "(読み込み中...)",
+            "none": "(モデルが見つかりません)",
+            "placeholder": "読み込み中...",
+            "noModels": "利用可能なモデルがありません"
+        },
+        "parameters": {
+            "temperature": "温度: {{value}} (出力のランダム性を制御 0-2: 低温=決定論的、論理的、一貫性; 高温=多様性、創造性、驚き)",
+            "topP": "Top P: {{value}} (コアサンプリング確率を制御 0-1: 高=高確率; 低=低確率)",
+            "topK": "Top K: {{value}} (候補トークン数を制限 1-100: 高=サンプリング多め; 低=サンプリング少なめ)",
+            "maxTokens": "最大コンテキスト: {{value}} (応答の最大コンテキスト長を設定 4096-262144)"
+        }
+    },
+    "messages": {
+        "user": "ユーザー",
+        "assistant": "アシスタント",
+        "thinking": "思考プロセス",
+        "files": "添付ファイル",
+        "interrupted": "(ユーザーが中断)",
+        "error": "申し訳ありません。エラーが発生しました。バックエンドサービスが正常に動作しているか確認してください。",
+        "generating": "応答を生成中...",
+        "voice": {
+            "play": "音声再生",
+            "stop": "音声を停止"
+        }
+    },
+    "input": {
+        "placeholder": "メッセージを入力... (Shift+Enterで改行)",
+        "voice": {
+            "start": "音声入力",
+            "stop": "音声入力を停止",
+            "unsupported": "お使いのブラウザは音声認識をサポートしていません"
+        },
+        "files": {
+            "button": "ファイルを添付 (画像、テキスト、PDF、JSONをサポート、最大50MB)",
+            "sizeError": "ファイル {{name}} が大きすぎます。50MB未満のファイルを選択してください",
+            "typeError": "ファイルタイプ {{type}} はサポートされていません"
+        }
+    },
+    "language": {
+        "selector": "言語",
+        "zh-TW": "繁体中国語",
+        "zh-CN": "簡体中国語",
+        "en": "英語",
+        "ja": "日本語",
+        "ko": "韓国語"
+    },
+    "systemPrompt": "あなたは役立つAIアシスタントです。ユーザーの質問に日本語で答えてください。"
+}
