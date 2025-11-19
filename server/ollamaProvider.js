@@ -145,7 +145,7 @@ export class OllamaProvider {
     }
 
     // 流式生成回應
-    async *generateResponseStream({ message, history = [], settings = {} }) {
+    async *generateResponseStream({ message, history = [], settings = {}, abortSignal }) {
         const {
             model = 'llama2',
             temperature = 0.7,
@@ -193,15 +193,28 @@ export class OllamaProvider {
 
             const response = await this.client.post('/api/chat', requestData, {
                 responseType: 'stream',
-                timeout: 60000
+                timeout: 60000,
+                signal: abortSignal // 添加 abort signal 支持
             })
 
             const stream = response.data
 
             for await (const chunk of stream) {
+                // 檢查是否已被中止
+                if (abortSignal?.aborted) {
+                    console.log('Stream aborted by signal')
+                    throw new Error('Aborted')
+                }
+
                 const lines = chunk.toString().split('\n').filter(line => line.trim())
 
                 for (const line of lines) {
+                    // 再次檢查是否已被中止
+                    if (abortSignal?.aborted) {
+                        console.log('Stream aborted by signal during processing')
+                        throw new Error('Aborted')
+                    }
+
                     try {
                         const data = JSON.parse(line)
                         console.log('Stream data received:', data)

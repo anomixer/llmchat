@@ -197,6 +197,7 @@ const App: React.FC = () => {
     const [showStreamingThinking, setShowStreamingThinking] = useState(false)
     // 用於控制串流是否應該繼續的 ref
     const shouldContinueStreamingRef = useRef(true)
+    const currentRequestIdRef = useRef<string | null>(null) // 存儲當前串流請求ID
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const textareaRef = useRef<HTMLTextAreaElement>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
@@ -699,6 +700,7 @@ const App: React.FC = () => {
         shouldContinueStreamingRef.current = true // 重置串流繼續標誌
         setStopRequested(false) // 重置停止請求狀態
         setStopConfirmText('') // 重置確認文字
+        let currentRequestId: string | null = null // 存儲當前請求ID
 
         try {
             const currentConversation = conversations.find(c => c.id === conversationId)
@@ -713,6 +715,10 @@ const App: React.FC = () => {
                     history: currentConversation?.messages || []
                 }),
             })
+
+            // 獲取 request ID 用於停止
+            currentRequestId = response.headers.get('X-Request-ID')
+            currentRequestIdRef.current = currentRequestId
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`)
@@ -852,6 +858,7 @@ const App: React.FC = () => {
             setStreamingThinking('')
             setStopRequested(false) // 清除停止請求狀態
             setStopConfirmText('') // 清除確認文字
+            currentRequestIdRef.current = null // 清除請求ID
             // 發送完成後自動聚焦到輸入框
             setTimeout(() => {
                 textareaRef.current?.focus()
@@ -977,6 +984,20 @@ const App: React.FC = () => {
                 shouldContinueStreamingRef.current = false
                 setStopRequested(false)
                 setStopConfirmText('')
+                // 調用後端停止端點
+                if (currentRequestIdRef.current) {
+                    fetch('/api/chat/stop', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            requestId: currentRequestIdRef.current
+                        }),
+                    }).catch(error => {
+                        console.error('停止請求失敗:', error)
+                    })
+                }
             }
         } else {
             // 非串流狀態，正常發送

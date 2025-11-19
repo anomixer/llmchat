@@ -86,11 +86,8 @@ export class ChatProvider {
         // 處理常見的格式化問題
         processed = processed.replace(/\s+/g, ' ')
 
-        // 確保消息不會太長（可以根據模型限制調整）
-        const maxLength = 4000
-        if (processed.length > maxLength) {
-            processed = processed.substring(0, maxLength) + '...'
-        }
+        // 移除字符長度限制，讓模型自行處理
+        // 現代LLM模型可以處理更長的輸入
 
         return processed
     }

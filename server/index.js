@@ -7,6 +7,9 @@ import { ChatProvider } from './chatProvider.js'
 const app = express()
 const PORT = process.env.PORT || 3001
 
+// 存儲活躍的流式請求，用於停止
+const activeStreams = new Map()
+
 // 中間件
 app.use(cors())
 app.use(express.json())
@@ -111,14 +114,47 @@ app.post('/api/chat', async (req, res) => {
     }
 })
 
+// 停止流式請求端點
+app.post('/api/chat/stop', (req, res) => {
+    try {
+        const { requestId } = req.body
+
+        if (!requestId) {
+            return res.status(400).json({ error: '缺少 requestId' })
+        }
+
+        const abortController = activeStreams.get(requestId)
+        if (abortController) {
+            console.log(`停止流式請求: ${requestId}`)
+            abortController.abort()
+            activeStreams.delete(requestId)
+            res.json({ success: true, message: '請求已停止' })
+        } else {
+            res.status(404).json({ error: '請求未找到或已完成' })
+        }
+    } catch (error) {
+        console.error('停止請求錯誤:', error)
+        res.status(500).json({ error: '停止請求時發生錯誤' })
+    }
+})
+
 // 流式聊天端點 - 支持實時串流回應
 app.post('/api/chat/stream', async (req, res) => {
+    const requestId = Date.now().toString() + Math.random().toString(36).substr(2, 9)
+    const abortController = new AbortController()
+
     try {
         const { message, settings, history } = req.body
 
         if (!message) {
             return res.status(400).json({ error: '消息不能為空' })
         }
+
+        // 存儲 abort controller 用於後續停止
+        activeStreams.set(requestId, abortController)
+
+        // 返回 requestId 給前端
+        res.setHeader('X-Request-ID', requestId)
 
         // 設置流式回應頭
         res.setHeader('Content-Type', 'text/plain; charset=utf-8')
@@ -143,7 +179,8 @@ app.post('/api/chat/stream', async (req, res) => {
             const streamGenerator = dynamicProvider.generateResponseStream({
                 message,
                 history: history || [],
-                settings: chatSettings
+                settings: chatSettings,
+                abortSignal: abortController.signal
             })
 
             for await (const chunk of streamGenerator) {
@@ -154,11 +191,16 @@ app.post('/api/chat/stream', async (req, res) => {
             console.log('Stream completed successfully')
             res.end()
         } catch (error) {
-            console.error('Stream processing error:', error)
-            if (!res.headersSent) {
-                res.status(500).json({ error: '流式處理錯誤', details: error.message })
-            } else {
+            if (error.name === 'AbortError') {
+                console.log('Stream aborted by user')
                 res.end()
+            } else {
+                console.error('Stream processing error:', error)
+                if (!res.headersSent) {
+                    res.status(500).json({ error: '流式處理錯誤', details: error.message })
+                } else {
+                    res.end()
+                }
             }
         }
 
@@ -169,6 +211,9 @@ app.post('/api/chat/stream', async (req, res) => {
         } else {
             res.end()
         }
+    } finally {
+        // 清理 abort controller
+        activeStreams.delete(requestId)
     }
 })
 
