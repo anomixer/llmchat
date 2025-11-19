@@ -4,6 +4,7 @@ import remarkGfm from 'remark-gfm'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { Copy, Check } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 interface MarkdownMessageProps {
     content: string
     isDarkMode: boolean
@@ -11,6 +12,7 @@ interface MarkdownMessageProps {
 }
 
 const MarkdownMessage: React.FC<MarkdownMessageProps> = React.memo(({ content, isDarkMode, isUser = false }) => {
+    const { t } = useTranslation()
     const [copiedBlocks, setCopiedBlocks] = React.useState<Set<string>>(new Set())
 
     const getTextColor = () => {
@@ -20,7 +22,25 @@ const MarkdownMessage: React.FC<MarkdownMessageProps> = React.memo(({ content, i
 
     const copyToClipboard = async (text: string, blockId: string) => {
         try {
-            await navigator.clipboard.writeText(text)
+            // 嘗試使用現代的 Clipboard API
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(text)
+            } else {
+                // Fallback 到舊的 execCommand 方法
+                const textArea = document.createElement('textarea')
+                textArea.value = text
+                textArea.style.position = 'fixed'
+                textArea.style.left = '-999999px'
+                textArea.style.top = '-999999px'
+                document.body.appendChild(textArea)
+                textArea.focus()
+                textArea.select()
+                const successful = document.execCommand('copy')
+                document.body.removeChild(textArea)
+                if (!successful) {
+                    throw new Error('Copy command failed')
+                }
+            }
             setCopiedBlocks(prev => new Set(prev).add(blockId))
             setTimeout(() => {
                 setCopiedBlocks(prev => {
@@ -31,6 +51,8 @@ const MarkdownMessage: React.FC<MarkdownMessageProps> = React.memo(({ content, i
             }, 2000)
         } catch (err) {
             console.error('Failed to copy text: ', err)
+            // 顯示用戶友好的錯誤提示
+            alert(t('messages.copy.failed'))
         }
     }
 
@@ -56,7 +78,12 @@ const MarkdownMessage: React.FC<MarkdownMessageProps> = React.memo(({ content, i
                         return (
                             <div className="relative group">
                                 <button
-                                    onClick={() => copyToClipboard(codeContent, blockId)}
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.preventDefault()
+                                        e.stopPropagation()
+                                        copyToClipboard(codeContent, blockId)
+                                    }}
                                     className={`absolute top-2 right-2 p-1 rounded text-xs transition-colors opacity-0 group-hover:opacity-100 ${isDarkMode
                                         ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                                         : 'bg-gray-200 text-gray-600 hover:bg-gray-300'

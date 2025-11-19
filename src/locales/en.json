@@ -90,6 +90,10 @@
         "interrupted": "(User interrupted)",
         "error": "Sorry, an error occurred. Please check if the backend service is running properly.",
         "generating": "Generating response...",
+        "copy": {
+            "success": "Code copied to clipboard",
+            "failed": "Copy failed, please manually select and copy the code"
+        },
         "voice": {
             "play": "Voice playback",
             "stop": "Stop voice"
