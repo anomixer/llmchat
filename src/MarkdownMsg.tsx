@@ -88,7 +88,7 @@ const MarkdownMessage: React.FC<MarkdownMessageProps> = React.memo(({ content, i
                                         ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                                         : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
                                         }`}
-                                    title="複製程式碼"
+                                    title={t('messages.copy.buttonTitle')}
                                 >
                                     {isCopied ? (
                                         <Check className="h-3 w-3 text-green-500" />

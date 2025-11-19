@@ -91,6 +91,7 @@
         "error": "Sorry, an error occurred. Please check if the backend service is running properly.",
         "generating": "Generating response...",
         "copy": {
+            "buttonTitle": "Copy code",
             "success": "Code copied to clipboard",
             "failed": "Copy failed, please manually select and copy the code"
         },
