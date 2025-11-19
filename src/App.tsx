@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, Bot, User, Settings, Trash2, Moon, Sun, Plus, MessageSquare, Paperclip, X, Mic, MicOff, Volume2, VolumeX, Download, Square } from 'lucide-react'
+import { Send, Bot, User, Settings, Trash2, Moon, Sun, Plus, MessageSquare, Paperclip, X, Mic, MicOff, Volume2, VolumeX, Download, Square, Maximize2, Minimize2 } from 'lucide-react'
 import MarkdownMessage from './MarkdownMsg'
 
 // Web Speech API types
@@ -183,6 +183,7 @@ const App: React.FC = () => {
     const [isRecording, setIsRecording] = useState(false)
     const [isSpeaking, setIsSpeaking] = useState(false)
     const [isStreaming, setIsStreaming] = useState(false)
+    const [isFullscreen, setIsFullscreen] = useState(false)
     // 永遠啟用串流模式
     const streamingModeEnabled = true
     const [streamingMessage, setStreamingMessage] = useState('')
@@ -254,6 +255,14 @@ const App: React.FC = () => {
         localStorage.setItem('theme', JSON.stringify(newTheme))
         // 更新 body 類別以應用玻璃擬態主題
         document.body.classList.toggle('dark-theme', newTheme)
+    }
+
+    // 切換全螢幕函數
+    const toggleFullscreen = () => {
+        const newFullscreen = !isFullscreen
+        setIsFullscreen(newFullscreen)
+        // 更新 body 類別以應用全螢幕樣式
+        document.body.classList.toggle('fullscreen-mode', newFullscreen)
     }
 
     // 切換thinking展開狀態
@@ -1027,7 +1036,7 @@ const App: React.FC = () => {
     }
 
     return (
-        <div className="flex flex-col h-full transition-colors">
+        <div className={`flex flex-col h-full transition-colors ${isFullscreen ? 'fullscreen-app' : ''}`}>
             {/* Header */}
             <div className={`shadow-sm border-b px-4 py-3 flex items-center justify-between transition-colors ${isDarkMode
                 ? 'bg-gray-800 border-gray-700'
@@ -1037,7 +1046,7 @@ const App: React.FC = () => {
                     <Bot className={`h-6 w-6 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
                     <h1 className={`text-xl font-semibold transition-colors ${isDarkMode ? 'text-white' : 'text-gray-900'
                         }`}>LLMChat <span className={`text-xs font-extralight transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                            }`}>v251118</span></h1>
+                            }`}>v251119</span></h1>
                     <button
                         onClick={() => setShowSettings(prev => !prev)}
                         className={`px-2 py-1 text-xs rounded-md transition-colors cursor-pointer ${isDarkMode
@@ -1154,6 +1163,17 @@ const App: React.FC = () => {
                         title={isDarkMode ? '切換到亮色模式' : '切換到暗色模式'}
                     >
                         {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                    </button>
+                    {/* 全螢幕切換按鈕 */}
+                    <button
+                        onClick={toggleFullscreen}
+                        className={`p-2 rounded-lg transition-colors ${isDarkMode
+                            ? 'text-gray-400 hover:text-green-400 hover:bg-gray-700'
+                            : 'text-gray-500 hover:text-green-600 hover:bg-gray-100'
+                            }`}
+                        title={isFullscreen ? '退出全螢幕' : '進入全螢幕'}
+                    >
+                        {isFullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
                     </button>
                     {/* 設定按鈕 */}
                     <button

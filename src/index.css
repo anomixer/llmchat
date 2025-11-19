@@ -116,6 +116,28 @@ body.dark-theme #root {
     white-space: pre;
 }
 
+/* 全螢幕模式樣式 */
+body.fullscreen-mode {
+    padding: 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+body.fullscreen-mode:not(.dark-theme) {
+    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+}
+
+body.fullscreen-mode #root {
+    max-width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+}
+
+.fullscreen-app {
+    height: 100vh !important;
+}
+
 /* 移動端響應式調整 */
 @media (max-width: 640px) {
     body {

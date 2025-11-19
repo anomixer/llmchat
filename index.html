@@ -24,6 +24,7 @@
             justify-content: center;
             z-index: 9999;
         }
+
         .loading-screen .loading-content {
             font-size: 1.125rem;
             font-weight: 500;
@@ -40,14 +41,14 @@
 
 <body>
     <div class="loading-screen">
-        <div class="loading-content">LLMChat v251118 載入中...</div>
+        <div class="loading-content">LLMChat v251119 載入中...</div>
     </div>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
     <script>
         // 當React應用載入時隱藏載入畫面
-        window.addEventListener('load', function() {
-            setTimeout(function() {
+        window.addEventListener('load', function () {
+            setTimeout(function () {
                 const loadingScreen = document.querySelector('.loading-screen');
                 if (loadingScreen) {
                     loadingScreen.style.display = 'none';
