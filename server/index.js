@@ -4,6 +4,7 @@ import cors from 'cors'
 import { OllamaProvider } from './ollamaProvider.js'
 import { ChatProvider } from './chatProvider.js'
 import UserService from './userService.js'
+import EmailService from './emailService.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -13,6 +14,7 @@ const activeStreams = new Map()
 
 // 初始化用戶服務
 const userService = new UserService()
+const emailService = new EmailService()
 
 // 中間件
 app.use(cors())
@@ -67,7 +69,32 @@ app.post('/api/auth/register', async (req, res) => {
         }
 
         const user = await userService.register(email, password)
-        res.json({ user })
+
+        // 生成驗證鏈接 - 使用前端URL，前端會代理到後端
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000'
+        const verificationUrl = `${frontendUrl}/api/auth/verify-email/${user.emailVerificationToken}`
+
+        // 嘗試發送驗證郵件
+        let emailSent = false
+        try {
+            await emailService.sendVerificationEmail(email, verificationUrl)
+            emailSent = true
+            console.log('Verification email sent to:', email)
+        } catch (emailError) {
+            console.error('Failed to send verification email:', emailError)
+            // 不阻擋註冊，但記錄錯誤
+        }
+
+        res.json({
+            user: {
+                id: user.id,
+                email: user.email,
+                role: user.role,
+                createdAt: user.createdAt
+            },
+            verificationUrl: verificationUrl,
+            emailSent: emailSent
+        })
     } catch (error) {
         console.error('Registration error:', error)
         res.status(400).json({ error: error.message })
@@ -109,11 +136,193 @@ app.get('/api/auth/verify', authenticateToken, (req, res) => {
     res.json({ user: req.user })
 })
 
+// Email 驗證
+app.get('/api/auth/verify-email/:token', (req, res) => {
+    try {
+        const { token } = req.params
+        const user = userService.verifyEmail(token)
+
+        // 返回成功頁面 - 鏈接指向前端
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000'
+        res.send(`
+            <!DOCTYPE html>
+            <html lang="zh-TW">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Email 驗證成功</title>
+                <style>
+                    body {
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        margin: 0;
+                        padding: 0;
+                        min-height: 100vh;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    }
+                    .container {
+                        background: white;
+                        border-radius: 12px;
+                        padding: 2rem;
+                        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+                        text-align: center;
+                        max-width: 400px;
+                        width: 90%;
+                    }
+                    .success-icon {
+                        color: #10b981;
+                        font-size: 3rem;
+                        margin-bottom: 1rem;
+                    }
+                    h1 {
+                        color: #1f2937;
+                        margin-bottom: 1rem;
+                    }
+                    p {
+                        color: #6b7280;
+                        margin-bottom: 2rem;
+                    }
+                    .btn {
+                        background: #3b82f6;
+                        color: white;
+                        border: none;
+                        padding: 12px 24px;
+                        border-radius: 8px;
+                        text-decoration: none;
+                        display: inline-block;
+                        font-weight: 500;
+                        transition: background-color 0.2s;
+                    }
+                    .btn:hover {
+                        background: #2563eb;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="success-icon">✓</div>
+                    <h1>Email 驗證成功！</h1>
+                    <p>您的帳號已成功啟用。現在您可以登入使用了。</p>
+                    <a href="${frontendUrl}" class="btn">返回登入頁面</a>
+                </div>
+            </body>
+            </html>
+        `)
+    } catch (error) {
+        console.error('Email verification error:', error)
+
+        // 返回錯誤頁面
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000'
+        res.status(400).send(`
+            <!DOCTYPE html>
+            <html lang="zh-TW">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Email 驗證失敗</title>
+                <style>
+                    body {
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        margin: 0;
+                        padding: 0;
+                        min-height: 100vh;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    }
+                    .container {
+                        background: white;
+                        border-radius: 12px;
+                        padding: 2rem;
+                        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+                        text-align: center;
+                        max-width: 400px;
+                        width: 90%;
+                    }
+                    .error-icon {
+                        color: #ef4444;
+                        font-size: 3rem;
+                        margin-bottom: 1rem;
+                    }
+                    h1 {
+                        color: #1f2937;
+                        margin-bottom: 1rem;
+                    }
+                    p {
+                        color: #6b7280;
+                        margin-bottom: 2rem;
+                    }
+                    .btn {
+                        background: #6b7280;
+                        color: white;
+                        border: none;
+                        padding: 12px 24px;
+                        border-radius: 8px;
+                        text-decoration: none;
+                        display: inline-block;
+                        font-weight: 500;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="error-icon">✕</div>
+                    <h1>Email 驗證失敗</h1>
+                    <p>${error.message}</p>
+                    <a href="${frontendUrl}" class="btn">返回首頁</a>
+                </div>
+            </body>
+            </html>
+        `)
+    }
+})
+
+// 重新發送驗證 Email
+app.post('/api/auth/resend-verification', async (req, res) => {
+    try {
+        const { email } = req.body
+
+        if (!email) {
+            return res.status(400).json({ error: '請提供 Email 地址' })
+        }
+
+        const token = userService.resendVerificationEmail(email)
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000'
+        const verificationUrl = `${frontendUrl}/api/auth/verify-email/${token}`
+
+        // 嘗試發送驗證郵件
+        let emailSent = false
+        try {
+            await emailService.sendVerificationEmail(email, verificationUrl)
+            emailSent = true
+            console.log('Resend verification email sent to:', email)
+        } catch (emailError) {
+            console.error('Failed to resend verification email:', emailError)
+            // 不阻擋操作，但記錄錯誤
+        }
+
+        res.json({
+            message: emailSent ? '驗證郵件已重新發送' : '驗證鏈接已重新生成',
+            verificationUrl: verificationUrl,
+            emailSent: emailSent
+        })
+    } catch (error) {
+        console.error('Resend verification error:', error)
+        res.status(400).json({ error: error.message })
+    }
+})
+
 // 獲取預設配置
-app.get('/api/config', (req, res) => {
+app.get('/api/config', async (req, res) => {
+    const smtpEnabled = await emailService.testConnection()
+
     res.json({
         apiUrl: defaultApiUrl,
-        apiKey: defaultApiKey ? 'configured' : ''
+        apiKey: defaultApiKey ? 'configured' : '',
+        smtpEnabled: smtpEnabled
     })
 })
 
@@ -457,6 +666,7 @@ app.listen(PORT, () => {
     console.log(`   - Ollama API URL: ${defaultApiUrl}`)
     console.log(`   - API Key: ${defaultApiKey ? '已設定' : '未設定'}`)
     console.log(`   - VITE_ALLOWED_HOSTS: ${process.env.VITE_ALLOWED_HOSTS || '未設定'}`)
+    console.log(`   - FRONTEND_URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`)
 
     // 測試 Ollama 連接
     ollamaProvider.checkConnection()
@@ -469,6 +679,19 @@ app.listen(PORT, () => {
         })
         .catch(error => {
             console.warn('⚠️  檢查 Ollama 連接時發生錯誤:', error.message)
+        })
+
+    // 測試 SMTP 連接
+    emailService.testConnection()
+        .then(connected => {
+            if (connected) {
+                console.log('✅ SMTP 連接正常')
+            } else {
+                console.warn('⚠️  SMTP 未設定或連接失敗，將取消用戶註冊功能')
+            }
+        })
+        .catch(error => {
+            console.warn('⚠️  檢查 SMTP 連接時發生錯誤:', error.message)
         })
 })
 

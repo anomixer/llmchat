@@ -122,7 +122,7 @@
         "login": "登入",
         "register": "註冊",
         "email": "Email",
-        "emailPlaceholder": "輸入您的 Email",
+        "emailPlaceholder": "輸入您的 Email 地址",
         "password": "密碼",
         "passwordPlaceholder": "輸入您的密碼",
         "confirmPassword": "確認密碼",
@@ -131,7 +131,18 @@
         "processing": "處理中...",
         "noAccount": "還沒有帳號？",
         "hasAccount": "已經有帳號？",
-        "logout": "登出"
+        "logout": "登出",
+        "registrationSuccess": "感謝註冊！",
+        "verificationEmailSent": "我們已發送驗證郵件到您的信箱：",
+        "verificationLinkGenerated": "驗證鏈接已生成，請複製以下鏈接到瀏覽器開啟：",
+        "verificationSent": "我們已發送驗證鏈接到您的信箱：",
+        "verificationLink": "驗證鏈接：",
+        "verificationInstructions": "請點擊鏈接或複製鏈接到瀏覽器開啟，完成 Email 驗證後即可登入使用。",
+        "copyLink": "複製",
+        "linkCopied": "驗證鏈接已複製到剪貼簿",
+        "backToLogin": "返回登入",
+        "resendVerification": "重新發送驗證郵件",
+        "resendVerificationSuccess": "驗證郵件已重新發送！"
     },
     "language": {
         "selector": "語言",

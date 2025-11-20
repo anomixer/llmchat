@@ -14,9 +14,10 @@ interface AuthContextType {
     isLoading: boolean
     error: string | null
     login: (email: string, password: string) => Promise<void>
-    register: (email: string, password: string) => Promise<void>
+    register: (email: string, password: string) => Promise<{ verificationUrl: string; emailSent: boolean; alreadyExists?: boolean }>
+    resendVerification: (email: string) => Promise<{ verificationUrl: string; emailSent: boolean }>
     logout: () => Promise<void>
-    verifyAuth: () => Promise<void>
+    verifyAuth: (token?: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -46,7 +47,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             if (savedToken) {
                 setToken(savedToken)
                 try {
-                    await verifyAuth()
+                    await verifyAuth(savedToken)
                 } catch (error) {
                     console.error('Auto verification failed:', error)
                     // 如果自動驗證失敗，清除無效的 token
@@ -91,7 +92,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
 
     const register = async (email: string, password: string) => {
-        setIsLoading(true)
+        // 不設置loading狀態，讓前端自己處理
         setError(null)
 
         try {
@@ -106,14 +107,50 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             const data = await response.json()
 
             if (!response.ok) {
+                // 如果是重複註冊，返回特殊狀態而不是拋出錯誤
+                if (data.error === 'Email 已存在') {
+                    return {
+                        verificationUrl: '',
+                        emailSent: false,
+                        alreadyExists: true
+                    }
+                }
                 throw new Error(data.error || '註冊失敗')
             }
 
-            setUser(data.user)
-            setToken(data.token)
-            localStorage.setItem('authToken', data.token)
+            return {
+                verificationUrl: data.verificationUrl,
+                emailSent: data.emailSent || false,
+                alreadyExists: false
+            }
         } catch (error) {
             setError(error instanceof Error ? error.message : '註冊失敗')
+            throw error
+        }
+    }
+
+    const resendVerification = async (email: string) => {
+        setIsLoading(true)
+        setError(null)
+
+        try {
+            const response = await fetch('/api/auth/resend-verification', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email }),
+            })
+
+            const data = await response.json()
+
+            if (!response.ok) {
+                throw new Error(data.error || '重新發送驗證郵件失敗')
+            }
+
+            return { verificationUrl: data.verificationUrl, emailSent: data.emailSent }
+        } catch (error) {
+            setError(error instanceof Error ? error.message : '重新發送驗證郵件失敗')
             throw error
         } finally {
             setIsLoading(false)
@@ -144,13 +181,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
     }
 
-    const verifyAuth = async () => {
-        if (!token) return
+    const verifyAuth = async (authToken?: string) => {
+        const tokenToVerify = authToken || token
+        if (!tokenToVerify) return
 
         try {
             const response = await fetch('/api/auth/verify', {
                 headers: {
-                    'Authorization': `Bearer ${token}`,
+                    'Authorization': `Bearer ${tokenToVerify}`,
                 },
             })
 
@@ -180,6 +218,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         error,
         login,
         register,
+        resendVerification,
         logout,
         verifyAuth,
     }

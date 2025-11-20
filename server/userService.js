@@ -89,7 +89,9 @@ class UserService {
             email,
             password: hashedPassword,
             role,
-            enable: true, // 預設啟用新用戶
+            enable: false, // 新用戶需要驗證 Email 後才能啟用
+            emailVerified: false, // 新註冊用戶需要驗證 Email
+            emailVerificationToken: crypto.randomBytes(32).toString('hex'), // 驗證令牌
             createdAt: new Date().toISOString(),
             lastLoginAt: null,
             conversations: []
@@ -98,7 +100,13 @@ class UserService {
         this.users.push(user)
         this.saveUsers()
 
-        return { id: user.id, email: user.email, role: user.role, createdAt: user.createdAt }
+        return {
+            id: user.id,
+            email: user.email,
+            role: user.role,
+            createdAt: user.createdAt,
+            emailVerificationToken: user.emailVerificationToken
+        }
     }
 
     // 用戶登入
@@ -106,6 +114,11 @@ class UserService {
         const user = this.users.find(user => user.email === email)
         if (!user) {
             throw new Error('Email 或密碼錯誤')
+        }
+
+        // 檢查用戶是否已驗證 Email
+        if (!user.emailVerified) {
+            throw new Error('請先驗證您的 Email 地址')
         }
 
         // 檢查用戶是否被啟用
@@ -302,6 +315,43 @@ class UserService {
         // 這個方法需要從請求中獲取，但這裡先返回null
         // 實際使用時會從中間件傳遞
         return null
+    }
+
+    // 驗證 Email
+    verifyEmail(token) {
+        const user = this.users.find(user => user.emailVerificationToken === token)
+        if (!user) {
+            throw new Error('無效的驗證令牌')
+        }
+
+        if (user.emailVerified) {
+            throw new Error('Email 已經驗證過了')
+        }
+
+        user.emailVerified = true
+        user.enable = true // 驗證後自動啟用帳號
+        user.emailVerificationToken = null // 清除驗證令牌
+        this.saveUsers()
+
+        return user
+    }
+
+    // 重新發送驗證 Email（模擬）
+    resendVerificationEmail(email) {
+        const user = this.users.find(user => user.email === email)
+        if (!user) {
+            throw new Error('用戶不存在')
+        }
+
+        if (user.emailVerified) {
+            throw new Error('Email 已經驗證過了')
+        }
+
+        // 生成新的驗證令牌
+        user.emailVerificationToken = crypto.randomBytes(32).toString('hex')
+        this.saveUsers()
+
+        return user.emailVerificationToken
     }
 
     // 清理過期的會話

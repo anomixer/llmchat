@@ -91,7 +91,7 @@ interface ChatSettings {
 
 const App: React.FC = () => {
     const { t, i18n } = useTranslation()
-    const { user, token, login, register, logout, isLoading: authLoading, error: authError } = useAuth()
+    const { user, token, login, register, resendVerification, logout, isLoading: authLoading, error: authError } = useAuth()
     const [currentView, setCurrentView] = useState<'chat' | 'admin'>('chat')
 
     // 創建初始對話
@@ -1132,6 +1132,7 @@ const App: React.FC = () => {
             <Auth
                 onLogin={login}
                 onRegister={register}
+                onResendVerification={resendVerification}
                 isLoading={authLoading}
                 error={authError}
             />
