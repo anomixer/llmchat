@@ -18,6 +18,11 @@ coverage/
 .env.test.local
 .env.production.local
 
+# User data and sessions (contains sensitive user information)
+data/
+data/users.json
+data/sessions.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

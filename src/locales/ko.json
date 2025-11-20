@@ -1,7 +1,7 @@
 {
     "app": {
         "title": "LLMChat",
-        "version": "v251119",
+        "version": "v251120",
         "loading": "로딩 중...",
         "welcome": {
             "title": "AI와 대화를 시작하세요!",

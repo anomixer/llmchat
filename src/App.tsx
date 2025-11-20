@@ -1,8 +1,11 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, Bot, User, Settings, Trash2, Moon, Sun, Plus, MessageSquare, Paperclip, X, Mic, MicOff, Volume2, VolumeX, Download, Square, Maximize2, Minimize2 } from 'lucide-react'
+import { Send, Bot, User, Settings, Trash2, Moon, Sun, Plus, MessageSquare, Paperclip, X, Mic, MicOff, Volume2, VolumeX, Download, Square, Maximize2, Minimize2, LogOut } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import MarkdownMessage from './MarkdownMsg'
 import { Header } from './components/Header'
+import { Auth } from './components/Auth'
+import { Admin } from './components/Admin'
+import { useAuth } from './AuthContext'
 
 // Web Speech API types
 declare global {
@@ -88,6 +91,8 @@ interface ChatSettings {
 
 const App: React.FC = () => {
     const { t, i18n } = useTranslation()
+    const { user, token, login, register, logout, isLoading: authLoading, error: authError } = useAuth()
+    const [currentView, setCurrentView] = useState<'chat' | 'admin'>('chat')
 
     // 創建初始對話
     const createInitialConversation = (): Conversation => ({
@@ -98,45 +103,20 @@ const App: React.FC = () => {
         updatedAt: new Date()
     })
 
-    // 初始化對話列表
-    const initialConversations = (() => {
-        try {
-            const saved = localStorage.getItem('conversations')
-            if (saved) {
-                const parsed = JSON.parse(saved)
-                // 確保Date對象正確解析
-                const parsedConversations = parsed.map((conv: any) => ({
-                    ...conv,
-                    createdAt: new Date(conv.createdAt),
-                    updatedAt: new Date(conv.updatedAt),
-                    messages: conv.messages.map((msg: any) => ({
-                        ...msg,
-                        timestamp: new Date(msg.timestamp)
-                    }))
-                }))
-                if (parsedConversations.length > 0) {
-                    return parsedConversations
-                }
-            }
-            return [createInitialConversation()]
-        } catch (error) {
-            console.error('Error loading conversations from localStorage:', error)
-            return [createInitialConversation()]
-        }
-    })()
-
-    const [conversations, setConversations] = useState<Conversation[]>(initialConversations)
+    // 初始化對話列表 - 現在從服務器加載
+    const [conversations, setConversations] = useState<Conversation[]>([createInitialConversation()])
+    const [conversationsLoaded, setConversationsLoaded] = useState(false)
 
     const [currentConversationId, setCurrentConversationId] = useState<string>(() => {
         try {
             const saved = localStorage.getItem('currentConversationId')
-            if (saved && initialConversations.some((c: Conversation) => c.id === saved)) {
+            if (saved && conversations.some((c: Conversation) => c.id === saved)) {
                 return saved
             }
-            return initialConversations[0].id
+            return conversations[0].id
         } catch (error) {
             console.error('Error loading currentConversationId from localStorage:', error)
-            return initialConversations[0].id
+            return conversations[0].id
         }
     })
     const [input, setInput] = useState('')
@@ -372,10 +352,84 @@ const App: React.FC = () => {
         document.body.classList.toggle('dark-theme', isDarkMode)
     }, [isDarkMode])
 
-    // 保存對話到本地存儲
+    // 從服務器加載用戶對話
+    const loadUserConversations = async () => {
+        if (!token) return
+
+        try {
+            const response = await fetch('/api/conversations', {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            })
+
+            if (response.ok) {
+                const data = await response.json()
+                const serverConversations = data.conversations.map((conv: any) => ({
+                    ...conv,
+                    createdAt: new Date(conv.createdAt),
+                    updatedAt: new Date(conv.updatedAt),
+                    messages: conv.messages.map((msg: any) => ({
+                        ...msg,
+                        timestamp: new Date(msg.timestamp)
+                    }))
+                }))
+
+                // 設置用戶的對話，清空之前的狀態
+                if (serverConversations.length > 0) {
+                    setConversations(serverConversations)
+                    // 設置當前對話為第一個
+                    setCurrentConversationId(serverConversations[0].id)
+                } else {
+                    // 如果沒有對話，創建一個新的
+                    const newConv = createInitialConversation()
+                    setConversations([newConv])
+                    setCurrentConversationId(newConv.id)
+                }
+            }
+        } catch (error) {
+            console.error('Error loading conversations:', error)
+        } finally {
+            setConversationsLoaded(true)
+        }
+    }
+
+    // 保存對話到服務器
+    const saveConversationsToServer = async (conversationsToSave: Conversation[]) => {
+        if (!token) return
+
+        try {
+            await fetch('/api/conversations', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ conversations: conversationsToSave }),
+            })
+        } catch (error) {
+            console.error('Error saving conversations:', error)
+        }
+    }
+
+    // 當用戶登入時加載對話，當用戶登出時重置狀態
     useEffect(() => {
-        localStorage.setItem('conversations', JSON.stringify(conversations))
-    }, [conversations])
+        if (user && token && !conversationsLoaded) {
+            loadUserConversations()
+        } else if (!user && conversationsLoaded) {
+            // 用戶登出時重置對話狀態
+            setConversations([])
+            setConversationsLoaded(false)
+            setCurrentConversationId('')
+        }
+    }, [user, token, conversationsLoaded])
+
+    // 當對話變化時保存到服務器
+    useEffect(() => {
+        if (conversationsLoaded && user && token) {
+            saveConversationsToServer(conversations)
+        }
+    }, [conversations, conversationsLoaded, user, token])
 
     useEffect(() => {
         localStorage.setItem('currentConversationId', currentConversationId)
@@ -739,12 +793,14 @@ const App: React.FC = () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
                 },
                 body: JSON.stringify({
                     message: userMessage.content,
                     settings: settings,
                     history: currentConversation?.messages || [],
-                    language: i18n.language
+                    language: i18n.language,
+                    conversationId: conversationId
                 }),
             })
 
@@ -1058,6 +1114,35 @@ const App: React.FC = () => {
         }
     }
 
+    // 如果正在檢查認證狀態，顯示加載畫面
+    if (authLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800">
+                <div className="text-center">
+                    <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-gray-600 dark:text-gray-400">載入中...</p>
+                </div>
+            </div>
+        )
+    }
+
+    // 如果未登入，顯示認證界面
+    if (!user) {
+        return (
+            <Auth
+                onLogin={login}
+                onRegister={register}
+                isLoading={authLoading}
+                error={authError}
+            />
+        )
+    }
+
+    // 如果是管理員視圖，顯示管理界面
+    if (currentView === 'admin') {
+        return <Admin onBack={() => setCurrentView('chat')} />
+    }
+
     return (
         <div className={`flex flex-col h-full transition-colors ${isFullscreen ? 'fullscreen-app' : ''}`}>
             <Header
@@ -1074,6 +1159,9 @@ const App: React.FC = () => {
                 onNewConversation={createNewConversation}
                 onClearChat={clearChat}
                 onExportConversation={exportConversation}
+                onLogout={logout}
+                user={user}
+                onAdminView={() => setCurrentView('admin')}
             />
 
             {/* Conversations Panel */}

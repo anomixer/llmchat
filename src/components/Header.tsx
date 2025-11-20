@@ -1,7 +1,15 @@
 import React from 'react'
-import { Send, Bot, Settings, Trash2, Moon, Sun, Plus, MessageSquare, Download, Maximize2, Minimize2 } from 'lucide-react'
+import { Send, Bot, Settings, Trash2, Moon, Sun, Plus, MessageSquare, Download, Maximize2, Minimize2, LogOut, Users } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { LanguageSelector } from './LanguageSelector'
+
+interface User {
+    id: string
+    email: string
+    role: string
+    createdAt: string
+    lastLoginAt: string | null
+}
 
 interface HeaderProps {
     isDarkMode: boolean
@@ -17,6 +25,9 @@ interface HeaderProps {
     onNewConversation: () => void
     onClearChat: () => void
     onExportConversation: (format: 'json' | 'markdown') => void
+    onLogout: () => void
+    user: User
+    onAdminView?: () => void
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -32,7 +43,10 @@ export const Header: React.FC<HeaderProps> = ({
     onToggleConversations,
     onNewConversation,
     onClearChat,
-    onExportConversation
+    onExportConversation,
+    onLogout,
+    user,
+    onAdminView
 }) => {
     const { t } = useTranslation()
 
@@ -177,6 +191,42 @@ export const Header: React.FC<HeaderProps> = ({
                     title={isFullscreen ? t('header.fullscreen.exit') : t('header.fullscreen.enter')}
                 >
                     {isFullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
+                </button>
+                {/* 用戶信息 */}
+                <div className={`flex items-center space-x-2 px-3 py-1 rounded-lg transition-colors ${isDarkMode
+                    ? 'bg-gray-700 text-gray-300'
+                    : 'bg-gray-100 text-gray-700'
+                    }`}>
+                    <span className="text-sm font-medium">{user.email}</span>
+                    {user.role === 'admin' && (
+                        <span className={`text-xs px-2 py-0.5 rounded-full bg-red-500 text-white`}>
+                            管理員
+                        </span>
+                    )}
+                </div>
+                {/* 管理按鈕（僅管理員可見） */}
+                {user.role === 'admin' && onAdminView && (
+                    <button
+                        onClick={onAdminView}
+                        className={`p-2 rounded-lg transition-colors ${isDarkMode
+                            ? 'text-gray-400 hover:text-purple-400 hover:bg-gray-700'
+                            : 'text-gray-500 hover:text-purple-600 hover:bg-purple-50'
+                            }`}
+                        title="用戶管理"
+                    >
+                        <Users className="h-5 w-5" />
+                    </button>
+                )}
+                {/* 登出按鈕 */}
+                <button
+                    onClick={onLogout}
+                    className={`p-2 rounded-lg transition-colors ${isDarkMode
+                        ? 'text-gray-400 hover:text-red-400 hover:bg-gray-700'
+                        : 'text-gray-500 hover:text-red-600 hover:bg-red-50'
+                        }`}
+                    title={t('auth.logout')}
+                >
+                    <LogOut className="h-5 w-5" />
                 </button>
                 {/* 設定按鈕 */}
                 <button

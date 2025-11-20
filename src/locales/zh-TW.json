@@ -1,7 +1,7 @@
 {
     "app": {
         "title": "LLMChat",
-        "version": "v251119",
+        "version": "v251120",
         "loading": "載入中...",
         "welcome": {
             "title": "開始與 AI 對話吧！",
@@ -116,6 +116,22 @@
             "typeError": "檔案類型 {{type}} 不支援",
             "pdfNote": "注意：PDF內容無法在瀏覽器中直接解析。如需分析PDF內容，請考慮將PDF轉換為文字檔案後上傳，或使用支援PDF解析的服務。"
         }
+    },
+    "auth": {
+        "welcome": "歡迎使用 LLMChat",
+        "login": "登入",
+        "register": "註冊",
+        "email": "Email",
+        "emailPlaceholder": "輸入您的 Email",
+        "password": "密碼",
+        "passwordPlaceholder": "輸入您的密碼",
+        "confirmPassword": "確認密碼",
+        "confirmPasswordPlaceholder": "再次輸入密碼",
+        "passwordMismatch": "密碼不相符",
+        "processing": "處理中...",
+        "noAccount": "還沒有帳號？",
+        "hasAccount": "已經有帳號？",
+        "logout": "登出"
     },
     "language": {
         "selector": "語言",
