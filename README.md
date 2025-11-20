@@ -193,12 +193,26 @@ cp .env.example .env
 - **FROM_EMAIL**: 發件人郵箱地址
 - **FROM_NAME**: 發件人顯示名稱
 
-範例 `.env` 檔案：
+範例 `.env` 檔案（開發環境）：
+```env
+OLLAMA_API_URL=http://localhost:11434
+OLLAMA_API_KEY=your_api_key_here
+VITE_ALLOWED_HOSTS=llmchat.example.com,your-domain.com
+FRONTEND_URL=http://localhost:3000
+```
+
+範例 `.env` 檔案（生產環境）：
 ```env
 OLLAMA_API_URL=http://localhost:11434
 OLLAMA_API_KEY=your_api_key_here
 VITE_ALLOWED_HOSTS=llmchat.example.com,your-domain.com
 FRONTEND_URL=https://llmchat.example.com
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+FROM_EMAIL=your-email@gmail.com
+FROM_NAME=LLMChat
 ```
 
 > **注意**: 環境變數會自動載入，前端設定面板會預填這些值，但用戶仍可修改並保存到本地儲存。VITE_ALLOWED_HOSTS 用於配置 Vite 開發服務器允許訪問的主機，解決跨域訪問問題。FRONTEND_URL 用於生成正確的 Email 驗證鏈接，確保在生產環境中用戶能正確點擊驗證鏈接（前端會通過代理將請求轉發到後端）。SMTP 設定決定是否啟用用戶註冊功能，如果 SMTP_USER 和 SMTP_PASS 未正確設定，用戶將無法看到註冊選項。
@@ -496,9 +510,10 @@ npm run preview
 - 檢查 `data/users.json` 中的用戶狀態
 
 #### Email 驗證鏈接無效
-- 檢查 FRONTEND_URL 環境變數是否正確設定
+- 檢查 FRONTEND_URL 環境變數是否正確設定為您的前端域名（例如：https://llmchat.example.com）
 - 確保驗證鏈接沒有過期（24小時內有效）
 - 檢查用戶是否已經驗證過該 Email
+- 確認前端代理配置正確轉發 /api/* 請求到後端
 
 #### 無法收到驗證郵件
 - 檢查 SMTP 設定是否正確
