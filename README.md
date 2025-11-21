@@ -1,6 +1,6 @@
 # LLMChat
 
-Get up and chatting with large language models with glass-morphism effect.
+Get up and chatting with large language models featuring glass-morphism effect.
 
 一個具有玻璃擬態設計的現代化本地大語言模型聊天應用程式，基於 React + Node.js + Ollama，提供美觀且功能完整的聊天體驗。
 
