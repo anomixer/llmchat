@@ -1,7 +1,7 @@
 {
     "app": {
         "title": "LLMChat",
-        "version": "v251120",
+        "version": "v251121",
         "loading": "載入中...",
         "welcome": {
             "title": "開始與 AI 對話吧！",
@@ -62,8 +62,18 @@
     },
     "settings": {
         "panels": {
+            "user": "用戶設定",
             "llm": "LLM 配置",
             "generation": "生成參數"
+        },
+        "language": {
+            "label": "語言設定"
+        },
+        "theme": {
+            "label": "主題設定",
+            "auto": "跟隨系統",
+            "light": "亮色模式",
+            "dark": "暗色模式"
         },
         "api": {
             "url": "API URL (Ollama/OpenAI API 地址)",
@@ -142,7 +152,31 @@
         "linkCopied": "驗證鏈接已複製到剪貼簿",
         "backToLogin": "返回登入",
         "resendVerification": "重新發送驗證郵件",
-        "resendVerificationSuccess": "驗證郵件已重新發送！"
+        "resendVerificationSuccess": "驗證郵件已重新發送！",
+        "duplicateRegistration": "此 Email 已經註冊過了",
+        "duplicateRegistrationMessage": "請使用其他 Email 註冊，或直接登入",
+        "backToLoginButton": "返回登入",
+        "registrationDisabled": "註冊功能未啟用",
+        "registrationDisabledMessage": "系統管理員尚未配置郵件服務，無法發送驗證郵件。如需註冊帳號，請聯繫管理員。",
+        "emailVerificationRequired": "請先驗證您的 Email 地址"
+    },
+    "email": {
+        "verification": {
+            "subject": "LLMChat - 請驗證您的Email地址",
+            "greeting": "您好",
+            "greetingWithName": "您好 {{name}}",
+            "title": "歡迎加入 LLMChat！",
+            "description": "感謝您註冊 LLMChat 帳號。為了確保帳號安全，請點擊下方按鈕驗證您的 Email 地址：",
+            "buttonText": "驗證 Email 地址",
+            "alternativeText": "或者，您可以複製以下鏈接並在瀏覽器中開啟：",
+            "warningTitle": "重要提醒：",
+            "warningMessage": "此驗證鏈接將在 24 小時後過期。如果鏈接失效，請重新註冊帳號。",
+            "successMessage": "驗證完成後，您就可以開始使用 LLMChat 與本地 AI 模型對話了！",
+            "ignoreMessage": "如果您沒有註冊過 LLMChat 帳號，請忽略此郵件。",
+            "footer": "此郵件由系統自動發送，請勿回覆。",
+            "copyright": "© 2025 LLMChat. All rights reserved.",
+            "pageTitle": "LLMChat Email驗證"
+        }
     },
     "language": {
         "selector": "語言",

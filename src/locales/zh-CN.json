@@ -1,7 +1,7 @@
 {
     "app": {
         "title": "LLMChat",
-        "version": "v251120",
+        "version": "v251121",
         "loading": "加载中...",
         "welcome": {
             "title": "开始与 AI 对话吧！",
@@ -60,8 +60,18 @@
     },
     "settings": {
         "panels": {
+            "user": "用户设置",
             "llm": "LLM 配置",
             "generation": "生成参数"
+        },
+        "language": {
+            "label": "语言设置"
+        },
+        "theme": {
+            "label": "主题设置",
+            "auto": "跟随系统",
+            "light": "亮色模式",
+            "dark": "暗色模式"
         },
         "api": {
             "url": "API URL (Ollama/OpenAI API 地址)",
@@ -112,6 +122,57 @@
             "sizeError": "文件 {{name}} 太大，请选择小于 50MB 的文件",
             "typeError": "文件类型 {{type}} 不支持",
             "pdfNote": "注意：PDF内容无法在浏览器中直接解析。如需分析PDF内容，请考虑将PDF转换为文字文件后上传，或使用支持PDF解析的服务。"
+        }
+    },
+    "auth": {
+        "welcome": "欢迎使用 LLMChat",
+        "login": "登录",
+        "register": "注册",
+        "email": "邮箱",
+        "emailPlaceholder": "输入您的邮箱地址",
+        "password": "密码",
+        "passwordPlaceholder": "输入您的密码",
+        "confirmPassword": "确认密码",
+        "confirmPasswordPlaceholder": "再次输入密码",
+        "passwordMismatch": "密码不相符",
+        "processing": "处理中...",
+        "noAccount": "还没有账号？",
+        "hasAccount": "已经有账号？",
+        "logout": "登出",
+        "registrationSuccess": "感谢注册！",
+        "verificationEmailSent": "我们已发送验证邮件到您的邮箱：",
+        "verificationLinkGenerated": "验证链接已生成，请复制以下链接到浏览器打开：",
+        "verificationSent": "我们已发送验证链接到您的邮箱：",
+        "verificationLink": "验证链接：",
+        "verificationInstructions": "请点击链接或复制链接到浏览器打开，完成邮箱验证后即可登录使用。",
+        "copyLink": "复制",
+        "linkCopied": "验证链接已复制到剪贴板",
+        "backToLogin": "返回登录",
+        "resendVerification": "重新发送验证邮件",
+        "resendVerificationSuccess": "验证邮件已重新发送！",
+        "duplicateRegistration": "此邮箱已经注册过了",
+        "duplicateRegistrationMessage": "请使用其他邮箱注册，或直接登录",
+        "backToLoginButton": "返回登录",
+        "registrationDisabled": "注册功能未启用",
+        "registrationDisabledMessage": "系统管理员尚未配置邮件服务，无法发送验证邮件。如需注册账号，请联系管理员。",
+        "emailVerificationRequired": "请先验证您的邮箱地址"
+    },
+    "email": {
+        "verification": {
+            "subject": "LLMChat - 请验证您的邮箱地址",
+            "greeting": "您好",
+            "greetingWithName": "您好 {{name}}",
+            "title": "欢迎加入 LLMChat！",
+            "description": "感谢您注册 LLMChat 账号。为了确保账号安全，请点击下方按钮验证您的邮箱地址：",
+            "buttonText": "验证邮箱地址",
+            "alternativeText": "或者，您可以复制以下链接并在浏览器中打开：",
+            "warningTitle": "重要提醒：",
+            "warningMessage": "此验证链接将在 24 小时后过期。如果链接失效，请重新注册账号。",
+            "successMessage": "验证完成后，您就可以开始使用 LLMChat 与本地 AI 模型对话了！",
+            "ignoreMessage": "如果您没有注册过 LLMChat 账号，请忽略此邮件。",
+            "footer": "此邮件由系统自动发送，请勿回复。",
+            "copyright": "© 2025 LLMChat. All rights reserved.",
+            "pageTitle": "LLMChat 邮箱验证"
         }
     },
     "language": {

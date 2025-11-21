@@ -1,7 +1,6 @@
 import React from 'react'
 import { Send, Bot, Settings, Trash2, Moon, Sun, Plus, MessageSquare, Download, Maximize2, Minimize2, LogOut, Users } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { LanguageSelector } from './LanguageSelector'
 
 interface User {
     id: string
@@ -18,6 +17,7 @@ interface HeaderProps {
     showConversations: boolean
     settings: { model: string }
     conversations: Array<{ id: string; title: string }>
+    isLoadingModels?: boolean
     onToggleTheme: () => void
     onToggleFullscreen: () => void
     onToggleSettings: () => void
@@ -37,6 +37,7 @@ export const Header: React.FC<HeaderProps> = ({
     showConversations,
     settings,
     conversations,
+    isLoadingModels = false,
     onToggleTheme,
     onToggleFullscreen,
     onToggleSettings,
@@ -69,7 +70,7 @@ export const Header: React.FC<HeaderProps> = ({
                     title={showSettings ? t('header.model.closeSettings') : t('header.model.openSettings')}
                     data-button="model"
                 >
-                    {settings.model || t('header.model.none')}
+                    {isLoadingModels ? t('header.model.loading') : (settings.model || t('header.model.none'))}
                 </button>
             </div>
             <div className="flex items-center space-x-2">
@@ -90,8 +91,6 @@ export const Header: React.FC<HeaderProps> = ({
                         className={`h-5 w-5 ${isDarkMode ? 'filter invert' : ''}`}
                     />
                 </a>
-                {/* 語言選擇器 */}
-                <LanguageSelector isDarkMode={isDarkMode} />
                 {/* 對話列表按鈕 */}
                 <button
                     onClick={onToggleConversations}

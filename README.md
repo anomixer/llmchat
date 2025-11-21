@@ -31,10 +31,14 @@
 - **清除功能**: 一鍵清除對話記錄
 - **錯誤處理**: 完善的錯誤提示和處理機制
 - **用戶認證系統**: 安全的用戶註冊和登入，首位註冊者自動成為管理員，每個用戶的對話記錄完全獨立
-- **Email 驗證系統**: 完整的郵件驗證流程，註冊後需驗證Email才能登入，驗證鏈接24小時有效
+- **Email 驗證系統**: 完整的郵件驗證流程，註冊後需驗證Email才能登入，驗證鏈接24小時有效，支援多語言郵件
 - **智能SMTP控制**: 實時檢查SMTP配置狀態，動態顯示/隱藏註冊功能，無效配置時顯示友好提示
 - **管理員功能**: 管理員可以查看所有用戶、管理用戶帳戶、啟用/禁用用戶帳戶
-- **個人化體驗**: 每個用戶擁有獨立的對話歷史，登入後自動恢復之前的聊天記錄
+- **個人化體驗**: 每個用戶擁有獨立的對話歷史和個人設定，登入後自動恢復之前的聊天記錄和偏好設定
+- **智能主題適應**: 自動跟隨瀏覽器明暗模式設定，用戶也可手動切換主題
+- **登入畫面多語言**: 登入/註冊畫面支援多語言切換，自動檢測瀏覽器語言
+- **分檔對話存儲**: 每個用戶的對話記錄單獨存檔為 {email}.json，提供更好的數據隔離和備份便利性
+- **個人設定系統**: 用戶可保存個人化的語言、主題、AI 模型參數等設定
 - **現代化聊天介面**: 類似 ChatGPT 的設計，上方顯示對話內容，下方有輸入框和設定區域
 
 ## ⌨️ 快捷鍵支援
@@ -157,7 +161,10 @@ llmchat/
 │   └── ollamaProvider.js  # Ollama 整合
 ├── data/                  # 用戶數據存儲目錄（不會提交到版本控制）
 │   ├── users.json         # 用戶帳戶和個人資料
-│   └── sessions.json      # 用戶登入會話數據
+│   ├── sessions.json      # 用戶登入會話數據
+│   └── conversations/     # 用戶對話記錄目錄
+│       ├── user1@example.com.json  # 各用戶的對話記錄
+│       └── user2@example.com.json
 ├── public/                # 靜態資源
 │   ├── favicon.svg        # 網站圖標
 │   └── github.svg         # GitHub 官方標誌
@@ -249,20 +256,24 @@ FROM_NAME=LLMChat
 ### 用戶數據管理
 
 #### 數據存儲位置
-- **用戶數據**: `data/users.json` - 包含用戶帳戶信息和個人對話記錄
+- **用戶數據**: `data/users.json` - 包含用戶帳戶信息和個人設定
 - **會話數據**: `data/sessions.json` - 包含用戶登入會話信息
+- **對話記錄**: `data/conversations/{email}.json` - 各用戶的獨立對話記錄文件
 
 #### 管理員備份用戶數據
 管理員可以通過以下方式備份所有用戶數據：
 
 1. **手動備份文件**:
-   ```bash
-   # 備份用戶數據
-   cp data/users.json backup/users_$(date +%Y%m%d_%H%M%S).json
+    ```bash
+    # 備份用戶數據
+    cp data/users.json backup/users_$(date +%Y%m%d_%H%M%S).json
 
-   # 備份會話數據（可選）
-   cp data/sessions.json backup/sessions_$(date +%Y%m%d_%H%M%S).json
-   ```
+    # 備份會話數據（可選）
+    cp data/sessions.json backup/sessions_$(date +%Y%m%d_%H%M%S).json
+
+    # 備份所有用戶對話記錄
+    cp -r data/conversations backup/conversations_$(date +%Y%m%d_%H%M%S)
+    ```
 
 2. **導出特定用戶數據**:
    - 登入管理員帳戶
@@ -271,17 +282,18 @@ FROM_NAME=LLMChat
    - 使用應用程式內建的導出功能
 
 3. **批量備份腳本**:
-   ```bash
-   #!/bin/bash
-   TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-   BACKUP_DIR="backups/$TIMESTAMP"
+    ```bash
+    #!/bin/bash
+    TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+    BACKUP_DIR="backups/$TIMESTAMP"
 
-   mkdir -p "$BACKUP_DIR"
-   cp data/users.json "$BACKUP_DIR/"
-   cp data/sessions.json "$BACKUP_DIR/"
+    mkdir -p "$BACKUP_DIR"
+    cp data/users.json "$BACKUP_DIR/"
+    cp data/sessions.json "$BACKUP_DIR/"
+    cp -r data/conversations "$BACKUP_DIR/"
 
-   echo "備份完成: $BACKUP_DIR"
-   ```
+    echo "備份完成: $BACKUP_DIR"
+    ```
 
 #### 數據恢復
 如需恢復用戶數據：
@@ -289,6 +301,8 @@ FROM_NAME=LLMChat
 # 停止服務器
 # 複製備份文件
 cp backup/users_20241120_143000.json data/users.json
+cp backup/sessions_20241120_143000.json data/sessions.json
+cp -r backup/conversations_20241120_143000 data/conversations
 # 重新啟動服務器
 ```
 
@@ -365,6 +379,42 @@ Email 驗證（點擊郵件中的鏈接）
 ```json
 {
   "conversations": [...]
+}
+```
+
+#### GET /api/user/settings
+獲取用戶個人設定（需要認證）
+```json
+{
+  "settings": {
+    "language": "zh-TW",
+    "theme": "auto",
+    "model": "",
+    "temperature": 0.7,
+    "maxTokens": 8192,
+    "apiUrl": "",
+    "apiKey": "",
+    "topP": 0.9,
+    "topK": 40
+  }
+}
+```
+
+#### POST /api/user/settings
+更新用戶個人設定（需要認證）
+```json
+{
+  "settings": {
+    "language": "zh-TW",
+    "theme": "auto",
+    "model": "",
+    "temperature": 0.7,
+    "maxTokens": 8192,
+    "apiUrl": "",
+    "apiKey": "",
+    "topP": 0.9,
+    "topK": 40
+  }
 }
 ```
 
@@ -511,7 +561,7 @@ npm run preview
 
 #### Email 驗證鏈接無效
 - 檢查 FRONTEND_URL 環境變數是否正確設定為您的前端域名（例如：https://llmchat.example.com）
-- 確保驗證鏈接沒有過期（24小時內有效）
+- 確保驗證鏈接沒有過期（24小時內有效，過期後顯示「驗證鏈接已過期，請重新註冊帳號」）
 - 檢查用戶是否已經驗證過該 Email
 - 確認前端代理配置正確轉發 /api/* 請求到後端
 
@@ -546,6 +596,20 @@ npm run preview
 - 檢查 TypeScript 版本：`npx tsc --version`
 
 ## 🔄 更新日誌
+
+### v251121
+
+- 🎨 **登入畫面多語言支援**: 登入/註冊畫面加入語言選擇器，自動檢測瀏覽器語言
+- 🌙 **智能主題適應**: 主程式自動跟隨瀏覽器明暗模式設定，用戶仍可手動切換
+- 📁 **個人對話分檔存儲**: 每個用戶的對話記錄單獨存成 {email}.json 文件，提供更好的數據隔離
+- ⚙️ **個人設定系統**: 新增完整的用戶個人設定欄位，包含語言、主題、AI 模型參數等
+- 🔧 **設定 API**: 新增獲取和更新用戶個人設定的 API 端點
+- 🗂️ **數據結構優化**: 重構數據存儲架構，提升可維護性和擴展性
+- 📧 **多語言郵件支援**: 驗證郵件現在支援 5 種語言，根據用戶設定自動選擇合適語言
+- 📧 **驗證郵件優化**: 增強驗證郵件樣式，確保在各郵件客戶端正常顯示按鈕文字
+- ⏰ **令牌過期機制**: 實現24小時驗證鏈接過期，過期後需重新註冊帳號
+- 🔄 **重發驗證信**: 重新發送驗證郵件時自動更新令牌過期時間
+- ⚠️ **過期提醒**: 在驗證郵件中加入重要提醒，告知用戶鏈接24小時內有效
 
 ### v251120
 
@@ -648,7 +712,10 @@ npm run preview
 ## 📝 注意事項
 
 1. **用戶認證**: 應用程式使用本地用戶認證系統，首位註冊者自動成為管理員
-2. **Email 驗證**: 新用戶註冊後需要驗證Email地址才能登入，驗證鏈接24小時內有效
+2. **Email 驗證**: 新用戶註冊後需要驗證Email地址才能登入，驗證鏈接24小時內有效，過期後需重新註冊帳號
+3. **個人化設定**: 每個用戶的語言偏好、主題設定、AI 模型參數等都會自動保存並在登入時恢復
+4. **對話記錄隔離**: 每個用戶的對話記錄完全獨立存儲，確保隱私和數據安全
+5. **主題適應**: 應用程式會自動跟隨瀏覽器的明暗模式設定，但用戶也可手動切換
 3. **SMTP 配置**: 必須正確設定 SMTP_USER 和 SMTP_PASS 環境變數才能發送驗證郵件，未設定時用戶無法註冊
 4. **數據安全**: 用戶數據和對話記錄存儲在本地文件系統，不會上傳到雲端
 5. **數據備份**: 管理員應定期備份 `data/users.json` 文件，包含所有用戶帳戶和對話記錄

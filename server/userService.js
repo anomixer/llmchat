@@ -11,6 +11,7 @@ class UserService {
     constructor() {
         this.usersFile = path.join(__dirname, '..', 'data', 'users.json')
         this.sessionsFile = path.join(__dirname, '..', 'data', 'sessions.json')
+        this.conversationsDir = path.join(__dirname, '..', 'data', 'conversations')
         this.ensureDataDirectory()
         this.loadUsers()
         this.loadSessions()
@@ -20,6 +21,11 @@ class UserService {
         const dataDir = path.join(__dirname, '..', 'data')
         if (!fs.existsSync(dataDir)) {
             fs.mkdirSync(dataDir, { recursive: true })
+        }
+
+        // 確保對話目錄存在
+        if (!fs.existsSync(this.conversationsDir)) {
+            fs.mkdirSync(this.conversationsDir, { recursive: true })
         }
     }
 
@@ -92,9 +98,22 @@ class UserService {
             enable: false, // 新用戶需要驗證 Email 後才能啟用
             emailVerified: false, // 新註冊用戶需要驗證 Email
             emailVerificationToken: crypto.randomBytes(32).toString('hex'), // 驗證令牌
+            emailVerificationTokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24小時後過期
             createdAt: new Date().toISOString(),
             lastLoginAt: null,
-            conversations: []
+            conversations: [],
+            // 用戶個人設定
+            settings: {
+                language: 'zh-TW', // 預設語言
+                theme: 'auto', // auto, light, dark
+                model: '',
+                temperature: 0.7,
+                maxTokens: 8192,
+                apiUrl: '',
+                apiKey: '',
+                topP: 0.9,
+                topK: 40
+            }
         }
 
         this.users.push(user)
@@ -190,13 +209,71 @@ class UserService {
         return this.users.find(user => user.id === userId)
     }
 
-    // 更新用戶的對話
+    // 獲取用戶對話文件路徑
+    getUserConversationsFile(email) {
+        // 將 email 中的特殊字符替換為安全字符
+        const safeEmail = email.replace(/[^a-zA-Z0-9@._-]/g, '_')
+        return path.join(this.conversationsDir, `${safeEmail}.json`)
+    }
+
+    // 載入用戶的對話記錄
+    loadUserConversations(email) {
+        const filePath = this.getUserConversationsFile(email)
+        try {
+            if (fs.existsSync(filePath)) {
+                const data = fs.readFileSync(filePath, 'utf8')
+                return JSON.parse(data)
+            }
+            return []
+        } catch (error) {
+            console.error('Error loading user conversations:', error)
+            return []
+        }
+    }
+
+    // 保存用戶的對話記錄
+    saveUserConversations(email, conversations) {
+        const filePath = this.getUserConversationsFile(email)
+        try {
+            fs.writeFileSync(filePath, JSON.stringify(conversations, null, 2))
+        } catch (error) {
+            console.error('Error saving user conversations:', error)
+        }
+    }
+
+    // 更新用戶的對話（向後相容）
     updateUserConversations(userId, conversations) {
         const user = this.users.find(user => user.id === userId)
         if (user) {
-            user.conversations = conversations
-            this.saveUsers()
+            // 保存到單獨的文件
+            this.saveUserConversations(user.email, conversations)
         }
+    }
+
+    // 獲取用戶的對話列表
+    getUserConversations(userId) {
+        const user = this.users.find(user => user.id === userId)
+        if (user) {
+            return this.loadUserConversations(user.email)
+        }
+        return []
+    }
+
+    // 獲取用戶設定
+    getUserSettings(userId) {
+        const user = this.users.find(user => user.id === userId)
+        return user ? user.settings : null
+    }
+
+    // 更新用戶設定
+    updateUserSettings(userId, settings) {
+        const user = this.users.find(user => user.id === userId)
+        if (user) {
+            user.settings = { ...user.settings, ...settings }
+            this.saveUsers()
+            return user.settings
+        }
+        return null
     }
 
     // 登出
@@ -321,16 +398,22 @@ class UserService {
     verifyEmail(token) {
         const user = this.users.find(user => user.emailVerificationToken === token)
         if (!user) {
-            throw new Error('無效的驗證令牌')
+            throw new Error('無效或過期的驗證鏈接')
         }
 
         if (user.emailVerified) {
             throw new Error('Email 已經驗證過了')
         }
 
+        // 檢查令牌是否過期
+        if (new Date() > new Date(user.emailVerificationTokenExpiry)) {
+            throw new Error('驗證鏈接已過期，請重新註冊帳號')
+        }
+
         user.emailVerified = true
         user.enable = true // 驗證後自動啟用帳號
         user.emailVerificationToken = null // 清除驗證令牌
+        user.emailVerificationTokenExpiry = null // 清除過期時間
         this.saveUsers()
 
         return user
@@ -347,8 +430,9 @@ class UserService {
             throw new Error('Email 已經驗證過了')
         }
 
-        // 生成新的驗證令牌
+        // 生成新的驗證令牌和過期時間
         user.emailVerificationToken = crypto.randomBytes(32).toString('hex')
+        user.emailVerificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
         this.saveUsers()
 
         return user.emailVerificationToken

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { LogIn, UserPlus, Eye, EyeOff } from 'lucide-react'
+import { LanguageSelector } from './LanguageSelector'
 
 interface AuthProps {
     onLogin: (email: string, password: string) => Promise<void>
@@ -117,7 +118,12 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onRegister, onResendVerific
         (isLogin || password === confirmPassword)
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 px-4">
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 px-4 relative">
+            {/* 語言選擇器 - 右上角 */}
+            <div className="absolute top-4 right-4 z-10">
+                <LanguageSelector isDarkMode={false} />
+            </div>
+
             <div className="max-w-md w-full space-y-8">
                 {/* 標題 */}
                 <div className="text-center">
@@ -155,13 +161,13 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onRegister, onResendVerific
                                 ? 'text-red-800 dark:text-red-200'
                                 : 'text-green-800 dark:text-green-200'
                                 } mb-2`}>
-                                {isDuplicateRegistration ? '此 Email 已經註冊過了' : t('auth.registrationSuccess')}
+                                {isDuplicateRegistration ? t('auth.duplicateRegistration') : t('auth.registrationSuccess')}
                             </h3>
                             <p className={`text-sm ${isDuplicateRegistration
                                 ? 'text-red-700 dark:text-red-300'
                                 : 'text-green-700 dark:text-green-300'
                                 } mb-4`}>
-                                {isDuplicateRegistration ? '請使用其他 Email 註冊，或直接登入' : '正在返回登入頁面...'}
+                                {isDuplicateRegistration ? t('auth.duplicateRegistrationMessage') : t('auth.registrationSuccess')}
                             </p>
                             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-4">
                                 <div className={`h-2 rounded-full animate-pulse ${isDuplicateRegistration
@@ -177,7 +183,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onRegister, onResendVerific
                                 }}
                                 className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
                             >
-                                返回登入
+                                {t('auth.backToLoginButton')}
                             </button>
                         </div>
                     </div>
@@ -321,10 +327,10 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onRegister, onResendVerific
                                     </svg>
                                     <div>
                                         <h4 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                                            註冊功能未啟用
+                                            {t('auth.registrationDisabled')}
                                         </h4>
                                         <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
-                                            系統管理員尚未配置郵件服務，無法發送驗證郵件。如需註冊帳號，請聯繫管理員。
+                                            {t('auth.registrationDisabledMessage')}
                                         </p>
                                     </div>
                                 </div>
@@ -413,7 +419,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onRegister, onResendVerific
                                 <p className="text-sm text-red-600 dark:text-red-400">
                                     {error}
                                 </p>
-                                {error === '請先驗證您的 Email 地址' && (
+                                {error && error.includes('Email') && error.includes('驗證') && (
                                     <div className="mt-3 pt-3 border-t border-red-200 dark:border-red-700">
                                         <button
                                             onClick={handleResendVerification}

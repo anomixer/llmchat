@@ -163,6 +163,17 @@ const App: React.FC = () => {
         topP: 0.9,
         topK: 40
     })
+    const [userSettings, setUserSettings] = useState({
+        language: 'zh-TW',
+        theme: 'auto',
+        model: '',
+        temperature: 0.7,
+        maxTokens: 8192,
+        apiUrl: '',
+        apiKey: '',
+        topP: 0.9,
+        topK: 40
+    })
     const [attachedFiles, setAttachedFiles] = useState<File[]>([])
     const [isRecording, setIsRecording] = useState(false)
     const [isSpeaking, setIsSpeaking] = useState(false)
@@ -347,6 +358,32 @@ const App: React.FC = () => {
 
     // 移除舊的高度調整 useEffect，因為現在在防抖函數中處理
 
+    // 監聽瀏覽器主題變化
+    useEffect(() => {
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+
+        const handleThemeChange = (e: MediaQueryListEvent) => {
+            // 只有在用戶沒有手動設定主題時才跟隨瀏覽器
+            const savedTheme = localStorage.getItem('theme')
+            if (savedTheme === null) { // 沒有手動設定過
+                setIsDarkMode(e.matches)
+            }
+        }
+
+        // 初始檢查
+        const savedTheme = localStorage.getItem('theme')
+        if (savedTheme === null) { // 沒有手動設定過
+            setIsDarkMode(mediaQuery.matches)
+        }
+
+        // 添加監聽器
+        mediaQuery.addEventListener('change', handleThemeChange)
+
+        return () => {
+            mediaQuery.removeEventListener('change', handleThemeChange)
+        }
+    }, [])
+
     // 初始化主題類別
     useEffect(() => {
         document.body.classList.toggle('dark-theme', isDarkMode)
@@ -394,6 +431,61 @@ const App: React.FC = () => {
         }
     }
 
+    // 從服務器加載用戶設定
+    const loadUserSettings = async () => {
+        if (!token) return
+
+        try {
+            const response = await fetch('/api/user/settings', {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            })
+
+            if (response.ok) {
+                const data = await response.json()
+                const serverSettings = data.settings
+
+                // 更新用戶設定狀態
+                setUserSettings(serverSettings)
+
+                // 應用語言設定
+                if (serverSettings.language && serverSettings.language !== i18n.language) {
+                    i18n.changeLanguage(serverSettings.language)
+                    const htmlElement = document.getElementById('html-root') as HTMLHtmlElement
+                    if (htmlElement) {
+                        htmlElement.lang = serverSettings.language
+                    }
+                }
+
+                // 應用主題設定
+                if (serverSettings.theme) {
+                    if (serverSettings.theme === 'auto') {
+                        // 跟隨瀏覽器主題
+                        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+                        setIsDarkMode(mediaQuery.matches)
+                    } else {
+                        // 手動設定主題
+                        setIsDarkMode(serverSettings.theme === 'dark')
+                    }
+                }
+
+                // 更新聊天設定
+                setSettings(prev => ({
+                    ...prev,
+                    ...serverSettings
+                }))
+
+                // 如果用戶有自定義的 API URL，重新載入模型列表
+                if (serverSettings.apiUrl && serverSettings.apiUrl !== settings.apiUrl) {
+                    setTimeout(() => loadAvailableModels(), 100) // 稍微延遲確保設定已更新
+                }
+            }
+        } catch (error) {
+            console.error('Error loading user settings:', error)
+        }
+    }
+
     // 保存對話到服務器
     const saveConversationsToServer = async (conversationsToSave: Conversation[]) => {
         if (!token) return
@@ -412,15 +504,50 @@ const App: React.FC = () => {
         }
     }
 
-    // 當用戶登入時加載對話，當用戶登出時重置狀態
+    // 保存用戶設定到服務器
+    const saveUserSettingsToServer = async (settingsToSave: any) => {
+        if (!token) return
+
+        try {
+            const response = await fetch('/api/user/settings', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ settings: settingsToSave }),
+            })
+
+            if (response.ok) {
+                const data = await response.json()
+                setUserSettings(data.settings)
+            }
+        } catch (error) {
+            console.error('Error saving user settings:', error)
+        }
+    }
+
+    // 當用戶登入時加載對話和設定，當用戶登出時重置狀態
     useEffect(() => {
         if (user && token && !conversationsLoaded) {
             loadUserConversations()
+            loadUserSettings()
         } else if (!user && conversationsLoaded) {
-            // 用戶登出時重置對話狀態
+            // 用戶登出時重置對話狀態和設定
             setConversations([])
             setConversationsLoaded(false)
             setCurrentConversationId('')
+            setUserSettings({
+                language: 'zh-TW',
+                theme: 'auto',
+                model: '',
+                temperature: 0.7,
+                maxTokens: 8192,
+                apiUrl: '',
+                apiKey: '',
+                topP: 0.9,
+                topK: 40
+            })
         }
     }, [user, token, conversationsLoaded])
 
@@ -1153,6 +1280,7 @@ const App: React.FC = () => {
                 showConversations={showConversations}
                 settings={settings}
                 conversations={conversations}
+                isLoadingModels={isLoadingModels}
                 onToggleTheme={toggleTheme}
                 onToggleFullscreen={toggleFullscreen}
                 onToggleSettings={() => setShowSettings(!showSettings)}
@@ -1230,7 +1358,78 @@ const App: React.FC = () => {
                     : 'bg-white border-gray-200'
                     }`}>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* 左側：LLM 配置 */}
+                        {/* 左側：用戶設定 */}
+                        <div className="space-y-4">
+                            <h3 className={`text-sm font-semibold transition-colors ${isDarkMode ? 'text-gray-200' : 'text-gray-800'
+                                }`}>
+                                {t('settings.panels.user')}
+                            </h3>
+
+                            <div>
+                                <label className={`block text-sm font-medium mb-1 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                                    }`}>
+                                    {t('settings.language.label')}
+                                </label>
+                                <select
+                                    value={userSettings.language}
+                                    onChange={(e) => {
+                                        const newLanguage = e.target.value
+                                        setUserSettings(prev => ({ ...prev, language: newLanguage }))
+                                        // 立即應用語言變更
+                                        i18n.changeLanguage(newLanguage)
+                                        const htmlElement = document.getElementById('html-root') as HTMLHtmlElement
+                                        if (htmlElement) {
+                                            htmlElement.lang = newLanguage
+                                        }
+                                        // 保存到服務器
+                                        saveUserSettingsToServer({ ...userSettings, language: newLanguage })
+                                    }}
+                                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDarkMode
+                                        ? 'bg-gray-700 border-gray-600 text-white'
+                                        : 'bg-white border-gray-300'
+                                        }`}
+                                >
+                                    <option value="zh-TW">🇹🇼 繁體中文</option>
+                                    <option value="zh-CN">🇨🇳 简体中文</option>
+                                    <option value="en">🇺🇸 English</option>
+                                    <option value="ja">🇯🇵 日本語</option>
+                                    <option value="ko">🇰🇷 한국어</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className={`block text-sm font-medium mb-1 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                                    }`}>
+                                    {t('settings.theme.label')}
+                                </label>
+                                <select
+                                    value={userSettings.theme}
+                                    onChange={(e) => {
+                                        const newTheme = e.target.value
+                                        setUserSettings(prev => ({ ...prev, theme: newTheme }))
+                                        // 應用主題變更
+                                        if (newTheme === 'auto') {
+                                            const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+                                            setIsDarkMode(mediaQuery.matches)
+                                        } else {
+                                            setIsDarkMode(newTheme === 'dark')
+                                        }
+                                        // 保存到服務器
+                                        saveUserSettingsToServer({ ...userSettings, theme: newTheme })
+                                    }}
+                                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDarkMode
+                                        ? 'bg-gray-700 border-gray-600 text-white'
+                                        : 'bg-white border-gray-300'
+                                        }`}
+                                >
+                                    <option value="auto">{t('settings.theme.auto')}</option>
+                                    <option value="light">{t('settings.theme.light')}</option>
+                                    <option value="dark">{t('settings.theme.dark')}</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* 右側：LLM 配置 */}
                         <div className="space-y-4">
                             <h3 className={`text-sm font-semibold transition-colors ${isDarkMode ? 'text-gray-200' : 'text-gray-800'
                                 }`}>
@@ -1245,7 +1444,12 @@ const App: React.FC = () => {
                                 <input
                                     type="text"
                                     value={settings.apiUrl}
-                                    onChange={(e) => setSettings(prev => ({ ...prev, apiUrl: e.target.value }))}
+                                    onChange={(e) => {
+                                        const newApiUrl = e.target.value
+                                        setSettings(prev => ({ ...prev, apiUrl: newApiUrl }))
+                                        setUserSettings(prev => ({ ...prev, apiUrl: newApiUrl }))
+                                        saveUserSettingsToServer({ ...userSettings, apiUrl: newApiUrl })
+                                    }}
                                     placeholder="http://localhost:11434"
                                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDarkMode
                                         ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
@@ -1262,7 +1466,12 @@ const App: React.FC = () => {
                                 <input
                                     type="password"
                                     value={settings.apiKey}
-                                    onChange={(e) => setSettings(prev => ({ ...prev, apiKey: e.target.value }))}
+                                    onChange={(e) => {
+                                        const newApiKey = e.target.value
+                                        setSettings(prev => ({ ...prev, apiKey: newApiKey }))
+                                        setUserSettings(prev => ({ ...prev, apiKey: newApiKey }))
+                                        saveUserSettingsToServer({ ...userSettings, apiKey: newApiKey })
+                                    }}
                                     placeholder={t('settings.api.keyPlaceholder')}
                                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDarkMode
                                         ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
@@ -1281,7 +1490,12 @@ const App: React.FC = () => {
                                 </label>
                                 <select
                                     value={settings.model}
-                                    onChange={(e) => setSettings(prev => ({ ...prev, model: e.target.value }))}
+                                    onChange={(e) => {
+                                        const newModel = e.target.value
+                                        setSettings(prev => ({ ...prev, model: newModel }))
+                                        setUserSettings(prev => ({ ...prev, model: newModel }))
+                                        saveUserSettingsToServer({ ...userSettings, model: newModel })
+                                    }}
                                     disabled={isLoadingModels}
                                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDarkMode
                                         ? 'bg-gray-700 border-gray-600 text-white disabled:opacity-50'
@@ -1321,7 +1535,12 @@ const App: React.FC = () => {
                                     max="2"
                                     step="0.1"
                                     value={settings.temperature}
-                                    onChange={(e) => setSettings(prev => ({ ...prev, temperature: parseFloat(e.target.value) }))}
+                                    onChange={(e) => {
+                                        const newTemperature = parseFloat(e.target.value)
+                                        setSettings(prev => ({ ...prev, temperature: newTemperature }))
+                                        setUserSettings(prev => ({ ...prev, temperature: newTemperature }))
+                                        saveUserSettingsToServer({ ...userSettings, temperature: newTemperature })
+                                    }}
                                     className={`w-full ${isDarkMode ? 'accent-blue-400' : 'accent-blue-600'
                                         }`}
                                 />
@@ -1338,7 +1557,12 @@ const App: React.FC = () => {
                                     max="1"
                                     step="0.05"
                                     value={settings.topP}
-                                    onChange={(e) => setSettings(prev => ({ ...prev, topP: parseFloat(e.target.value) }))}
+                                    onChange={(e) => {
+                                        const newTopP = parseFloat(e.target.value)
+                                        setSettings(prev => ({ ...prev, topP: newTopP }))
+                                        setUserSettings(prev => ({ ...prev, topP: newTopP }))
+                                        saveUserSettingsToServer({ ...userSettings, topP: newTopP })
+                                    }}
                                     className={`w-full ${isDarkMode ? 'accent-blue-400' : 'accent-blue-600'
                                         }`}
                                 />
@@ -1355,7 +1579,12 @@ const App: React.FC = () => {
                                     max="100"
                                     step="1"
                                     value={settings.topK}
-                                    onChange={(e) => setSettings(prev => ({ ...prev, topK: parseInt(e.target.value) }))}
+                                    onChange={(e) => {
+                                        const newTopK = parseInt(e.target.value)
+                                        setSettings(prev => ({ ...prev, topK: newTopK }))
+                                        setUserSettings(prev => ({ ...prev, topK: newTopK }))
+                                        saveUserSettingsToServer({ ...userSettings, topK: newTopK })
+                                    }}
                                     className={`w-full ${isDarkMode ? 'accent-blue-400' : 'accent-blue-600'
                                         }`}
                                 />
@@ -1372,7 +1601,12 @@ const App: React.FC = () => {
                                     max="262144"
                                     step="1024"
                                     value={settings.maxTokens}
-                                    onChange={(e) => setSettings(prev => ({ ...prev, maxTokens: parseInt(e.target.value) }))}
+                                    onChange={(e) => {
+                                        const newMaxTokens = parseInt(e.target.value)
+                                        setSettings(prev => ({ ...prev, maxTokens: newMaxTokens }))
+                                        setUserSettings(prev => ({ ...prev, maxTokens: newMaxTokens }))
+                                        saveUserSettingsToServer({ ...userSettings, maxTokens: newMaxTokens })
+                                    }}
                                     className={`w-full ${isDarkMode ? 'accent-blue-400' : 'accent-blue-600'
                                         }`}
                                 />

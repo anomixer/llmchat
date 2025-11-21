@@ -1,7 +1,7 @@
 {
     "app": {
         "title": "LLMChat",
-        "version": "v251120",
+        "version": "v251121",
         "loading": "読み込み中...",
         "welcome": {
             "title": "AIとの会話を始めましょう！",
@@ -60,8 +60,18 @@
     },
     "settings": {
         "panels": {
+            "user": "ユーザー設定",
             "llm": "LLM設定",
             "generation": "生成パラメータ"
+        },
+        "language": {
+            "label": "言語設定"
+        },
+        "theme": {
+            "label": "テーマ設定",
+            "auto": "システムに追従",
+            "light": "ライトモード",
+            "dark": "ダークモード"
         },
         "api": {
             "url": "API URL (Ollama/OpenAI APIアドレス)",
@@ -111,6 +121,57 @@
             "button": "ファイルを添付 (画像、テキスト、PDF、JSONをサポート、最大50MB)",
             "sizeError": "ファイル {{name}} が大きすぎます。50MB未満のファイルを選択してください",
             "typeError": "ファイルタイプ {{type}} はサポートされていません"
+        }
+    },
+    "auth": {
+        "welcome": "LLMChatへようこそ",
+        "login": "ログイン",
+        "register": "登録",
+        "email": "メールアドレス",
+        "emailPlaceholder": "メールアドレスを入力してください",
+        "password": "パスワード",
+        "passwordPlaceholder": "パスワードを入力してください",
+        "confirmPassword": "パスワード確認",
+        "confirmPasswordPlaceholder": "パスワードを再度入力してください",
+        "passwordMismatch": "パスワードが一致しません",
+        "processing": "処理中...",
+        "noAccount": "アカウントをお持ちではありませんか？",
+        "hasAccount": "すでにアカウントをお持ちですか？",
+        "logout": "ログアウト",
+        "registrationSuccess": "ご登録ありがとうございます！",
+        "verificationEmailSent": "確認メールを送信しました：",
+        "verificationLinkGenerated": "確認リンクが生成されました。以下のリンクをブラウザで開いてください：",
+        "verificationSent": "確認リンクを送信しました：",
+        "verificationLink": "確認リンク：",
+        "verificationInstructions": "リンクをクリックするか、ブラウザで開いてメールアドレスを確認してください。その後ログインできます。",
+        "copyLink": "コピー",
+        "linkCopied": "確認リンクがクリップボードにコピーされました",
+        "backToLogin": "ログインに戻る",
+        "resendVerification": "確認メールを再送信",
+        "resendVerificationSuccess": "確認メールを再送信しました！",
+        "duplicateRegistration": "このメールアドレスはすでに登録されています",
+        "duplicateRegistrationMessage": "別のメールアドレスで登録するか、直接ログインしてください",
+        "backToLoginButton": "ログインに戻る",
+        "registrationDisabled": "登録機能が無効です",
+        "registrationDisabledMessage": "システム管理者がまだメールサービスを設定していません。確認メールを送信できません。アカウント登録については管理者にお問い合わせください。",
+        "emailVerificationRequired": "まずメールアドレスを確認してください"
+    },
+    "email": {
+        "verification": {
+            "subject": "LLMChat - メールアドレスを確認してください",
+            "greeting": "こんにちは",
+            "greetingWithName": "{{name}} 様",
+            "title": "LLMChatへようこそ！",
+            "description": "LLMChatアカウントにご登録いただきありがとうございます。アカウントのセキュリティを確保するため、下のボタンをクリックしてメールアドレスを確認してください：",
+            "buttonText": "メールアドレスを確認",
+            "alternativeText": "または、以下のリンクをコピーしてブラウザで開くことができます：",
+            "warningTitle": "重要なお知らせ：",
+            "warningMessage": "この確認リンクは24時間後に期限切れになります。リンクが無効になった場合は、再度登録してください。",
+            "successMessage": "確認が完了したら、ローカルAIモデルとの会話にLLMChatを使い始めることができます！",
+            "ignoreMessage": "LLMChatアカウントを登録したことがない場合は、このメールを無視してください。",
+            "footer": "このメールは自動送信されています。返信しないでください。",
+            "copyright": "© 2025 LLMChat. All rights reserved.",
+            "pageTitle": "LLMChat メール確認"
         }
     },
     "language": {

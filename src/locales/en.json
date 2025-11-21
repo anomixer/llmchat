@@ -1,7 +1,7 @@
 {
     "app": {
         "title": "LLMChat",
-        "version": "v251120",
+        "version": "v251121",
         "loading": "Loading...",
         "welcome": {
             "title": "Start chatting with AI!",
@@ -60,8 +60,18 @@
     },
     "settings": {
         "panels": {
+            "user": "User Settings",
             "llm": "LLM Configuration",
             "generation": "Generation Parameters"
+        },
+        "language": {
+            "label": "Language Settings"
+        },
+        "theme": {
+            "label": "Theme Settings",
+            "auto": "Follow System",
+            "light": "Light Mode",
+            "dark": "Dark Mode"
         },
         "api": {
             "url": "API URL (Ollama/OpenAI API address)",
@@ -111,6 +121,57 @@
             "button": "Attach files (supports images, text, PDF, JSON, max 50MB)",
             "sizeError": "File {{name}} is too large, please select files smaller than 50MB",
             "typeError": "File type {{type}} is not supported"
+        }
+    },
+    "auth": {
+        "welcome": "Welcome to LLMChat",
+        "login": "Login",
+        "register": "Register",
+        "email": "Email",
+        "emailPlaceholder": "Enter your email address",
+        "password": "Password",
+        "passwordPlaceholder": "Enter your password",
+        "confirmPassword": "Confirm Password",
+        "confirmPasswordPlaceholder": "Enter password again",
+        "passwordMismatch": "Passwords do not match",
+        "processing": "Processing...",
+        "noAccount": "Don't have an account?",
+        "hasAccount": "Already have an account?",
+        "logout": "Logout",
+        "registrationSuccess": "Thank you for registering!",
+        "verificationEmailSent": "We have sent a verification email to:",
+        "verificationLinkGenerated": "Verification link generated, please copy the following link to your browser:",
+        "verificationSent": "We have sent a verification link to:",
+        "verificationLink": "Verification link:",
+        "verificationInstructions": "Please click the link or copy it to your browser to complete email verification, then you can log in.",
+        "copyLink": "Copy",
+        "linkCopied": "Verification link copied to clipboard",
+        "backToLogin": "Back to Login",
+        "resendVerification": "Resend verification email",
+        "resendVerificationSuccess": "Verification email sent again!",
+        "duplicateRegistration": "This email is already registered",
+        "duplicateRegistrationMessage": "Please use a different email to register, or log in directly",
+        "backToLoginButton": "Back to Login",
+        "registrationDisabled": "Registration is disabled",
+        "registrationDisabledMessage": "The system administrator has not configured email service yet, unable to send verification emails. Please contact administrator to register an account.",
+        "emailVerificationRequired": "Please verify your email address first"
+    },
+    "email": {
+        "verification": {
+            "subject": "LLMChat - Please verify your email address",
+            "greeting": "Hello",
+            "greetingWithName": "Hello {{name}}",
+            "title": "Welcome to LLMChat!",
+            "description": "Thank you for registering an LLMChat account. To ensure account security, please click the button below to verify your email address:",
+            "buttonText": "Verify Email Address",
+            "alternativeText": "Alternatively, you can copy the following link and open it in your browser:",
+            "warningTitle": "Important reminder:",
+            "warningMessage": "This verification link will expire in 24 hours. If the link expires, please register again.",
+            "successMessage": "After verification, you can start using LLMChat to chat with local AI models!",
+            "ignoreMessage": "If you did not register for an LLMChat account, please ignore this email.",
+            "footer": "This email was sent automatically, please do not reply.",
+            "copyright": "© 2025 LLMChat. All rights reserved.",
+            "pageTitle": "LLMChat Email Verification"
         }
     },
     "language": {

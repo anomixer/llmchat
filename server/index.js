@@ -77,7 +77,10 @@ app.post('/api/auth/register', async (req, res) => {
         // 嘗試發送驗證郵件
         let emailSent = false
         try {
-            await emailService.sendVerificationEmail(email, verificationUrl)
+            // 嘗試從用戶設定中獲取語言，如果沒有則使用預設語言
+            const userSettings = userService.getUserSettings(user.id)
+            const userLanguage = userSettings?.language || 'zh-TW'
+            await emailService.sendVerificationEmail(email, verificationUrl, user.email.split('@')[0], userLanguage)
             emailSent = true
             console.log('Verification email sent to:', email)
         } catch (emailError) {
@@ -296,7 +299,8 @@ app.post('/api/auth/resend-verification', async (req, res) => {
         // 嘗試發送驗證郵件
         let emailSent = false
         try {
-            await emailService.sendVerificationEmail(email, verificationUrl)
+            // 對於新註冊用戶，使用預設語言（之後可以在設定中更改）
+            await emailService.sendVerificationEmail(email, verificationUrl, '', 'zh-TW')
             emailSent = true
             console.log('Resend verification email sent to:', email)
         } catch (emailError) {
@@ -526,12 +530,8 @@ app.post('/api/chat/stream', authenticateToken, async (req, res) => {
 // 獲取用戶的對話列表
 app.get('/api/conversations', authenticateToken, (req, res) => {
     try {
-        const user = userService.getUser(req.user.userId)
-        if (!user) {
-            return res.status(404).json({ error: '用戶不存在' })
-        }
-
-        res.json({ conversations: user.conversations || [] })
+        const conversations = userService.getUserConversations(req.user.userId)
+        res.json({ conversations })
     } catch (error) {
         console.error('Get conversations error:', error)
         res.status(500).json({ error: '獲取對話列表失敗' })
@@ -547,6 +547,35 @@ app.post('/api/conversations', authenticateToken, (req, res) => {
     } catch (error) {
         console.error('Save conversations error:', error)
         res.status(500).json({ error: '保存對話失敗' })
+    }
+})
+
+// 獲取用戶設定
+app.get('/api/user/settings', authenticateToken, (req, res) => {
+    try {
+        const settings = userService.getUserSettings(req.user.userId)
+        if (!settings) {
+            return res.status(404).json({ error: '用戶不存在' })
+        }
+        res.json({ settings })
+    } catch (error) {
+        console.error('Get user settings error:', error)
+        res.status(500).json({ error: '獲取用戶設定失敗' })
+    }
+})
+
+// 更新用戶設定
+app.post('/api/user/settings', authenticateToken, (req, res) => {
+    try {
+        const { settings } = req.body
+        const updatedSettings = userService.updateUserSettings(req.user.userId, settings)
+        if (!updatedSettings) {
+            return res.status(404).json({ error: '用戶不存在' })
+        }
+        res.json({ settings: updatedSettings })
+    } catch (error) {
+        console.error('Update user settings error:', error)
+        res.status(500).json({ error: '更新用戶設定失敗' })
     }
 })
 
@@ -658,6 +687,8 @@ app.listen(PORT, () => {
     console.log(`   - GET  /api/auth/verify      - 驗證會話`)
     console.log(`   - GET  /api/conversations    - 獲取用戶對話列表`)
     console.log(`   - POST /api/conversations    - 保存用戶對話`)
+    console.log(`   - GET  /api/user/settings    - 獲取用戶個人設定`)
+    console.log(`   - POST /api/user/settings    - 更新用戶個人設定`)
     console.log(`   - GET  /v1/models            - 獲取模型列表 (OpenAI 格式)`)
     console.log(`   - GET  /api/models           - 獲取模型列表 (舊格式)`)
     console.log(`   - POST /api/chat             - 聊天`)

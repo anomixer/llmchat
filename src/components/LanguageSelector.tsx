@@ -39,7 +39,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({ isDarkMode }
             >
                 {languages.map(lang => (
                     <option key={lang.code} value={lang.code}>
-                        {lang.flag} {t(`language.${lang.code}`)}
+                        {lang.flag} {lang.name}
                     </option>
                 ))}
             </select>

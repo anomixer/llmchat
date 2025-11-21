@@ -1,7 +1,7 @@
 {
     "app": {
         "title": "LLMChat",
-        "version": "v251120",
+        "version": "v251121",
         "loading": "로딩 중...",
         "welcome": {
             "title": "AI와 대화를 시작하세요!",
@@ -60,8 +60,18 @@
     },
     "settings": {
         "panels": {
+            "user": "사용자 설정",
             "llm": "LLM 구성",
             "generation": "생성 매개변수"
+        },
+        "language": {
+            "label": "언어 설정"
+        },
+        "theme": {
+            "label": "테마 설정",
+            "auto": "시스템 따라가기",
+            "light": "밝은 모드",
+            "dark": "어두운 모드"
         },
         "api": {
             "url": "API URL (Ollama/OpenAI API 주소)",
@@ -111,6 +121,57 @@
             "button": "파일 첨부 (이미지, 텍스트, PDF, JSON 지원, 최대 50MB)",
             "sizeError": "파일 {{name}}이(가) 너무 큽니다. 50MB 미만의 파일을 선택하세요",
             "typeError": "파일 유형 {{type}}은(는) 지원되지 않습니다"
+        }
+    },
+    "auth": {
+        "welcome": "LLMChat에 오신 것을 환영합니다",
+        "login": "로그인",
+        "register": "등록",
+        "email": "이메일",
+        "emailPlaceholder": "이메일 주소를 입력하세요",
+        "password": "비밀번호",
+        "passwordPlaceholder": "비밀번호를 입력하세요",
+        "confirmPassword": "비밀번호 확인",
+        "confirmPasswordPlaceholder": "비밀번호를 다시 입력하세요",
+        "passwordMismatch": "비밀번호가 일치하지 않습니다",
+        "processing": "처리 중...",
+        "noAccount": "계정이 없으신가요?",
+        "hasAccount": "이미 계정이 있으신가요?",
+        "logout": "로그아웃",
+        "registrationSuccess": "등록해 주셔서 감사합니다!",
+        "verificationEmailSent": "확인 이메일을 보냈습니다:",
+        "verificationLinkGenerated": "확인 링크가 생성되었습니다. 다음 링크를 브라우저에서 열어주세요:",
+        "verificationSent": "확인 링크를 보냈습니다:",
+        "verificationLink": "확인 링크:",
+        "verificationInstructions": "링크를 클릭하거나 브라우저에서 열어 이메일 주소를 확인하세요. 그 후 로그인할 수 있습니다.",
+        "copyLink": "복사",
+        "linkCopied": "확인 링크가 클립보드에 복사되었습니다",
+        "backToLogin": "로그인으로 돌아가기",
+        "resendVerification": "확인 이메일 재전송",
+        "resendVerificationSuccess": "확인 이메일을 다시 보냈습니다!",
+        "duplicateRegistration": "이 이메일은 이미 등록되어 있습니다",
+        "duplicateRegistrationMessage": "다른 이메일로 등록하거나 직접 로그인하세요",
+        "backToLoginButton": "로그인으로 돌아가기",
+        "registrationDisabled": "등록이 비활성화되었습니다",
+        "registrationDisabledMessage": "시스템 관리자가 아직 이메일 서비스를 구성하지 않았습니다. 확인 이메일을 보낼 수 없습니다. 계정 등록에 대해서는 관리자에게 문의하세요.",
+        "emailVerificationRequired": "먼저 이메일 주소를 확인하세요"
+    },
+    "email": {
+        "verification": {
+            "subject": "LLMChat - 이메일 주소 확인",
+            "greeting": "안녕하세요",
+            "greetingWithName": "{{name}} 님",
+            "title": "LLMChat에 오신 것을 환영합니다!",
+            "description": "LLMChat 계정에 등록해 주셔서 감사합니다. 계정 보안을 위해 아래 버튼을 클릭하여 이메일 주소를 확인하세요:",
+            "buttonText": "이메일 주소 확인",
+            "alternativeText": "또는 다음 링크를 복사하여 브라우저에서 열 수 있습니다:",
+            "warningTitle": "중요 알림:",
+            "warningMessage": "이 확인 링크는 24시간 후에 만료됩니다. 링크가 만료되면 다시 등록하세요.",
+            "successMessage": "확인 후 로컬 AI 모델과 대화하기 위해 LLMChat을 사용할 수 있습니다!",
+            "ignoreMessage": "LLMChat 계정을 등록한 적이 없으면 이 이메일을 무시하세요.",
+            "footer": "이 이메일은 자동으로 발송되었습니다. 회신하지 마세요.",
+            "copyright": "© 2025 LLMChat. All rights reserved.",
+            "pageTitle": "LLMChat 이메일 확인"
         }
     },
     "language": {
