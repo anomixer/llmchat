@@ -27,6 +27,8 @@ export default defineConfig(({ mode }) => {
             open: true,
             // 允許的主機列表：預設值 + 環境變數
             allowedHosts,
+            // 禁用 HMR WebSocket 以避免連接錯誤
+            hmr: false,
             proxy: {
                 // 代理 API 請求到後端服務器
                 '/api': {

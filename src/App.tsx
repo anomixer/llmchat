@@ -1436,49 +1436,61 @@ const App: React.FC = () => {
                                 {t('settings.panels.llm')}
                             </h3>
 
-                            <div>
-                                <label className={`block text-sm font-medium mb-1 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                                    }`}>
-                                    {t('settings.api.url')}
-                                </label>
-                                <input
-                                    type="text"
-                                    value={settings.apiUrl}
-                                    onChange={(e) => {
-                                        const newApiUrl = e.target.value
-                                        setSettings(prev => ({ ...prev, apiUrl: newApiUrl }))
-                                        setUserSettings(prev => ({ ...prev, apiUrl: newApiUrl }))
-                                        saveUserSettingsToServer({ ...userSettings, apiUrl: newApiUrl })
-                                    }}
-                                    placeholder="http://localhost:11434"
-                                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDarkMode
-                                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
-                                        : 'bg-white border-gray-300'
-                                        }`}
-                                />
-                            </div>
+                            {user?.role === 'admin' && (
+                                <div className="border-2 border-red-500 rounded-lg p-4 bg-red-50 dark:bg-red-950/20">
+                                    <div className="flex items-center mb-3">
+                                        <span className="text-red-600 dark:text-red-400 font-semibold text-sm bg-red-100 dark:bg-red-900 px-2 py-1 rounded">
+                                            管理員
+                                        </span>
+                                        <span className="text-red-600 dark:text-red-400 text-sm ml-2">
+                                            只有管理員才能設定以下API配置
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <label className={`block text-sm font-medium mb-1 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                                            }`}>
+                                            {t('settings.api.url')}
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={settings.apiUrl}
+                                            onChange={(e) => {
+                                                const newApiUrl = e.target.value
+                                                setSettings(prev => ({ ...prev, apiUrl: newApiUrl }))
+                                                setUserSettings(prev => ({ ...prev, apiUrl: newApiUrl }))
+                                                saveUserSettingsToServer({ ...userSettings, apiUrl: newApiUrl })
+                                            }}
+                                            placeholder="http://localhost:11434"
+                                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDarkMode
+                                                ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+                                                : 'bg-white border-gray-300'
+                                                }`}
+                                        />
+                                    </div>
 
-                            <div>
-                                <label className={`block text-sm font-medium mb-1 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                                    }`}>
-                                    {t('settings.api.key')}
-                                </label>
-                                <input
-                                    type="password"
-                                    value={settings.apiKey}
-                                    onChange={(e) => {
-                                        const newApiKey = e.target.value
-                                        setSettings(prev => ({ ...prev, apiKey: newApiKey }))
-                                        setUserSettings(prev => ({ ...prev, apiKey: newApiKey }))
-                                        saveUserSettingsToServer({ ...userSettings, apiKey: newApiKey })
-                                    }}
-                                    placeholder={t('settings.api.keyPlaceholder')}
-                                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDarkMode
-                                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
-                                        : 'bg-white border-gray-300'
-                                        }`}
-                                />
-                            </div>
+                                    <div className="mt-4">
+                                        <label className={`block text-sm font-medium mb-1 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                                            }`}>
+                                            {t('settings.api.key')}
+                                        </label>
+                                        <input
+                                            type="password"
+                                            value={settings.apiKey}
+                                            onChange={(e) => {
+                                                const newApiKey = e.target.value
+                                                setSettings(prev => ({ ...prev, apiKey: newApiKey }))
+                                                setUserSettings(prev => ({ ...prev, apiKey: newApiKey }))
+                                                saveUserSettingsToServer({ ...userSettings, apiKey: newApiKey })
+                                            }}
+                                            placeholder={t('settings.api.keyPlaceholder')}
+                                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDarkMode
+                                                ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+                                                : 'bg-white border-gray-300'
+                                                }`}
+                                        />
+                                    </div>
+                                </div>
+                            )}
 
                             <div>
                                 <label className={`block text-sm font-medium mb-1 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
