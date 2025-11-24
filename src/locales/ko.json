@@ -106,8 +106,21 @@
             "failed": "복사 실패, 수동으로 코드 선택 후 복사하세요"
         },
         "voice": {
-            "play": "음성 재생",
-            "stop": "음성 중지"
+            "play": "클릭하여 음성 재생",
+            "stop": "클릭하여 재생 중지",
+            "playing": "음성 재생 중",
+            "queued": "재생 대기열에 추가됨",
+            "next": "다음에 재생",
+            "unsupported": "브라우저가 음성 합성을 지원하지 않습니다",
+            "queue": "대기열",
+            "queueItems": "대기열: {{count}} 항목",
+            "playingStatus": "재생 중",
+            "skip": "건너뛰기",
+            "skipTitle": "현재 음성 건너뛰기",
+            "clear": "지우기",
+            "clearTitle": "음성 대기열 지우기",
+            "removeFromQueue": "클릭하여 대기열에서 제거",
+            "otherTabPlaying": "다른 탭에서 재생 중"
         }
     },
     "input": {

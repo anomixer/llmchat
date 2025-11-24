@@ -106,8 +106,21 @@
             "failed": "コピーに失敗しました。手動でコードを選択してコピーしてください"
         },
         "voice": {
-            "play": "音声再生",
-            "stop": "音声を停止"
+            "play": "クリックして音声を再生",
+            "stop": "クリックして再生を停止",
+            "playing": "音声を再生中",
+            "queued": "再生キューに追加されました",
+            "next": "次に再生",
+            "unsupported": "お使いのブラウザは音声合成をサポートしていません",
+            "queue": "キュー",
+            "queueItems": "キュー: {{count}} 項目",
+            "playingStatus": "再生中",
+            "skip": "スキップ",
+            "skipTitle": "現在の音声をスキップ",
+            "clear": "クリア",
+            "clearTitle": "音声キューをクリア",
+            "removeFromQueue": "クリックしてキューから削除",
+            "otherTabPlaying": "別のタブで再生中"
         }
     },
     "input": {

@@ -106,8 +106,21 @@
             "failed": "复制失败，请手动选取并复制代码"
         },
         "voice": {
-            "play": "语音播放",
-            "stop": "停止语音"
+            "play": "点击播放语音",
+            "stop": "点击停止播放",
+            "playing": "正在播放语音",
+            "queued": "已加入播放队列",
+            "next": "即将播放",
+            "unsupported": "您的浏览器不支持语音合成功能",
+            "queue": "队列",
+            "queueItems": "队列: {{count}} 项",
+            "playingStatus": "播放中",
+            "skip": "跳过",
+            "skipTitle": "跳过当前语音",
+            "clear": "清除",
+            "clearTitle": "清除语音队列",
+            "removeFromQueue": "点击从队列中移除",
+            "otherTabPlaying": "其他标签页正在播放"
         }
     },
     "input": {

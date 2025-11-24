@@ -106,8 +106,21 @@
             "failed": "Copy failed, please manually select and copy the code"
         },
         "voice": {
-            "play": "Voice playback",
-            "stop": "Stop voice"
+            "play": "Click to play voice",
+            "stop": "Click to stop playback",
+            "playing": "Playing voice",
+            "queued": "Added to playback queue",
+            "next": "Playing next",
+            "unsupported": "Your browser does not support voice synthesis",
+            "queue": "Queue",
+            "queueItems": "Queue: {{count}} items",
+            "playingStatus": "Playing",
+            "skip": "Skip",
+            "skipTitle": "Skip current voice",
+            "clear": "Clear",
+            "clearTitle": "Clear voice queue",
+            "removeFromQueue": "Click to remove from queue",
+            "otherTabPlaying": "Playing in another tab"
         }
     },
     "input": {

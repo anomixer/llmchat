@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
+import { flushSync } from 'react-dom'
 import { Send, Bot, User, Settings, Trash2, Moon, Sun, Plus, MessageSquare, Paperclip, X, Mic, MicOff, Volume2, VolumeX, Download, Square, Maximize2, Minimize2, LogOut } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import MarkdownMessage from './MarkdownMsg'
@@ -69,6 +70,13 @@ interface Message {
     timestamp: Date
     expandedFiles?: boolean
     interrupted?: boolean
+}
+
+interface SpeechQueueItem {
+    id: string
+    text: string
+    messageId: string
+    timestamp: Date
 }
 
 interface Conversation {
@@ -178,6 +186,13 @@ const App: React.FC = () => {
     const [isRecording, setIsRecording] = useState(false)
     const [isSpeaking, setIsSpeaking] = useState(false)
     const [isStreaming, setIsStreaming] = useState(false)
+    const [speechQueue, setSpeechQueue] = useState<SpeechQueueItem[]>([])
+    const [currentPlayingId, setCurrentPlayingId] = useState<string | null>(null)
+    const [isProcessingQueue, setIsProcessingQueue] = useState(false)
+    const [globalSpeakingMessageId, setGlobalSpeakingMessageId] = useState<string | null>(null)
+    const speechChannelRef = useRef<BroadcastChannel | null>(null)
+    const currentPlayingItemRef = useRef<SpeechQueueItem | null>(null)
+    const [forceUpdate, setForceUpdate] = useState(0)
     const [isFullscreen, setIsFullscreen] = useState(false)
     // 永遠啟用串流模式
     const streamingModeEnabled = true
@@ -357,6 +372,31 @@ const App: React.FC = () => {
     }, [shouldAutoScroll])
 
     // 移除舊的高度調整 useEffect，因為現在在防抖函數中處理
+
+    // 初始化語音狀態同步頻道
+    useEffect(() => {
+        if (typeof BroadcastChannel !== 'undefined') {
+            speechChannelRef.current = new BroadcastChannel('llmchat-speech-sync')
+
+            speechChannelRef.current.onmessage = (event) => {
+                const { type, messageId, sessionId } = event.data
+                // 只處理來自其他session的消息
+                if (sessionId !== user?.id) {
+                    if (type === 'speech-start') {
+                        setGlobalSpeakingMessageId(messageId)
+                    } else if (type === 'speech-end') {
+                        setGlobalSpeakingMessageId(null)
+                    }
+                }
+            }
+        }
+
+        return () => {
+            if (speechChannelRef.current) {
+                speechChannelRef.current.close()
+            }
+        }
+    }, [user?.id])
 
     // 監聽瀏覽器主題變化
     useEffect(() => {
@@ -709,20 +749,33 @@ const App: React.FC = () => {
         }
     }
 
-    // 語音輸出
-    const speakText = (text: string) => {
+    // 添加到語音隊列
+    const addToSpeechQueue = (text: string, messageId: string) => {
         if (!('speechSynthesis' in window)) {
             alert(t('messages.voice.unsupported'))
             return
         }
 
-        if (isSpeaking) {
-            window.speechSynthesis.cancel()
-            setIsSpeaking(false)
+        const queueItem: SpeechQueueItem = {
+            id: Date.now().toString(),
+            text: text,
+            messageId: messageId,
+            timestamp: new Date()
+        }
+
+        setSpeechQueue(prev => [...prev, queueItem])
+    }
+
+    // 處理語音隊列的核心函數
+    const processSpeechQueue = useCallback(() => {
+        if (speechQueue.length === 0 || isProcessingQueue) {
             return
         }
 
-        const utterance = new SpeechSynthesisUtterance(text)
+        setIsProcessingQueue(true)
+        const nextItem = speechQueue[0]
+
+        const utterance = new SpeechSynthesisUtterance(nextItem.text)
 
         // 根據當前語言設定語音合成語言
         const languageMap: { [key: string]: string } = {
@@ -736,11 +789,162 @@ const App: React.FC = () => {
         utterance.rate = 1
         utterance.pitch = 1
 
-        utterance.onstart = () => setIsSpeaking(true)
-        utterance.onend = () => setIsSpeaking(false)
-        utterance.onerror = () => setIsSpeaking(false)
+        utterance.onstart = () => {
+            // 在語音真正開始時才設置播放狀態
+            currentPlayingItemRef.current = nextItem
+            setCurrentPlayingId(nextItem.id)
+            setIsSpeaking(true)
+            // 廣播語音開始狀態
+            if (speechChannelRef.current) {
+                speechChannelRef.current.postMessage({
+                    type: 'speech-start',
+                    messageId: nextItem.messageId,
+                    sessionId: user?.id
+                })
+            }
+            setGlobalSpeakingMessageId(nextItem.messageId)
+        }
+
+        utterance.onend = () => {
+            currentPlayingItemRef.current = null
+            setIsSpeaking(false)
+            setCurrentPlayingId(null)
+            setIsProcessingQueue(false)
+            setGlobalSpeakingMessageId(null)
+
+            // 廣播語音結束狀態
+            if (speechChannelRef.current) {
+                speechChannelRef.current.postMessage({
+                    type: 'speech-end',
+                    messageId: null,
+                    sessionId: user?.id
+                })
+            }
+
+            // 移除已播放的項目，useEffect 會處理剩餘項目
+            setSpeechQueue(prev => prev.slice(1))
+        }
+
+        utterance.onerror = () => {
+            currentPlayingItemRef.current = null
+            setIsSpeaking(false)
+            setCurrentPlayingId(null)
+            setIsProcessingQueue(false)
+            setGlobalSpeakingMessageId(null)
+
+            // 廣播語音結束狀態
+            if (speechChannelRef.current) {
+                speechChannelRef.current.postMessage({
+                    type: 'speech-end',
+                    messageId: null,
+                    sessionId: user?.id
+                })
+            }
+
+            // 移除失敗的項目，繼續處理下一個
+            setSpeechQueue(prev => prev.slice(1))
+        }
 
         window.speechSynthesis.speak(utterance)
+    }, [speechQueue, isProcessingQueue, i18n.language])
+
+    // 監聽隊列變化，自動處理
+    useEffect(() => {
+        if (speechQueue.length > 0 && !isProcessingQueue) {
+            processSpeechQueue()
+        }
+    }, [speechQueue, isProcessingQueue, processSpeechQueue])
+
+
+    // 跳過當前語音
+    const skipCurrentSpeech = () => {
+        if (isSpeaking && 'speechSynthesis' in window) {
+            window.speechSynthesis.cancel()
+            currentPlayingItemRef.current = null
+            setIsSpeaking(false)
+            setCurrentPlayingId(null)
+            setGlobalSpeakingMessageId(null)
+
+            // 廣播語音結束狀態
+            if (speechChannelRef.current) {
+                speechChannelRef.current.postMessage({
+                    type: 'speech-end',
+                    messageId: null,
+                    sessionId: user?.id
+                })
+            }
+
+            // 移除當前項目並繼續處理下一個
+            setSpeechQueue(prev => prev.slice(1))
+            setIsProcessingQueue(false)
+
+            // useEffect 會自動處理剩餘項目
+        }
+    }
+
+    // 清除語音隊列
+    const clearSpeechQueue = () => {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel()
+        }
+        currentPlayingItemRef.current = null
+        setIsSpeaking(false)
+        setCurrentPlayingId(null)
+        setGlobalSpeakingMessageId(null)
+        setSpeechQueue([])
+        setIsProcessingQueue(false)
+
+        // 廣播語音結束狀態
+        if (speechChannelRef.current) {
+            speechChannelRef.current.postMessage({
+                type: 'speech-end',
+                messageId: null,
+                sessionId: user?.id
+            })
+        }
+    }
+
+    // 從隊列中移除特定項目
+    const removeFromSpeechQueue = (messageId: string) => {
+        setSpeechQueue(prev => {
+            const filtered = prev.filter(item => item.messageId !== messageId)
+            // 如果移除的是正在播放的項目，停止播放
+            if (prev.length > 0 && prev[0].messageId === messageId && isSpeaking) {
+                if ('speechSynthesis' in window) {
+                    window.speechSynthesis.cancel()
+                }
+                currentPlayingItemRef.current = null
+                setIsSpeaking(false)
+                setCurrentPlayingId(null)
+                setGlobalSpeakingMessageId(null)
+                setIsProcessingQueue(false)
+
+                // 廣播語音結束狀態
+                if (speechChannelRef.current) {
+                    speechChannelRef.current.postMessage({
+                        type: 'speech-end',
+                        messageId: null,
+                        sessionId: user?.id
+                    })
+                }
+
+                // 重新開始處理隊列
+                if (filtered.length > 0) {
+                    setTimeout(() => {
+                        if (!isProcessingQueue) {
+                            processSpeechQueue()
+                        }
+                    }, 100)
+                }
+            }
+            return filtered
+        })
+    }
+
+    // 舊的 speakText 函數，保持向後相容但改為使用隊列
+    const speakText = (text: string, messageId?: string) => {
+        const msgId = messageId || 'manual'
+        addToSpeechQueue(text, msgId)
     }
 
     // 導出對話記錄
@@ -1661,7 +1865,7 @@ const App: React.FC = () => {
                             </div>
                             <div className={`flex-1 max-w-[90%] ${message.role === 'user' ? 'text-right' : ''
                                 }`}>
-                                <div className={`inline-block px-4 py-2 rounded-lg transition-colors chat-message-content ${message.role === 'user'
+                                <div className={`inline-block px-4 py-2 pr-8 rounded-lg transition-colors chat-message-content relative ${message.role === 'user'
                                     ? 'bg-blue-600 text-white'
                                     : isDarkMode
                                         ? 'bg-gray-800 text-gray-100 border border-gray-700'
@@ -1730,18 +1934,6 @@ const App: React.FC = () => {
                                     })()}
                                     {message.role === 'assistant' && (
                                         <>
-                                            <button
-                                                onClick={() => speakText(message.content)}
-                                                className={`mt-2 p-1 rounded transition-colors ${isSpeaking
-                                                    ? 'text-green-500'
-                                                    : isDarkMode
-                                                        ? 'text-gray-400 hover:text-green-400 hover:bg-gray-700'
-                                                        : 'text-gray-500 hover:text-green-600 hover:bg-gray-100'
-                                                    }`}
-                                                title={isSpeaking ? t('messages.voice.stop') : t('messages.voice.play')}
-                                            >
-                                                {isSpeaking ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-                                            </button>
                                             {message.thinking && (
                                                 <div className="mt-3 border-t border-gray-200 dark:border-gray-600 pt-3">
                                                     <button
@@ -1773,7 +1965,84 @@ const App: React.FC = () => {
                                             )}
                                         </>
                                     )}
+
+                                    {/* 語音按鈕 - 放在對話框右上角，不遮擋內容 */}
+                                    {message.role === 'assistant' && (
+                                        <div className="absolute top-1 right-1 flex items-center space-x-1 z-10">
+                                            <button
+                                                key={`speech-btn-${message.id}`}
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+
+                                                    // 檢查這個消息是否正在播放
+                                                    const isCurrentMessagePlaying = isSpeaking && currentPlayingItemRef.current?.messageId === message.id
+
+                                                    if (isCurrentMessagePlaying) {
+                                                        // 正在播放這個消息，點擊停止播放
+                                                        if ('speechSynthesis' in window) {
+                                                            window.speechSynthesis.cancel()
+                                                        }
+
+                                                        // 立即更新狀態
+                                                        setIsSpeaking(false)
+                                                        setCurrentPlayingId(null)
+                                                        setGlobalSpeakingMessageId(null)
+                                                        setSpeechQueue(prev => prev.slice(1))
+                                                        setIsProcessingQueue(false)
+
+                                                        // 廣播語音結束狀態
+                                                        if (speechChannelRef.current) {
+                                                            speechChannelRef.current.postMessage({
+                                                                type: 'speech-end',
+                                                                messageId: null,
+                                                                sessionId: user?.id
+                                                            })
+                                                        }
+                                                    } else if (speechQueue.some(item => item.messageId === message.id)) {
+                                                        // 在隊列中但不是正在播放，點擊移除
+                                                        removeFromSpeechQueue(message.id)
+                                                    } else if (globalSpeakingMessageId !== message.id) {
+                                                        // 沒有在隊列中且沒有被其他session佔用，添加播放
+                                                        speakText(message.content, message.id)
+                                                    }
+                                                }}
+                                                className={`p-1 rounded-full transition-colors shadow-sm ${(() => {
+                                                    const isPlayingThis = isSpeaking && currentPlayingItemRef.current?.messageId === message.id
+                                                    const isGlobalPlaying = globalSpeakingMessageId === message.id
+                                                    const isInQueue = speechQueue.some(item => item.messageId === message.id)
+
+                                                    if (isPlayingThis) {
+                                                        return 'bg-green-500 text-white hover:bg-green-600' // 本session播放中 - 綠色 (最高優先級)
+                                                    } else if (isInQueue) {
+                                                        return 'bg-orange-500 text-white hover:bg-red-400' // 隊列中 - 橘色
+                                                    } else if (isGlobalPlaying) {
+                                                        return 'bg-red-500 text-white' // 其他session播放中 - 紅色
+                                                    } else {
+                                                        return isDarkMode
+                                                            ? 'bg-gray-600 text-gray-300 hover:text-green-400 hover:bg-gray-500'
+                                                            : 'bg-gray-200 text-gray-600 hover:text-green-600 hover:bg-gray-300'
+                                                    }
+                                                })()
+                                                    }`}
+                                                title={
+                                                    isSpeaking && currentPlayingItemRef.current?.messageId === message.id
+                                                        ? t('messages.voice.stop')
+                                                        : globalSpeakingMessageId === message.id
+                                                            ? t('messages.voice.otherTabPlaying')
+                                                            : speechQueue.some(item => item.messageId === message.id)
+                                                                ? t('messages.voice.removeFromQueue')
+                                                                : t('messages.voice.play')
+                                                }
+                                                disabled={globalSpeakingMessageId === message.id && !(isSpeaking && currentPlayingItemRef.current?.messageId === message.id)} // 只有其他session播放時才禁用，本session播放時不禁用
+                                                style={{ zIndex: 10, pointerEvents: 'auto' }}
+                                            >
+                                                <Volume2 className="h-3 w-3" />
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
+
+
                                 <p className={`text-xs mt-1 transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
                                     }`}>
                                     {message.timestamp.toLocaleTimeString(i18n.language)}
