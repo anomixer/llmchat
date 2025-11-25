@@ -7,13 +7,24 @@ import zhCN from '../locales/zh-CN.json'
 import en from '../locales/en.json'
 import ja from '../locales/ja.json'
 import ko from '../locales/ko.json'
+import { APP_CONFIG } from '../constants'
+
+// 為每個語言資源注入全局配置
+const injectGlobalConfig = (localeData: any) => ({
+    ...localeData,
+    app: {
+        ...localeData.app,
+        title: APP_CONFIG.title,
+        version: APP_CONFIG.version
+    }
+})
 
 const resources = {
-    'zh-TW': { translation: zhTW },
-    'zh-CN': { translation: zhCN },
-    'en': { translation: en },
-    'ja': { translation: ja },
-    'ko': { translation: ko }
+    'zh-TW': { translation: injectGlobalConfig(zhTW) },
+    'zh-CN': { translation: injectGlobalConfig(zhCN) },
+    'en': { translation: injectGlobalConfig(en) },
+    'ja': { translation: injectGlobalConfig(ja) },
+    'ko': { translation: injectGlobalConfig(ko) }
 }
 
 i18n

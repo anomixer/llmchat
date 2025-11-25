@@ -1865,11 +1865,12 @@ const App: React.FC = () => {
                             </div>
                             <div className={`flex-1 max-w-[90%] ${message.role === 'user' ? 'text-right' : ''
                                 }`}>
-                                <div className={`inline-block px-4 py-2 pr-8 rounded-lg transition-colors chat-message-content relative ${message.role === 'user'
+                                <div className={`inline-block px-4 py-2 rounded-lg transition-colors chat-message-content relative ${message.role === 'user'
                                     ? 'bg-blue-600 text-white'
-                                    : isDarkMode
+                                    : `pr-8 ${isDarkMode
                                         ? 'bg-gray-800 text-gray-100 border border-gray-700'
                                         : 'bg-white text-gray-900 border border-gray-200'
+                                    }`
                                     }`}>
                                     {(() => {
                                         const lines = message.content.split('\n')
