@@ -1417,6 +1417,14 @@ const App: React.FC = () => {
             if (modelMenu && modelButton && !modelMenu.contains(event.target as Node) && !modelButton.contains(event.target as Node)) {
                 modelMenu.classList.add('hidden')
             }
+
+            // 關閉手機選單 - 通過發送自定義事件給Header組件
+            const mobileMenu = document.querySelector('[data-mobile-menu]')
+            const mobileMenuButton = document.querySelector('[data-mobile-menu-button]')
+            if (mobileMenu && mobileMenuButton && !mobileMenu.contains(event.target as Node) && !mobileMenuButton.contains(event.target as Node)) {
+                // 發送事件通知Header組件關閉手機選單
+                window.dispatchEvent(new CustomEvent('closeMobileMenu'))
+            }
         }
 
         document.addEventListener('mousedown', handleClickOutside)
