@@ -195,6 +195,7 @@ const App: React.FC = () => {
     const currentPlayingItemRef = useRef<SpeechQueueItem | null>(null)
     const [forceUpdate, setForceUpdate] = useState(0)
     const [isFullscreen, setIsFullscreen] = useState(false)
+    const [isMobileView, setIsMobileView] = useState(false)
     // 密碼更改相關狀態
     const [currentPassword, setCurrentPassword] = useState('')
     const [newPassword, setNewPassword] = useState('')
@@ -270,8 +271,9 @@ const App: React.FC = () => {
         const newTheme = !isDarkMode
         setIsDarkMode(newTheme)
         localStorage.setItem('theme', JSON.stringify(newTheme))
-        // 更新 body 類別以應用玻璃擬態主題
+        // 更新 body 類別以應用玻璃擬態主題和Tailwind dark模式
         document.body.classList.toggle('dark-theme', newTheme)
+        document.documentElement.classList.toggle('dark', newTheme)
     }
 
     // 切換全螢幕函數
@@ -414,6 +416,7 @@ const App: React.FC = () => {
             const savedTheme = localStorage.getItem('theme')
             if (savedTheme === null) { // 沒有手動設定過
                 setIsDarkMode(e.matches)
+                document.documentElement.classList.toggle('dark', e.matches)
             }
         }
 
@@ -421,6 +424,11 @@ const App: React.FC = () => {
         const savedTheme = localStorage.getItem('theme')
         if (savedTheme === null) { // 沒有手動設定過
             setIsDarkMode(mediaQuery.matches)
+            document.documentElement.classList.toggle('dark', mediaQuery.matches)
+        } else {
+            // 如果有手動設定過的主題，也要設置dark類別
+            const isDark = JSON.parse(savedTheme)
+            document.documentElement.classList.toggle('dark', isDark)
         }
 
         // 添加監聽器
@@ -434,7 +442,20 @@ const App: React.FC = () => {
     // 初始化主題類別
     useEffect(() => {
         document.body.classList.toggle('dark-theme', isDarkMode)
+        document.documentElement.classList.toggle('dark', isDarkMode)
     }, [isDarkMode])
+
+    // 響應式檢測
+    useEffect(() => {
+        const checkMobileView = () => {
+            setIsMobileView(window.innerWidth < 768)
+        }
+
+        checkMobileView()
+        window.addEventListener('resize', checkMobileView)
+
+        return () => window.removeEventListener('resize', checkMobileView)
+    }, [])
 
     // 從服務器加載用戶對話
     const loadUserConversations = async () => {
@@ -832,7 +853,10 @@ const App: React.FC = () => {
         setIsProcessingQueue(true)
         const nextItem = speechQueue[0]
 
-        const utterance = new SpeechSynthesisUtterance(nextItem.text)
+        // 過濾掉表情符號，避免語音合成讀出表情符號
+        const filteredText = nextItem.text.replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '').trim()
+
+        const utterance = new SpeechSynthesisUtterance(filteredText)
 
         // 根據當前語言設定語音合成語言
         const languageMap: { [key: string]: string } = {
@@ -1386,7 +1410,7 @@ const App: React.FC = () => {
 
     // 點擊外部關閉面板
     useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
+        const handleClickOutside = (event: Event) => {
             // 關閉導出菜單
             const menu = document.getElementById('export-menu')
             const exportButton = document.querySelector('[data-button="export"]')
@@ -1397,8 +1421,9 @@ const App: React.FC = () => {
             // 關閉對話列表面板 - 點擊任何地方都關閉，除了對話列表面板和按鈕本身
             const conversationsPanel = document.querySelector('[data-panel="conversations"]')
             const conversationsButton = document.querySelector('[data-button="conversations"]')
-            if (showConversations && conversationsPanel && conversationsButton &&
-                !conversationsPanel.contains(event.target as Node) && !conversationsButton.contains(event.target as Node)) {
+            if (showConversations && conversationsPanel &&
+                !conversationsPanel.contains(event.target as Node) &&
+                (!conversationsButton || !conversationsButton.contains(event.target as Node))) {
                 setShowConversations(false)
             }
 
@@ -1406,9 +1431,10 @@ const App: React.FC = () => {
             const settingsPanel = document.querySelector('[data-panel="settings"]')
             const settingsButton = document.querySelector('[data-button="settings"]')
             const modelButton = document.querySelector('[data-button="model"]')
-            if (showSettings && settingsPanel && settingsButton &&
-                !settingsPanel.contains(event.target as Node) && !settingsButton.contains(event.target as Node) &&
-                !modelButton?.contains(event.target as Node)) {
+            if (showSettings && settingsPanel &&
+                !settingsPanel.contains(event.target as Node) &&
+                (!settingsButton || !settingsButton.contains(event.target as Node)) &&
+                (!modelButton || !modelButton.contains(event.target as Node))) {
                 setShowSettings(false)
             }
 
@@ -1428,7 +1454,11 @@ const App: React.FC = () => {
         }
 
         document.addEventListener('mousedown', handleClickOutside)
-        return () => document.removeEventListener('mousedown', handleClickOutside)
+        document.addEventListener('touchstart', handleClickOutside)
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside)
+            document.removeEventListener('touchstart', handleClickOutside)
+        }
     }, [showConversations, showSettings])
 
     // 當 API URL 變化時重新載入模型列表 (防抖)
@@ -1547,7 +1577,7 @@ const App: React.FC = () => {
     }
 
     return (
-        <div className={`flex flex-col h-full transition-colors ${isFullscreen ? 'fullscreen-app' : ''}`}>
+        <div className={`flex flex-col h-full transition-colors ${isFullscreen ? 'fullscreen-app' : ''} ${isMobileView && !isFullscreen ? 'pt-16' : ''}`}>
             <Header
                 isDarkMode={isDarkMode}
                 isFullscreen={isFullscreen}
@@ -1576,6 +1606,7 @@ const App: React.FC = () => {
                 onLogout={logout}
                 user={user}
                 onAdminView={() => setCurrentView('admin')}
+                isMobileView={isMobileView}
             />
 
             {/* Conversations Panel */}
@@ -2327,7 +2358,7 @@ const App: React.FC = () => {
                                 value={input}
                                 onChange={(e) => setInputDebounced(e.target.value)}
                                 onKeyPress={handleKeyPress}
-                                placeholder={t('input.placeholder')}
+                                placeholder={isMobileView ? (input ? '' : '輸入訊息...') : t('input.placeholder')}
                                 className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none min-h-[52px] max-h-32 transition-colors ${isDarkMode
                                     ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
                                     : 'bg-white border-gray-300'

@@ -22,6 +22,8 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
     const [users, setUsers] = useState<User[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [currentPage, setCurrentPage] = useState(1)
+    const usersPerPage = 10
 
     // 檢查用戶是否為管理員
     if (!currentUser || currentUser.role !== 'admin') {
@@ -140,6 +142,17 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
         fetchUsers()
     }, [])
 
+    // 計算分頁數據
+    const totalPages = Math.ceil(users.length / usersPerPage)
+    const startIndex = (currentPage - 1) * usersPerPage
+    const endIndex = startIndex + usersPerPage
+    const currentUsers = users.slice(startIndex, endIndex)
+
+    // 分頁控制函數
+    const goToPage = (page: number) => {
+        setCurrentPage(Math.max(1, Math.min(page, totalPages)))
+    }
+
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800">
@@ -152,7 +165,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 px-4 py-8">
+        <div className="h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 px-4 py-8">
             <div className="max-w-6xl mx-auto">
                 {/* 標題 */}
                 <div className="mb-8">
@@ -192,7 +205,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                 )}
 
                 {/* 用戶統計 */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8">
                     <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
                         <div className="flex items-center space-x-3">
                             <Users className="h-8 w-8 text-blue-500" />
@@ -248,14 +261,16 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                 </div>
 
                 {/* 用戶列表 */}
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
                     <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                             用戶列表
                         </h2>
                     </div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
+
+                    {/* 桌面版：表格 */}
+                    <div className="hidden md:block overflow-x-auto">
+                        <table className="w-full min-w-full">
                             <thead className="bg-gray-50 dark:bg-gray-700">
                                 <tr>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
@@ -279,7 +294,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                 </tr>
                             </thead>
                             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                {users.map((user) => (
+                                {currentUsers.map((user) => (
                                     <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                                             {user.email}
@@ -353,6 +368,132 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                             </tbody>
                         </table>
                     </div>
+
+                    {/* 手機版：卡片 */}
+                    <div className="md:hidden space-y-4 p-4">
+                        {currentUsers.length === 0 ? (
+                            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                                <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                <p>沒有用戶數據</p>
+                            </div>
+                        ) : (
+                            currentUsers.map((user) => (
+                                <div key={user.id} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="flex items-center space-x-3">
+                                            <div className="text-sm font-medium text-gray-900 dark:text-white">
+                                                {user.email}
+                                            </div>
+                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${user.enable
+                                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                                : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                                }`}>
+                                                {user.enable ? '啟用' : '禁用'}
+                                            </span>
+                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${user.role === 'admin'
+                                                ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                                : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                                                }`}>
+                                                {user.role === 'admin' ? '管理員' : '用戶'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                                        <div>註冊時間: {new Date(user.createdAt).toLocaleDateString('zh-TW')}</div>
+                                        <div>最後登入: {user.lastLoginAt
+                                            ? new Date(user.lastLoginAt).toLocaleString('zh-TW')
+                                            : '從未登入'
+                                        }</div>
+                                    </div>
+                                    <div className="flex items-center space-x-2 mt-3">
+                                        <button
+                                            onClick={() => toggleUserEnable(user.id)}
+                                            className={`p-2 rounded-md ${user.enable
+                                                ? 'text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900'
+                                                : 'text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900'
+                                                }`}
+                                            title={user.enable ? '禁用用戶' : '啟用用戶'}
+                                            disabled={user.id === currentUser?.id}
+                                        >
+                                            {user.enable ? <AlertTriangle className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
+                                        </button>
+                                        {user.role === 'user' ? (
+                                            <button
+                                                onClick={() => updateUserRole(user.id, 'admin')}
+                                                className="p-2 rounded-md text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900"
+                                                title="設為管理員"
+                                            >
+                                                <UserPlus className="h-4 w-4" />
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={() => updateUserRole(user.id, 'user')}
+                                                className="p-2 rounded-md text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900"
+                                                title="設為普通用戶"
+                                                disabled={users.filter(u => u.role === 'admin').length <= 1 && user.role === 'admin'}
+                                            >
+                                                <UserCheck className="h-4 w-4" />
+                                            </button>
+                                        )}
+                                        <button
+                                            onClick={() => deleteUser(user.id)}
+                                            className="p-2 rounded-md text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900"
+                                            title="刪除用戶"
+                                            disabled={user.id === currentUser?.id}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+
+                    {/* 分頁控制 */}
+                    {totalPages > 1 && (
+                        <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+                            <div className="flex items-center justify-between">
+                                <div className="text-sm text-gray-700 dark:text-gray-300">
+                                    顯示第 {startIndex + 1} 到 {Math.min(endIndex, users.length)} 項，共 {users.length} 項
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <button
+                                        onClick={() => goToPage(currentPage - 1)}
+                                        disabled={currentPage === 1}
+                                        className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700"
+                                    >
+                                        上一頁
+                                    </button>
+
+                                    {/* 頁碼按鈕 */}
+                                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                        const pageNum = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i
+                                        if (pageNum > totalPages) return null
+                                        return (
+                                            <button
+                                                key={pageNum}
+                                                onClick={() => goToPage(pageNum)}
+                                                className={`px-3 py-1 text-sm border rounded-md ${pageNum === currentPage
+                                                    ? 'bg-blue-600 text-white border-blue-600'
+                                                    : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                                    }`}
+                                            >
+                                                {pageNum}
+                                            </button>
+                                        )
+                                    })}
+
+                                    <button
+                                        onClick={() => goToPage(currentPage + 1)}
+                                        disabled={currentPage === totalPages}
+                                        className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700"
+                                    >
+                                        下一頁
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

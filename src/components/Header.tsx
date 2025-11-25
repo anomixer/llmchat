@@ -31,6 +31,7 @@ interface HeaderProps {
     onLogout: () => void
     user: User
     onAdminView?: () => void
+    isMobileView?: boolean
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -53,23 +54,11 @@ export const Header: React.FC<HeaderProps> = ({
     onModelChange,
     onLogout,
     user,
-    onAdminView
+    onAdminView,
+    isMobileView = false
 }) => {
     const { t } = useTranslation()
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-    const [isMobileView, setIsMobileView] = useState(false)
-
-    // 響應式檢測
-    useEffect(() => {
-        const checkMobileView = () => {
-            setIsMobileView(window.innerWidth < 768) // 768px 作為手機/平板的分界線
-        }
-
-        checkMobileView()
-        window.addEventListener('resize', checkMobileView)
-
-        return () => window.removeEventListener('resize', checkMobileView)
-    }, [])
 
     // 監聽關閉手機選單事件
     useEffect(() => {
@@ -86,7 +75,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className={`shadow-sm border-b px-4 py-3 flex items-center justify-between transition-colors ${isDarkMode
             ? 'bg-gray-800 border-gray-700'
             : 'bg-white border-gray-200'
-            }`}>
+            } ${isMobileView ? 'fixed top-0 left-0 right-0 z-50' : ''}`}>
             <div className="flex items-center space-x-2">
                 <Bot className={`h-6 w-6 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
                 <h1 className={`text-xl font-semibold transition-colors ${isDarkMode ? 'text-white' : 'text-gray-900'
@@ -100,7 +89,7 @@ export const Header: React.FC<HeaderProps> = ({
                         }}
                         className={`px-2 py-1 text-xs rounded-md transition-colors cursor-pointer flex items-center space-x-1 ${isDarkMode
                             ? 'bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600'
-                            : 'bg-gray-100 text-gray-600 border border-gray-300 hover:bg-gray-200'
+                            : 'bg-white text-gray-900 border border-gray-300 hover:bg-gray-100'
                             }`}
                         title={t('header.model.openSettings')}
                         data-button="model"
@@ -112,7 +101,10 @@ export const Header: React.FC<HeaderProps> = ({
                     </button>
                     <div
                         id="model-menu"
-                        className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg z-10 hidden border border-gray-200 dark:border-gray-700 max-h-60 overflow-y-auto"
+                        className={`absolute top-full left-0 mt-1 w-48 rounded-md shadow-lg z-10 hidden border max-h-60 overflow-y-auto ${isDarkMode
+                            ? 'bg-gray-800 border-gray-700'
+                            : 'bg-white border-gray-200'
+                            }`}
                     >
                         <div className="py-1">
                             {isLoadingModels ? (
@@ -129,7 +121,7 @@ export const Header: React.FC<HeaderProps> = ({
                                         }}
                                         className={`block w-full text-left px-4 py-2 text-sm transition-colors ${settings.model === model.id
                                             ? (isDarkMode ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800')
-                                            : (isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100')
+                                            : (isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-900 hover:bg-gray-100')
                                             }`}
                                     >
                                         {model.name}
@@ -159,14 +151,24 @@ export const Header: React.FC<HeaderProps> = ({
                         <ChevronDown className={`h-5 w-5 transition-transform ${isMobileMenuOpen ? 'rotate-180' : ''}`} />
                     </button>
                     {isMobileMenuOpen && (
-                        <div data-mobile-menu className={`absolute right-0 top-full mt-2 w-64 bg-white dark:bg-gray-800 rounded-md shadow-lg z-50 border border-gray-200 dark:border-gray-700`}>
+                        <div data-mobile-menu className={`absolute right-0 top-full mt-2 w-64 rounded-md shadow-lg z-50 border ${isDarkMode
+                            ? 'bg-gray-800 border-gray-700'
+                            : 'bg-white border-gray-200'
+                            }`}>
                             <div className="py-2">
                                 {/* GitHub 連結 */}
                                 <a
                                     href="https://github.com/anomixer/llmchat"
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                    className={`flex items-center space-x-3 px-4 py-2 text-sm transition-colors ${isDarkMode
+                                        ? 'text-gray-300 hover:bg-gray-700'
+                                        : 'text-gray-900 hover:bg-gray-100'
+                                        }`}
+                                    onClick={() => {
+                                        setIsMobileMenuOpen(false)
+                                        window.dispatchEvent(new CustomEvent('closeMobileMenu'))
+                                    }}
                                 >
                                     <img
                                         src="/github.svg"
@@ -177,13 +179,17 @@ export const Header: React.FC<HeaderProps> = ({
                                 </a>
                                 {/* 對話列表 */}
                                 <button
+                                    data-button="conversations"
                                     onClick={() => {
                                         onToggleConversations()
-                                        setIsMobileMenuOpen(false)
+                                        setTimeout(() => {
+                                            setIsMobileMenuOpen(false)
+                                            window.dispatchEvent(new CustomEvent('closeMobileMenu'))
+                                        }, 0)
                                     }}
                                     className={`flex items-center space-x-3 w-full text-left px-4 py-2 text-sm transition-colors ${showConversations
-                                        ? (isDarkMode ? 'text-green-400 bg-gray-700' : 'text-green-600 bg-green-50')
-                                        : (isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100')
+                                        ? (isDarkMode ? 'text-green-400 bg-gray-700' : 'text-green-800 bg-green-50')
+                                        : (isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-900 hover:bg-gray-100')
                                         }`}
                                 >
                                     <MessageSquare className="h-4 w-4" />
@@ -194,14 +200,15 @@ export const Header: React.FC<HeaderProps> = ({
                                     onClick={() => {
                                         onNewConversation()
                                         setIsMobileMenuOpen(false)
+                                        window.dispatchEvent(new CustomEvent('closeMobileMenu'))
                                     }}
                                     className={`flex items-center space-x-3 w-full text-left px-4 py-2 text-sm transition-colors ${isDarkMode
                                         ? 'text-blue-400 hover:bg-gray-700'
-                                        : 'text-blue-600 hover:bg-gray-100'
+                                        : 'text-blue-800 hover:bg-gray-100'
                                         }`}
                                 >
                                     <Plus className="h-4 w-4" />
-                                    <span>{t('header.new')}</span>
+                                    <span>{t('conversation.new')}</span>
                                 </button>
                                 {/* 導出 */}
                                 <div className="border-t border-gray-200 dark:border-gray-600 my-1"></div>
@@ -209,10 +216,11 @@ export const Header: React.FC<HeaderProps> = ({
                                     onClick={() => {
                                         onExportConversation('json')
                                         setIsMobileMenuOpen(false)
+                                        window.dispatchEvent(new CustomEvent('closeMobileMenu'))
                                     }}
                                     className={`flex items-center space-x-3 w-full text-left px-4 py-2 text-sm transition-colors ${isDarkMode
                                         ? 'text-gray-300 hover:bg-gray-700'
-                                        : 'text-gray-700 hover:bg-gray-100'
+                                        : 'text-gray-900 hover:bg-gray-100'
                                         }`}
                                 >
                                     <Download className="h-4 w-4" />
@@ -222,10 +230,11 @@ export const Header: React.FC<HeaderProps> = ({
                                     onClick={() => {
                                         onExportConversation('markdown')
                                         setIsMobileMenuOpen(false)
+                                        window.dispatchEvent(new CustomEvent('closeMobileMenu'))
                                     }}
                                     className={`flex items-center space-x-3 w-full text-left px-4 py-2 text-sm transition-colors ${isDarkMode
                                         ? 'text-gray-300 hover:bg-gray-700'
-                                        : 'text-gray-700 hover:bg-gray-100'
+                                        : 'text-gray-900 hover:bg-gray-100'
                                         }`}
                                 >
                                     <Download className="h-4 w-4" />
@@ -236,10 +245,11 @@ export const Header: React.FC<HeaderProps> = ({
                                     onClick={() => {
                                         onClearChat()
                                         setIsMobileMenuOpen(false)
+                                        window.dispatchEvent(new CustomEvent('closeMobileMenu'))
                                     }}
                                     className={`flex items-center space-x-3 w-full text-left px-4 py-2 text-sm transition-colors ${isDarkMode
                                         ? 'text-gray-300 hover:bg-gray-700'
-                                        : 'text-gray-700 hover:bg-gray-100'
+                                        : 'text-gray-900 hover:bg-gray-100'
                                         }`}
                                 >
                                     <Trash2 className="h-4 w-4" />
@@ -250,10 +260,11 @@ export const Header: React.FC<HeaderProps> = ({
                                     onClick={() => {
                                         onToggleTheme()
                                         setIsMobileMenuOpen(false)
+                                        window.dispatchEvent(new CustomEvent('closeMobileMenu'))
                                     }}
                                     className={`flex items-center space-x-3 w-full text-left px-4 py-2 text-sm transition-colors ${isDarkMode
                                         ? 'text-yellow-400 hover:bg-gray-700'
-                                        : 'text-gray-700 hover:bg-gray-100'
+                                        : 'text-gray-900 hover:bg-gray-100'
                                         }`}
                                 >
                                     {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -264,10 +275,11 @@ export const Header: React.FC<HeaderProps> = ({
                                     onClick={() => {
                                         onToggleFullscreen()
                                         setIsMobileMenuOpen(false)
+                                        window.dispatchEvent(new CustomEvent('closeMobileMenu'))
                                     }}
                                     className={`flex items-center space-x-3 w-full text-left px-4 py-2 text-sm transition-colors ${isDarkMode
                                         ? 'text-gray-300 hover:bg-gray-700'
-                                        : 'text-gray-700 hover:bg-gray-100'
+                                        : 'text-gray-900 hover:bg-gray-100'
                                         }`}
                                 >
                                     {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
@@ -275,7 +287,7 @@ export const Header: React.FC<HeaderProps> = ({
                                 </button>
                                 {/* 用戶信息 */}
                                 <div className="border-t border-gray-200 dark:border-gray-600 my-1"></div>
-                                <div className={`flex items-center justify-between px-4 py-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                                <div className={`flex items-center justify-between px-4 py-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-900'}`}>
                                     <span className="text-sm font-medium">{user.email}</span>
                                     {user.role === 'admin' && (
                                         <span className="text-xs px-2 py-0.5 rounded-full bg-red-500 text-white">
@@ -289,10 +301,11 @@ export const Header: React.FC<HeaderProps> = ({
                                         onClick={() => {
                                             onAdminView()
                                             setIsMobileMenuOpen(false)
+                                            window.dispatchEvent(new CustomEvent('closeMobileMenu'))
                                         }}
                                         className={`flex items-center space-x-3 w-full text-left px-4 py-2 text-sm transition-colors ${isDarkMode
                                             ? 'text-purple-400 hover:bg-gray-700'
-                                            : 'text-purple-600 hover:bg-gray-100'
+                                            : 'text-purple-800 hover:bg-gray-100'
                                             }`}
                                     >
                                         <Users className="h-4 w-4" />
@@ -304,6 +317,7 @@ export const Header: React.FC<HeaderProps> = ({
                                     onClick={() => {
                                         onLogout()
                                         setIsMobileMenuOpen(false)
+                                        window.dispatchEvent(new CustomEvent('closeMobileMenu'))
                                     }}
                                     className={`flex items-center space-x-3 w-full text-left px-4 py-2 text-sm transition-colors ${isDarkMode
                                         ? 'text-gray-300 hover:bg-gray-700'
@@ -315,13 +329,18 @@ export const Header: React.FC<HeaderProps> = ({
                                 </button>
                                 {/* 設定 */}
                                 <button
+                                    data-button="settings"
                                     onClick={() => {
                                         onToggleSettings()
-                                        setIsMobileMenuOpen(false)
+                                        setTimeout(() => {
+                                            setIsMobileMenuOpen(false)
+                                            // 發送事件通知App組件關閉手機選單
+                                            window.dispatchEvent(new CustomEvent('closeMobileMenu'))
+                                        }, 0)
                                     }}
                                     className={`flex items-center space-x-3 w-full text-left px-4 py-2 text-sm transition-colors ${showSettings
-                                        ? (isDarkMode ? 'text-blue-400 bg-gray-700' : 'text-blue-600 bg-blue-50')
-                                        : (isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100')
+                                        ? (isDarkMode ? 'text-blue-400 bg-gray-700' : 'text-blue-800 bg-blue-50')
+                                        : (isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-900 hover:bg-gray-100')
                                         }`}
                                 >
                                     <Settings className="h-4 w-4" />
@@ -340,8 +359,8 @@ export const Header: React.FC<HeaderProps> = ({
                         target="_blank"
                         rel="noopener noreferrer"
                         className={`p-1 rounded transition-colors ${isDarkMode
-                            ? 'text-gray-400 hover:text-gray-200'
-                            : 'text-gray-500 hover:text-gray-700'
+                            ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700'
+                            : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
                             }`}
                         title={t('header.github')}
                     >
@@ -372,7 +391,7 @@ export const Header: React.FC<HeaderProps> = ({
                             ? 'text-blue-400 hover:bg-gray-700'
                             : 'text-blue-600 hover:bg-blue-50'
                             }`}
-                        title={t('header.new')}
+                        title={t('conversation.new')}
                     >
                         <Plus className="h-5 w-5" />
                     </button>
@@ -394,7 +413,10 @@ export const Header: React.FC<HeaderProps> = ({
                         </button>
                         <div
                             id="export-menu"
-                            className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg z-10 hidden border border-gray-200 dark:border-gray-700"
+                            className={`absolute right-0 mt-2 w-48 rounded-md shadow-lg z-10 hidden border ${isDarkMode
+                                ? 'bg-gray-800 border-gray-700'
+                                : 'bg-white border-gray-200'
+                                }`}
                         >
                             <div className="py-1">
                                 <button
