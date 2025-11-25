@@ -32,10 +32,10 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                 <div className="max-w-md w-full text-center">
                     <Shield className="h-16 w-16 mx-auto mb-4 text-red-500" />
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                        權限不足
+                        {t('admin.accessDenied')}
                     </h1>
                     <p className="text-gray-600 dark:text-gray-400">
-                        您需要管理員權限才能訪問此頁面
+                        {t('admin.accessDeniedMessage')}
                     </p>
                 </div>
             </div>
@@ -54,13 +54,13 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
 
             if (!response.ok) {
                 const errorData = await response.json()
-                throw new Error(errorData.error || '獲取用戶列表失敗')
+                throw new Error(errorData.error || t('admin.error.fetchUsers'))
             }
 
             const data = await response.json()
             setUsers(data.users)
         } catch (error) {
-            setError(error instanceof Error ? error.message : '未知錯誤')
+            setError(error instanceof Error ? error.message : t('admin.error.unknown'))
         } finally {
             setLoading(false)
         }
@@ -80,19 +80,19 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
 
             if (!response.ok) {
                 const errorData = await response.json()
-                throw new Error(errorData.error || '更新角色失敗')
+                throw new Error(errorData.error || t('admin.error.updateRole'))
             }
 
             // 重新獲取用戶列表
             await fetchUsers()
         } catch (error) {
-            setError(error instanceof Error ? error.message : '更新角色失敗')
+            setError(error instanceof Error ? error.message : t('admin.error.updateRole'))
         }
     }
 
     // 刪除用戶
     const deleteUser = async (userId: string) => {
-        if (!window.confirm('確定要刪除此用戶嗎？此操作無法復原。')) {
+        if (!window.confirm(t('admin.deleteUserConfirm'))) {
             return
         }
 
@@ -106,13 +106,13 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
 
             if (!response.ok) {
                 const errorData = await response.json()
-                throw new Error(errorData.error || '刪除用戶失敗')
+                throw new Error(errorData.error || t('admin.error.deleteUser'))
             }
 
             // 重新獲取用戶列表
             await fetchUsers()
         } catch (error) {
-            setError(error instanceof Error ? error.message : '刪除用戶失敗')
+            setError(error instanceof Error ? error.message : t('admin.error.deleteUser'))
         }
     }
 
@@ -128,13 +128,13 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
 
             if (!response.ok) {
                 const errorData = await response.json()
-                throw new Error(errorData.error || '切換用戶狀態失敗')
+                throw new Error(errorData.error || t('admin.error.toggleUser'))
             }
 
             // 重新獲取用戶列表
             await fetchUsers()
         } catch (error) {
-            setError(error instanceof Error ? error.message : '切換用戶狀態失敗')
+            setError(error instanceof Error ? error.message : t('admin.error.toggleUser'))
         }
     }
 
@@ -158,7 +158,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800">
                 <div className="flex items-center space-x-2">
                     <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                    <span className="text-gray-600 dark:text-gray-400">載入中...</span>
+                    <span className="text-gray-600 dark:text-gray-400">{t('app.loading')}</span>
                 </div>
             </div>
         )
@@ -175,17 +175,17 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                             className="flex items-center space-x-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
                         >
                             <ArrowLeft className="h-5 w-5" />
-                            <span>返回聊天</span>
+                            <span>{t('admin.backToChat')}</span>
                         </button>
                     </div>
                     <div className="flex items-center space-x-3">
                         <Users className="h-8 w-8 text-blue-600 dark:text-blue-400" />
                         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                            用戶管理
+                            {t('admin.title')}
                         </h1>
                     </div>
                     <p className="text-gray-600 dark:text-gray-400 mt-2">
-                        管理系統中的所有用戶帳號
+                        {t('admin.subtitle')}
                     </p>
                 </div>
 
@@ -199,7 +199,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                             onClick={() => setError(null)}
                             className="mt-2 text-sm text-red-500 hover:text-red-700 dark:hover:text-red-300"
                         >
-                            關閉
+                            {t('admin.close')}
                         </button>
                     </div>
                 )}
@@ -214,7 +214,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                     {users.length}
                                 </p>
                                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                                    總用戶數
+                                    {t('admin.stats.totalUsers')}
                                 </p>
                             </div>
                         </div>
@@ -227,7 +227,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                     {users.filter(u => u.enable).length}
                                 </p>
                                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                                    啟用用戶
+                                    {t('admin.stats.enabledUsers')}
                                 </p>
                             </div>
                         </div>
@@ -240,7 +240,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                     {users.filter(u => !u.enable).length}
                                 </p>
                                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                                    禁用用戶
+                                    {t('admin.stats.disabledUsers')}
                                 </p>
                             </div>
                         </div>
@@ -253,7 +253,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                     {users.filter(u => u.role === 'admin').length}
                                 </p>
                                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                                    管理員
+                                    {t('admin.stats.admins')}
                                 </p>
                             </div>
                         </div>
@@ -264,7 +264,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
                     <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                            用戶列表
+                            {t('admin.table.list')}
                         </h2>
                     </div>
 
@@ -274,22 +274,22 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                             <thead className="bg-gray-50 dark:bg-gray-700">
                                 <tr>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                        Email
+                                        {t('admin.table.email')}
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                        狀態
+                                        {t('admin.table.status')}
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                        角色
+                                        {t('admin.table.role')}
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                        註冊時間
+                                        {t('admin.table.registrationDate')}
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                        最後登入
+                                        {t('admin.table.lastLogin')}
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                        操作
+                                        {t('admin.table.actions')}
                                     </th>
                                 </tr>
                             </thead>
@@ -304,7 +304,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                                 ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                                                 : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                                                 }`}>
-                                                {user.enable ? '啟用' : '禁用'}
+                                                {user.enable ? t('admin.status.enabled') : t('admin.status.disabled')}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
@@ -312,7 +312,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                                 ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                                                 : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
                                                 }`}>
-                                                {user.role === 'admin' ? '管理員' : '用戶'}
+                                                {user.role === 'admin' ? t('admin.role.admin') : t('admin.role.user')}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
@@ -321,7 +321,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                             {user.lastLoginAt
                                                 ? new Date(user.lastLoginAt).toLocaleString('zh-TW')
-                                                : '從未登入'
+                                                : t('admin.neverLoggedIn')
                                             }
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
@@ -331,7 +331,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                                     ? 'text-orange-600 hover:text-orange-900 dark:text-orange-400 dark:hover:text-orange-300'
                                                     : 'text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300'
                                                     }`}
-                                                title={user.enable ? '禁用用戶' : '啟用用戶'}
+                                                title={user.enable ? t('admin.disableUser') : t('admin.enableUser')}
                                                 disabled={user.id === currentUser?.id} // 不允許禁用自己
                                             >
                                                 {user.enable ? <AlertTriangle className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
@@ -340,7 +340,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                                 <button
                                                     onClick={() => updateUserRole(user.id, 'admin')}
                                                     className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
-                                                    title="設為管理員"
+                                                    title={t('admin.setAsAdmin')}
                                                 >
                                                     <UserPlus className="h-4 w-4" />
                                                 </button>
@@ -348,7 +348,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                                 <button
                                                     onClick={() => updateUserRole(user.id, 'user')}
                                                     className="text-orange-600 hover:text-orange-900 dark:text-orange-400 dark:hover:text-orange-300"
-                                                    title="設為普通用戶"
+                                                    title={t('admin.setAsUser')}
                                                     disabled={users.filter(u => u.role === 'admin').length <= 1 && user.role === 'admin'}
                                                 >
                                                     <UserCheck className="h-4 w-4" />
@@ -357,7 +357,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                             <button
                                                 onClick={() => deleteUser(user.id)}
                                                 className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 ml-2"
-                                                title="刪除用戶"
+                                                title={t('admin.deleteUser')}
                                                 disabled={user.id === currentUser?.id} // 不允許刪除自己
                                             >
                                                 <Trash2 className="h-4 w-4" />
@@ -374,7 +374,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                         {currentUsers.length === 0 ? (
                             <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                                 <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                                <p>沒有用戶數據</p>
+                                <p>{t('admin.noUsers')}</p>
                             </div>
                         ) : (
                             currentUsers.map((user) => (
@@ -388,21 +388,21 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                                 ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                                                 : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                                                 }`}>
-                                                {user.enable ? '啟用' : '禁用'}
+                                                {user.enable ? t('admin.status.enabled') : t('admin.status.disabled')}
                                             </span>
                                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${user.role === 'admin'
                                                 ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                                                 : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
                                                 }`}>
-                                                {user.role === 'admin' ? '管理員' : '用戶'}
+                                                {user.role === 'admin' ? t('admin.role.admin') : t('admin.role.user')}
                                             </span>
                                         </div>
                                     </div>
                                     <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
-                                        <div>註冊時間: {new Date(user.createdAt).toLocaleDateString('zh-TW')}</div>
-                                        <div>最後登入: {user.lastLoginAt
+                                        <div>{t('admin.table.registrationDate')}: {new Date(user.createdAt).toLocaleDateString('zh-TW')}</div>
+                                        <div>{t('admin.table.lastLogin')}: {user.lastLoginAt
                                             ? new Date(user.lastLoginAt).toLocaleString('zh-TW')
-                                            : '從未登入'
+                                            : t('admin.neverLoggedIn')
                                         }</div>
                                     </div>
                                     <div className="flex items-center space-x-2 mt-3">
@@ -412,7 +412,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                                 ? 'text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900'
                                                 : 'text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900'
                                                 }`}
-                                            title={user.enable ? '禁用用戶' : '啟用用戶'}
+                                            title={user.enable ? t('admin.disableUser') : t('admin.enableUser')}
                                             disabled={user.id === currentUser?.id}
                                         >
                                             {user.enable ? <AlertTriangle className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
@@ -421,7 +421,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                             <button
                                                 onClick={() => updateUserRole(user.id, 'admin')}
                                                 className="p-2 rounded-md text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900"
-                                                title="設為管理員"
+                                                title={t('admin.setAsAdmin')}
                                             >
                                                 <UserPlus className="h-4 w-4" />
                                             </button>
@@ -429,7 +429,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                             <button
                                                 onClick={() => updateUserRole(user.id, 'user')}
                                                 className="p-2 rounded-md text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900"
-                                                title="設為普通用戶"
+                                                title={t('admin.setAsUser')}
                                                 disabled={users.filter(u => u.role === 'admin').length <= 1 && user.role === 'admin'}
                                             >
                                                 <UserCheck className="h-4 w-4" />
@@ -438,7 +438,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                         <button
                                             onClick={() => deleteUser(user.id)}
                                             className="p-2 rounded-md text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900"
-                                            title="刪除用戶"
+                                            title={t('admin.deleteUser')}
                                             disabled={user.id === currentUser?.id}
                                         >
                                             <Trash2 className="h-4 w-4" />
@@ -454,7 +454,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                         <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
                             <div className="flex items-center justify-between">
                                 <div className="text-sm text-gray-700 dark:text-gray-300">
-                                    顯示第 {startIndex + 1} 到 {Math.min(endIndex, users.length)} 項，共 {users.length} 項
+                                    {t('admin.pagination.showing', { start: startIndex + 1, end: Math.min(endIndex, users.length), total: users.length })}
                                 </div>
                                 <div className="flex items-center space-x-2">
                                     <button
@@ -462,7 +462,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                         disabled={currentPage === 1}
                                         className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700"
                                     >
-                                        上一頁
+                                        {t('admin.pagination.previous')}
                                     </button>
 
                                     {/* 頁碼按鈕 */}
@@ -488,7 +488,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                         disabled={currentPage === totalPages}
                                         className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700"
                                     >
-                                        下一頁
+                                        {t('admin.pagination.next')}
                                     </button>
                                 </div>
                             </div>

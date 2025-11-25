@@ -56,7 +56,10 @@
             "enter": "進入全螢幕",
             "exit": "退出全螢幕"
         },
-        "github": "在 GitHub 上查看"
+        "github": "在 GitHub 上查看",
+        "menu": "選單",
+        "adminBadge": "管理員",
+        "adminButton": "用戶管理"
     },
     "settings": {
         "panels": {
@@ -102,7 +105,9 @@
             "topP": "Top P: {{value}} (控制核心採樣的機率參數 0-1：高=高機率；低=低機率)",
             "topK": "Top K: {{value}} (限制候選Token的數量參數 1-100：高=取樣多；低=取樣少)",
             "maxTokens": "最大 Context 數: {{value}} (設定生成回應的最大上下文長度 4096-262144)"
-        }
+        },
+        "adminOnly": "管理員",
+        "adminOnlyMessage": "只有管理員才能設定以下API配置"
     },
     "messages": {
         "user": "用戶",
@@ -207,6 +212,57 @@
         "en": "English",
         "ja": "日本語",
         "ko": "한국어"
+    },
+    "admin": {
+        "accessDenied": "權限不足",
+        "accessDeniedMessage": "您需要管理員權限才能訪問此頁面",
+        "backToChat": "返回聊天",
+        "title": "用戶管理",
+        "subtitle": "管理系統中的所有用戶帳號",
+        "stats": {
+            "totalUsers": "總用戶數",
+            "enabledUsers": "啟用用戶",
+            "disabledUsers": "禁用用戶",
+            "admins": "管理員"
+        },
+        "table": {
+            "list": "用戶列表",
+            "email": "Email",
+            "status": "狀態",
+            "role": "角色",
+            "registrationDate": "註冊時間",
+            "lastLogin": "最後登入",
+            "actions": "操作"
+        },
+        "status": {
+            "enabled": "啟用",
+            "disabled": "禁用"
+        },
+        "role": {
+            "admin": "管理員",
+            "user": "用戶"
+        },
+        "neverLoggedIn": "從未登入",
+        "disableUser": "禁用用戶",
+        "enableUser": "啟用用戶",
+        "setAsAdmin": "設為管理員",
+        "setAsUser": "設為普通用戶",
+        "deleteUser": "刪除用戶",
+        "deleteUserConfirm": "確定要刪除此用戶嗎？此操作無法復原。",
+        "noUsers": "沒有用戶數據",
+        "pagination": {
+            "showing": "顯示第 {{start}} 到 {{end}} 項，共 {{total}} 項",
+            "previous": "上一頁",
+            "next": "下一頁"
+        },
+        "close": "關閉",
+        "error": {
+            "fetchUsers": "獲取用戶列表失敗",
+            "updateRole": "更新角色失敗",
+            "deleteUser": "刪除用戶失敗",
+            "toggleUser": "切換用戶狀態失敗",
+            "unknown": "未知錯誤"
+        }
     },
     "systemPrompt": "你是一個有用的AI助手，請用繁體中文回答用戶的問題。"
 }

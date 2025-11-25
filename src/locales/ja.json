@@ -54,7 +54,10 @@
             "enter": "フルスクリーンに入る",
             "exit": "フルスクリーンを終了"
         },
-        "github": "GitHubで表示"
+        "github": "GitHubで表示",
+        "menu": "メニュー",
+        "adminBadge": "管理者",
+        "adminButton": "ユーザー管理"
     },
     "settings": {
         "panels": {
@@ -100,7 +103,9 @@
             "topP": "Top P: {{value}} (コアサンプリング確率を制御 0-1: 高=高確率; 低=低確率)",
             "topK": "Top K: {{value}} (候補トークン数を制限 1-100: 高=サンプリング多め; 低=サンプリング少なめ)",
             "maxTokens": "最大コンテキスト: {{value}} (応答の最大コンテキスト長を設定 4096-262144)"
-        }
+        },
+        "adminOnly": "管理者",
+        "adminOnlyMessage": "管理者のみが以下のAPI設定を構成できます"
     },
     "messages": {
         "user": "ユーザー",
@@ -204,6 +209,57 @@
         "en": "英語",
         "ja": "日本語",
         "ko": "韓国語"
+    },
+    "admin": {
+        "accessDenied": "アクセス拒否",
+        "accessDeniedMessage": "このページにアクセスするには管理者権限が必要です",
+        "backToChat": "チャットに戻る",
+        "title": "ユーザー管理",
+        "subtitle": "システム内のすべてのユーザーアカウントを管理",
+        "stats": {
+            "totalUsers": "総ユーザー数",
+            "enabledUsers": "有効ユーザー",
+            "disabledUsers": "無効ユーザー",
+            "admins": "管理者"
+        },
+        "table": {
+            "list": "ユーザー一覧",
+            "email": "メールアドレス",
+            "status": "ステータス",
+            "role": "役割",
+            "registrationDate": "登録日",
+            "lastLogin": "最終ログイン",
+            "actions": "アクション"
+        },
+        "status": {
+            "enabled": "有効",
+            "disabled": "無効"
+        },
+        "role": {
+            "admin": "管理者",
+            "user": "ユーザー"
+        },
+        "neverLoggedIn": "ログインしたことがありません",
+        "disableUser": "ユーザーを無効化",
+        "enableUser": "ユーザーを有効化",
+        "setAsAdmin": "管理者として設定",
+        "setAsUser": "通常ユーザーとして設定",
+        "deleteUser": "ユーザーを削除",
+        "deleteUserConfirm": "このユーザーを削除してもよろしいですか？この操作は元に戻せません。",
+        "noUsers": "ユーザーデータがありません",
+        "pagination": {
+            "showing": "{{start}} から {{end}} までを表示、合計 {{total}} 件",
+            "previous": "前へ",
+            "next": "次へ"
+        },
+        "close": "閉じる",
+        "error": {
+            "fetchUsers": "ユーザー一覧の取得に失敗しました",
+            "updateRole": "役割の更新に失敗しました",
+            "deleteUser": "ユーザーの削除に失敗しました",
+            "toggleUser": "ユーザー状態の切り替えに失敗しました",
+            "unknown": "不明なエラー"
+        }
     },
     "systemPrompt": "あなたは役立つAIアシスタントです。ユーザーの質問に日本語で答えてください。"
 }

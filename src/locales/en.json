@@ -54,7 +54,10 @@
             "enter": "Enter fullscreen",
             "exit": "Exit fullscreen"
         },
-        "github": "View on GitHub"
+        "github": "View on GitHub",
+        "menu": "Menu",
+        "adminBadge": "Admin",
+        "adminButton": "User Management"
     },
     "settings": {
         "panels": {
@@ -100,7 +103,9 @@
             "topP": "Top P: {{value}} (Controls core sampling probability 0-1: High=high probability; Low=low probability)",
             "topK": "Top K: {{value}} (Limits candidate token count 1-100: High=more sampling; Low=less sampling)",
             "maxTokens": "Max Context: {{value}} (Sets maximum context length for responses 4096-262144)"
-        }
+        },
+        "adminOnly": "Admin",
+        "adminOnlyMessage": "Only administrators can configure the following API settings"
     },
     "messages": {
         "user": "User",
@@ -204,6 +209,57 @@
         "en": "English",
         "ja": "Japanese",
         "ko": "Korean"
+    },
+    "admin": {
+        "accessDenied": "Access Denied",
+        "accessDeniedMessage": "You need administrator privileges to access this page",
+        "backToChat": "Back to Chat",
+        "title": "User Management",
+        "subtitle": "Manage all user accounts in the system",
+        "stats": {
+            "totalUsers": "Total Users",
+            "enabledUsers": "Enabled Users",
+            "disabledUsers": "Disabled Users",
+            "admins": "Administrators"
+        },
+        "table": {
+            "list": "User List",
+            "email": "Email",
+            "status": "Status",
+            "role": "Role",
+            "registrationDate": "Registration Date",
+            "lastLogin": "Last Login",
+            "actions": "Actions"
+        },
+        "status": {
+            "enabled": "Enabled",
+            "disabled": "Disabled"
+        },
+        "role": {
+            "admin": "Admin",
+            "user": "User"
+        },
+        "neverLoggedIn": "Never logged in",
+        "disableUser": "Disable user",
+        "enableUser": "Enable user",
+        "setAsAdmin": "Set as admin",
+        "setAsUser": "Set as regular user",
+        "deleteUser": "Delete user",
+        "deleteUserConfirm": "Are you sure you want to delete this user? This action cannot be undone.",
+        "noUsers": "No user data",
+        "pagination": {
+            "showing": "Showing {{start}} to {{end}} of {{total}} entries",
+            "previous": "Previous",
+            "next": "Next"
+        },
+        "close": "Close",
+        "error": {
+            "fetchUsers": "Failed to fetch user list",
+            "updateRole": "Failed to update role",
+            "deleteUser": "Failed to delete user",
+            "toggleUser": "Failed to toggle user status",
+            "unknown": "Unknown error"
+        }
     },
     "systemPrompt": "You are a helpful AI assistant. Please answer user questions in English."
 }

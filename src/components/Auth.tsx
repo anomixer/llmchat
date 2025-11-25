@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { LogIn, UserPlus, Eye, EyeOff } from 'lucide-react'
+import { LogIn, UserPlus, Eye, EyeOff, Moon, Sun } from 'lucide-react'
 import { LanguageSelector } from './LanguageSelector'
 
 interface AuthProps {
@@ -24,6 +24,15 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onRegister, onResendVerific
     const [showRegistrationMessage, setShowRegistrationMessage] = useState(false)
     const [isDuplicateRegistration, setIsDuplicateRegistration] = useState(false)
     const [smtpEnabled, setSmtpEnabled] = useState(true) // 預設為 true，避免載入時閃爍
+    const [isDarkMode, setIsDarkMode] = useState(() => {
+        try {
+            const saved = localStorage.getItem('theme')
+            return saved ? JSON.parse(saved) : false
+        } catch (error) {
+            console.error('Error loading theme from localStorage:', error)
+            return false
+        }
+    })
 
     // 載入配置
     useEffect(() => {
@@ -43,6 +52,19 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onRegister, onResendVerific
 
         loadConfig()
     }, [])
+
+    // 應用主題
+    useEffect(() => {
+        document.body.classList.toggle('dark-theme', isDarkMode)
+        document.documentElement.classList.toggle('dark', isDarkMode)
+    }, [isDarkMode])
+
+    // 切換主題函數
+    const toggleTheme = () => {
+        const newTheme = !isDarkMode
+        setIsDarkMode(newTheme)
+        localStorage.setItem('theme', JSON.stringify(newTheme))
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -119,9 +141,16 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onRegister, onResendVerific
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 px-4 relative">
-            {/* 語言選擇器 - 右上角 */}
-            <div className="absolute top-4 right-4 z-10">
-                <LanguageSelector isDarkMode={false} />
+            {/* 語言選擇器和主題切換 - 右上角 */}
+            <div className="absolute top-4 right-4 z-10 flex items-center space-x-3">
+                <button
+                    onClick={toggleTheme}
+                    className="p-2 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-700 transition-colors"
+                    title={isDarkMode ? t('header.theme.light') : t('header.theme.dark')}
+                >
+                    {isDarkMode ? <Sun className="h-5 w-5 text-yellow-500" /> : <Moon className="h-5 w-5 text-gray-600 dark:text-gray-300" />}
+                </button>
+                <LanguageSelector isDarkMode={isDarkMode} />
             </div>
 
             <div className="max-w-md w-full space-y-8">

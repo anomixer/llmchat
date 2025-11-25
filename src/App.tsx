@@ -1827,10 +1827,10 @@ const App: React.FC = () => {
                                         <div className="border-2 border-red-500 rounded-lg p-4 bg-red-50 dark:bg-red-950/20">
                                             <div className="flex items-center mb-3">
                                                 <span className="text-red-600 dark:text-red-400 font-semibold text-sm bg-red-100 dark:bg-red-900 px-2 py-1 rounded">
-                                                    管理員
+                                                    {t('settings.adminOnly')}
                                                 </span>
                                                 <span className="text-red-600 dark:text-red-400 text-sm ml-2">
-                                                    只有管理員才能設定以下API配置
+                                                    {t('settings.adminOnlyMessage')}
                                                 </span>
                                             </div>
                                             <div>
