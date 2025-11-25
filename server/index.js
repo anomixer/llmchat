@@ -579,6 +579,27 @@ app.post('/api/user/settings', authenticateToken, (req, res) => {
     }
 })
 
+// 更改密碼
+app.post('/api/user/change-password', authenticateToken, async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body
+
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ error: '當前密碼和新密碼不能為空' })
+        }
+
+        if (newPassword.length < 6) {
+            return res.status(400).json({ error: '新密碼長度至少需要6個字符' })
+        }
+
+        const result = await userService.changePassword(req.user.userId, currentPassword, newPassword)
+        res.json(result)
+    } catch (error) {
+        console.error('Change password error:', error)
+        res.status(400).json({ error: error.message })
+    }
+})
+
 // 管理員 API - 獲取所有用戶
 app.get('/api/admin/users', authenticateToken, (req, res) => {
     try {

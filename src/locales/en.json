@@ -71,6 +71,18 @@
             "light": "Light Mode",
             "dark": "Dark Mode"
         },
+        "password": {
+            "label": "Change Password",
+            "current": "Current Password",
+            "currentPlaceholder": "Enter current password",
+            "new": "New Password",
+            "newPlaceholder": "Enter new password (min 6 characters)",
+            "button": "Change Password",
+            "success": "Password changed successfully",
+            "error": "Failed to change password",
+            "weak": "Password must be at least 6 characters long",
+            "incorrect": "Current password is incorrect"
+        },
         "api": {
             "url": "API URL (Ollama/OpenAI API address)",
             "key": "API Key (for authenticated API services)",

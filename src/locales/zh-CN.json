@@ -71,6 +71,18 @@
             "light": "亮色模式",
             "dark": "暗色模式"
         },
+        "password": {
+            "label": "更改密码",
+            "current": "当前密码",
+            "currentPlaceholder": "输入当前密码",
+            "new": "新密码",
+            "newPlaceholder": "输入新密码 (最少6个字符)",
+            "button": "更改密码",
+            "success": "密码更改成功",
+            "error": "密码更改失败",
+            "weak": "密码长度至少需要6个字符",
+            "incorrect": "当前密码不正确"
+        },
         "api": {
             "url": "API URL (Ollama/OpenAI API 地址)",
             "key": "API Key (用于需要验证的 API 服务)",

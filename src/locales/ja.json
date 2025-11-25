@@ -71,6 +71,18 @@
             "light": "ライトモード",
             "dark": "ダークモード"
         },
+        "password": {
+            "label": "パスワード変更",
+            "current": "現在のパスワード",
+            "currentPlaceholder": "現在のパスワードを入力",
+            "new": "新しいパスワード",
+            "newPlaceholder": "新しいパスワードを入力 (最小6文字)",
+            "button": "パスワード変更",
+            "success": "パスワードが正常に変更されました",
+            "error": "パスワードの変更に失敗しました",
+            "weak": "パスワードは最低6文字以上である必要があります",
+            "incorrect": "現在のパスワードが正しくありません"
+        },
         "api": {
             "url": "API URL (Ollama/OpenAI APIアドレス)",
             "key": "APIキー (認証が必要なAPIサービス用)",

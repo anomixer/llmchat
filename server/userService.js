@@ -438,6 +438,35 @@ class UserService {
         return user.emailVerificationToken
     }
 
+    // 更改密碼
+    async changePassword(userId, currentPassword, newPassword) {
+        const user = this.users.find(user => user.id === userId)
+        if (!user) {
+            throw new Error('用戶不存在')
+        }
+
+        // 驗證當前密碼
+        const isValidCurrentPassword = await bcrypt.compare(currentPassword, user.password)
+        if (!isValidCurrentPassword) {
+            throw new Error('當前密碼不正確')
+        }
+
+        // 檢查新密碼長度
+        if (newPassword.length < 6) {
+            throw new Error('新密碼長度至少需要6個字符')
+        }
+
+        // 哈希新密碼
+        const saltRounds = 10
+        const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds)
+
+        // 更新密碼
+        user.password = hashedNewPassword
+        this.saveUsers()
+
+        return { success: true, message: '密碼更改成功' }
+    }
+
     // 清理過期的會話
     cleanupExpiredSessions() {
         const now = new Date()

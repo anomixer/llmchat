@@ -150,6 +150,7 @@ const App: React.FC = () => {
         }, 100) // 100ms 防抖
     }, [])
     const [showSettings, setShowSettings] = useState(false)
+    const [showModelOnly, setShowModelOnly] = useState(false)
     const [showConversations, setShowConversations] = useState(false)
     const [isDarkMode, setIsDarkMode] = useState(() => {
         try {
@@ -194,6 +195,12 @@ const App: React.FC = () => {
     const currentPlayingItemRef = useRef<SpeechQueueItem | null>(null)
     const [forceUpdate, setForceUpdate] = useState(0)
     const [isFullscreen, setIsFullscreen] = useState(false)
+    // 密碼更改相關狀態
+    const [currentPassword, setCurrentPassword] = useState('')
+    const [newPassword, setNewPassword] = useState('')
+    const [isChangingPassword, setIsChangingPassword] = useState(false)
+    const [passwordChangeMessage, setPasswordChangeMessage] = useState('')
+    const [passwordChangeError, setPasswordChangeError] = useState('')
     // 永遠啟用串流模式
     const streamingModeEnabled = true
     const [streamingMessage, setStreamingMessage] = useState('')
@@ -564,6 +571,56 @@ const App: React.FC = () => {
             }
         } catch (error) {
             console.error('Error saving user settings:', error)
+        }
+    }
+
+    // 處理密碼更改
+    const handlePasswordChange = async () => {
+        if (!token) return
+
+        // 驗證輸入
+        if (!currentPassword || !newPassword) {
+            setPasswordChangeError(t('settings.password.error'))
+            return
+        }
+
+        if (newPassword.length < 6) {
+            setPasswordChangeError(t('settings.password.weak'))
+            return
+        }
+
+        setIsChangingPassword(true)
+        setPasswordChangeError('')
+        setPasswordChangeMessage('')
+
+        try {
+            const response = await fetch('/api/user/change-password', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    currentPassword,
+                    newPassword
+                }),
+            })
+
+            const data = await response.json()
+
+            if (response.ok) {
+                setPasswordChangeMessage(t('settings.password.success'))
+                // 清除表單
+                setCurrentPassword('')
+                setNewPassword('')
+            } else {
+                setPasswordChangeError(data.error || t('settings.password.error'))
+            }
+        } catch (error) {
+            console.error('Error changing password:', error)
+            setPasswordChangeError(t('settings.password.error'))
+        } finally {
+            setIsChangingPassword(false)
         }
     }
 
@@ -1354,6 +1411,12 @@ const App: React.FC = () => {
                 !modelButton?.contains(event.target as Node)) {
                 setShowSettings(false)
             }
+
+            // 關閉模型選單
+            const modelMenu = document.getElementById('model-menu')
+            if (modelMenu && modelButton && !modelMenu.contains(event.target as Node) && !modelButton.contains(event.target as Node)) {
+                modelMenu.classList.add('hidden')
+            }
         }
 
         document.addEventListener('mousedown', handleClickOutside)
@@ -1484,14 +1547,24 @@ const App: React.FC = () => {
                 showConversations={showConversations}
                 settings={settings}
                 conversations={conversations}
+                availableModels={availableModels}
                 isLoadingModels={isLoadingModels}
                 onToggleTheme={toggleTheme}
                 onToggleFullscreen={toggleFullscreen}
                 onToggleSettings={() => setShowSettings(!showSettings)}
+                onToggleModelOnly={() => {
+                    setShowModelOnly(!showModelOnly)
+                    setShowSettings(false) // 關閉完整設定面板
+                }}
                 onToggleConversations={() => setShowConversations(!showConversations)}
                 onNewConversation={createNewConversation}
                 onClearChat={clearChat}
                 onExportConversation={exportConversation}
+                onModelChange={(modelId: string) => {
+                    setSettings(prev => ({ ...prev, model: modelId }))
+                    setUserSettings(prev => ({ ...prev, model: modelId }))
+                    saveUserSettingsToServer({ ...userSettings, model: modelId })
+                }}
                 onLogout={logout}
                 user={user}
                 onAdminView={() => setCurrentView('admin')}
@@ -1556,279 +1629,352 @@ const App: React.FC = () => {
             )}
 
             {/* Settings Panel */}
-            {showSettings && (
-                <div data-panel="settings" className={`border-b px-4 py-3 transition-colors ${isDarkMode
+            {(showSettings || showModelOnly) && (
+                <div data-panel="settings" className={`border-b px-4 py-3 transition-colors max-h-96 overflow-y-auto ${isDarkMode
                     ? 'bg-gray-800 border-gray-700'
                     : 'bg-white border-gray-200'
                     }`}>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* 左側：用戶設定 */}
-                        <div className="space-y-4">
-                            <h3 className={`text-sm font-semibold transition-colors ${isDarkMode ? 'text-gray-200' : 'text-gray-800'
-                                }`}>
-                                {t('settings.panels.user')}
-                            </h3>
+                        {/* 只有在完整設定模式下才顯示用戶設定 */}
+                        {!showModelOnly && (
+                            <>
+                                {/* 左側：用戶設定 */}
+                                <div className="space-y-4">
+                                    <h3 className={`text-sm font-semibold transition-colors ${isDarkMode ? 'text-gray-200' : 'text-gray-800'
+                                        }`}>
+                                        {t('settings.panels.user')}
+                                    </h3>
 
-                            <div>
-                                <label className={`block text-sm font-medium mb-1 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                                    }`}>
-                                    {t('settings.language.label')}
-                                </label>
-                                <select
-                                    value={userSettings.language}
-                                    onChange={(e) => {
-                                        const newLanguage = e.target.value
-                                        setUserSettings(prev => ({ ...prev, language: newLanguage }))
-                                        // 立即應用語言變更
-                                        i18n.changeLanguage(newLanguage)
-                                        const htmlElement = document.getElementById('html-root') as HTMLHtmlElement
-                                        if (htmlElement) {
-                                            htmlElement.lang = newLanguage
-                                        }
-                                        // 保存到服務器
-                                        saveUserSettingsToServer({ ...userSettings, language: newLanguage })
-                                    }}
-                                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDarkMode
-                                        ? 'bg-gray-700 border-gray-600 text-white'
-                                        : 'bg-white border-gray-300'
-                                        }`}
-                                >
-                                    <option value="zh-TW">🇹🇼 繁體中文</option>
-                                    <option value="zh-CN">🇨🇳 简体中文</option>
-                                    <option value="en">🇺🇸 English</option>
-                                    <option value="ja">🇯🇵 日本語</option>
-                                    <option value="ko">🇰🇷 한국어</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className={`block text-sm font-medium mb-1 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                                    }`}>
-                                    {t('settings.theme.label')}
-                                </label>
-                                <select
-                                    value={userSettings.theme}
-                                    onChange={(e) => {
-                                        const newTheme = e.target.value
-                                        setUserSettings(prev => ({ ...prev, theme: newTheme }))
-                                        // 應用主題變更
-                                        if (newTheme === 'auto') {
-                                            const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-                                            setIsDarkMode(mediaQuery.matches)
-                                        } else {
-                                            setIsDarkMode(newTheme === 'dark')
-                                        }
-                                        // 保存到服務器
-                                        saveUserSettingsToServer({ ...userSettings, theme: newTheme })
-                                    }}
-                                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDarkMode
-                                        ? 'bg-gray-700 border-gray-600 text-white'
-                                        : 'bg-white border-gray-300'
-                                        }`}
-                                >
-                                    <option value="auto">{t('settings.theme.auto')}</option>
-                                    <option value="light">{t('settings.theme.light')}</option>
-                                    <option value="dark">{t('settings.theme.dark')}</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        {/* 右側：LLM 配置 */}
-                        <div className="space-y-4">
-                            <h3 className={`text-sm font-semibold transition-colors ${isDarkMode ? 'text-gray-200' : 'text-gray-800'
-                                }`}>
-                                {t('settings.panels.llm')}
-                            </h3>
-
-                            {user?.role === 'admin' && (
-                                <div className="border-2 border-red-500 rounded-lg p-4 bg-red-50 dark:bg-red-950/20">
-                                    <div className="flex items-center mb-3">
-                                        <span className="text-red-600 dark:text-red-400 font-semibold text-sm bg-red-100 dark:bg-red-900 px-2 py-1 rounded">
-                                            管理員
-                                        </span>
-                                        <span className="text-red-600 dark:text-red-400 text-sm ml-2">
-                                            只有管理員才能設定以下API配置
-                                        </span>
-                                    </div>
                                     <div>
                                         <label className={`block text-sm font-medium mb-1 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
                                             }`}>
-                                            {t('settings.api.url')}
+                                            {t('settings.language.label')}
                                         </label>
-                                        <input
-                                            type="text"
-                                            value={settings.apiUrl}
+                                        <select
+                                            value={userSettings.language}
                                             onChange={(e) => {
-                                                const newApiUrl = e.target.value
-                                                setSettings(prev => ({ ...prev, apiUrl: newApiUrl }))
-                                                setUserSettings(prev => ({ ...prev, apiUrl: newApiUrl }))
-                                                saveUserSettingsToServer({ ...userSettings, apiUrl: newApiUrl })
+                                                const newLanguage = e.target.value
+                                                setUserSettings(prev => ({ ...prev, language: newLanguage }))
+                                                // 立即應用語言變更
+                                                i18n.changeLanguage(newLanguage)
+                                                const htmlElement = document.getElementById('html-root') as HTMLHtmlElement
+                                                if (htmlElement) {
+                                                    htmlElement.lang = newLanguage
+                                                }
+                                                // 保存到服務器
+                                                saveUserSettingsToServer({ ...userSettings, language: newLanguage })
                                             }}
-                                            placeholder="http://localhost:11434"
                                             className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDarkMode
-                                                ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+                                                ? 'bg-gray-700 border-gray-600 text-white'
                                                 : 'bg-white border-gray-300'
                                                 }`}
-                                        />
+                                        >
+                                            <option value="zh-TW">🇹🇼 繁體中文</option>
+                                            <option value="zh-CN">🇨🇳 简体中文</option>
+                                            <option value="en">🇺🇸 English</option>
+                                            <option value="ja">🇯🇵 日本語</option>
+                                            <option value="ko">🇰🇷 한국어</option>
+                                        </select>
                                     </div>
 
-                                    <div className="mt-4">
+                                    <div>
                                         <label className={`block text-sm font-medium mb-1 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
                                             }`}>
-                                            {t('settings.api.key')}
+                                            {t('settings.theme.label')}
+                                        </label>
+                                        <select
+                                            value={userSettings.theme}
+                                            onChange={(e) => {
+                                                const newTheme = e.target.value
+                                                setUserSettings(prev => ({ ...prev, theme: newTheme }))
+                                                // 應用主題變更
+                                                if (newTheme === 'auto') {
+                                                    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+                                                    setIsDarkMode(mediaQuery.matches)
+                                                } else {
+                                                    setIsDarkMode(newTheme === 'dark')
+                                                }
+                                                // 保存到服務器
+                                                saveUserSettingsToServer({ ...userSettings, theme: newTheme })
+                                            }}
+                                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDarkMode
+                                                ? 'bg-gray-700 border-gray-600 text-white'
+                                                : 'bg-white border-gray-300'
+                                                }`}
+                                        >
+                                            <option value="auto">{t('settings.theme.auto')}</option>
+                                            <option value="light">{t('settings.theme.light')}</option>
+                                            <option value="dark">{t('settings.theme.dark')}</option>
+                                        </select>
+                                    </div>
+
+                                    {/* 密碼更改區域 */}
+                                    <div className="border-t border-gray-200 dark:border-gray-600 pt-4 mt-4">
+                                        <h4 className={`text-sm font-medium mb-3 transition-colors ${isDarkMode ? 'text-gray-200' : 'text-gray-800'
+                                            }`}>
+                                            {t('settings.password.label')}
+                                        </h4>
+
+                                        <div className="space-y-3">
+                                            <div>
+                                                <label className={`block text-sm font-medium mb-1 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                                                    }`}>
+                                                    {t('settings.password.current')}
+                                                </label>
+                                                <input
+                                                    type="password"
+                                                    value={currentPassword}
+                                                    onChange={(e) => setCurrentPassword(e.target.value)}
+                                                    placeholder={t('settings.password.currentPlaceholder')}
+                                                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDarkMode
+                                                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+                                                        : 'bg-white border-gray-300'
+                                                        }`}
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className={`block text-sm font-medium mb-1 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                                                    }`}>
+                                                    {t('settings.password.new')}
+                                                </label>
+                                                <input
+                                                    type="password"
+                                                    value={newPassword}
+                                                    onChange={(e) => setNewPassword(e.target.value)}
+                                                    placeholder={t('settings.password.newPlaceholder')}
+                                                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDarkMode
+                                                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+                                                        : 'bg-white border-gray-300'
+                                                        }`}
+                                                />
+                                            </div>
+
+
+                                            {/* 錯誤和成功消息 */}
+                                            {passwordChangeError && (
+                                                <div className="text-red-600 dark:text-red-400 text-sm">
+                                                    {passwordChangeError}
+                                                </div>
+                                            )}
+                                            {passwordChangeMessage && (
+                                                <div className="text-green-600 dark:text-green-400 text-sm">
+                                                    {passwordChangeMessage}
+                                                </div>
+                                            )}
+
+                                            <button
+                                                onClick={handlePasswordChange}
+                                                disabled={isChangingPassword || !currentPassword || !newPassword}
+                                                className={`w-full px-4 py-2 rounded-md font-medium transition-colors ${isChangingPassword || !currentPassword || !newPassword
+                                                    ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                                                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                                    }`}
+                                            >
+                                                {isChangingPassword ? t('auth.processing') : t('settings.password.button')}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* 右側：LLM 配置 */}
+                                <div className="space-y-4">
+                                    <h3 className={`text-sm font-semibold transition-colors ${isDarkMode ? 'text-gray-200' : 'text-gray-800'
+                                        }`}>
+                                        {t('settings.panels.llm')}
+                                    </h3>
+
+                                    {user?.role === 'admin' && (
+                                        <div className="border-2 border-red-500 rounded-lg p-4 bg-red-50 dark:bg-red-950/20">
+                                            <div className="flex items-center mb-3">
+                                                <span className="text-red-600 dark:text-red-400 font-semibold text-sm bg-red-100 dark:bg-red-900 px-2 py-1 rounded">
+                                                    管理員
+                                                </span>
+                                                <span className="text-red-600 dark:text-red-400 text-sm ml-2">
+                                                    只有管理員才能設定以下API配置
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <label className={`block text-sm font-medium mb-1 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                                                    }`}>
+                                                    {t('settings.api.url')}
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={settings.apiUrl}
+                                                    onChange={(e) => {
+                                                        const newApiUrl = e.target.value
+                                                        setSettings(prev => ({ ...prev, apiUrl: newApiUrl }))
+                                                        setUserSettings(prev => ({ ...prev, apiUrl: newApiUrl }))
+                                                        saveUserSettingsToServer({ ...userSettings, apiUrl: newApiUrl })
+                                                    }}
+                                                    placeholder="http://localhost:11434"
+                                                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDarkMode
+                                                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+                                                        : 'bg-white border-gray-300'
+                                                        }`}
+                                                />
+                                            </div>
+
+                                            <div className="mt-4">
+                                                <label className={`block text-sm font-medium mb-1 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                                                    }`}>
+                                                    {t('settings.api.key')}
+                                                </label>
+                                                <input
+                                                    type="password"
+                                                    value={settings.apiKey}
+                                                    onChange={(e) => {
+                                                        const newApiKey = e.target.value
+                                                        setSettings(prev => ({ ...prev, apiKey: newApiKey }))
+                                                        setUserSettings(prev => ({ ...prev, apiKey: newApiKey }))
+                                                        saveUserSettingsToServer({ ...userSettings, apiKey: newApiKey })
+                                                    }}
+                                                    placeholder={t('settings.api.keyPlaceholder')}
+                                                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDarkMode
+                                                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+                                                        : 'bg-white border-gray-300'
+                                                        }`}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div>
+                                        <label className={`block text-sm font-medium mb-1 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                                            }`}>
+                                            {t('settings.model.label')} {isLoadingModels && <span className="text-xs text-gray-500">({t('settings.model.loading')})</span>}
+                                            {availableModels.length === 0 && !isLoadingModels && (
+                                                <span className="text-xs text-red-500 ml-2">({t('settings.model.none')})</span>
+                                            )}
+                                        </label>
+                                        <select
+                                            value={settings.model}
+                                            onChange={(e) => {
+                                                const newModel = e.target.value
+                                                setSettings(prev => ({ ...prev, model: newModel }))
+                                                setUserSettings(prev => ({ ...prev, model: newModel }))
+                                                saveUserSettingsToServer({ ...userSettings, model: newModel })
+                                            }}
+                                            disabled={isLoadingModels}
+                                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDarkMode
+                                                ? 'bg-gray-700 border-gray-600 text-white disabled:opacity-50'
+                                                : 'bg-white border-gray-300 disabled:opacity-50'
+                                                }`}
+                                        >
+                                            {isLoadingModels ? (
+                                                <option value="">{t('settings.model.placeholder')}</option>
+                                            ) : availableModels.length > 0 ? (
+                                                availableModels.map(model => (
+                                                    <option key={model.id} value={model.id}>
+                                                        {model.name}
+                                                    </option>
+                                                ))
+                                            ) : (
+                                                <option value="">{t('settings.model.noModels')}</option>
+                                            )}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {/* 右側：生成參數 */}
+                                <div className="space-y-4">
+                                    <h3 className={`text-sm font-semibold transition-colors ${isDarkMode ? 'text-gray-200' : 'text-gray-800'
+                                        }`}>
+                                        {t('settings.panels.generation')}
+                                    </h3>
+
+                                    <div>
+                                        <label className={`block text-sm font-medium mb-1 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                                            }`}>
+                                            {t('settings.parameters.temperature', { value: settings.temperature })}
                                         </label>
                                         <input
-                                            type="password"
-                                            value={settings.apiKey}
+                                            type="range"
+                                            min="0"
+                                            max="2"
+                                            step="0.1"
+                                            value={settings.temperature}
                                             onChange={(e) => {
-                                                const newApiKey = e.target.value
-                                                setSettings(prev => ({ ...prev, apiKey: newApiKey }))
-                                                setUserSettings(prev => ({ ...prev, apiKey: newApiKey }))
-                                                saveUserSettingsToServer({ ...userSettings, apiKey: newApiKey })
+                                                const newTemperature = parseFloat(e.target.value)
+                                                setSettings(prev => ({ ...prev, temperature: newTemperature }))
+                                                setUserSettings(prev => ({ ...prev, temperature: newTemperature }))
+                                                saveUserSettingsToServer({ ...userSettings, temperature: newTemperature })
                                             }}
-                                            placeholder={t('settings.api.keyPlaceholder')}
-                                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDarkMode
-                                                ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
-                                                : 'bg-white border-gray-300'
+                                            className={`w-full ${isDarkMode ? 'accent-blue-400' : 'accent-blue-600'
                                                 }`}
                                         />
                                     </div>
+
+                                    <div>
+                                        <label className={`block text-sm font-medium mb-1 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                                            }`}>
+                                            {t('settings.parameters.topP', { value: settings.topP })}
+                                        </label>
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max="1"
+                                            step="0.05"
+                                            value={settings.topP}
+                                            onChange={(e) => {
+                                                const newTopP = parseFloat(e.target.value)
+                                                setSettings(prev => ({ ...prev, topP: newTopP }))
+                                                setUserSettings(prev => ({ ...prev, topP: newTopP }))
+                                                saveUserSettingsToServer({ ...userSettings, topP: newTopP })
+                                            }}
+                                            className={`w-full ${isDarkMode ? 'accent-blue-400' : 'accent-blue-600'
+                                                }`}
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className={`block text-sm font-medium mb-1 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                                            }`}>
+                                            {t('settings.parameters.topK', { value: settings.topK })}
+                                        </label>
+                                        <input
+                                            type="range"
+                                            min="1"
+                                            max="100"
+                                            step="1"
+                                            value={settings.topK}
+                                            onChange={(e) => {
+                                                const newTopK = parseInt(e.target.value)
+                                                setSettings(prev => ({ ...prev, topK: newTopK }))
+                                                setUserSettings(prev => ({ ...prev, topK: newTopK }))
+                                                saveUserSettingsToServer({ ...userSettings, topK: newTopK })
+                                            }}
+                                            className={`w-full ${isDarkMode ? 'accent-blue-400' : 'accent-blue-600'
+                                                }`}
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className={`block text-sm font-medium mb-1 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                                            }`}>
+                                            {t('settings.parameters.maxTokens', { value: settings.maxTokens })}
+                                        </label>
+                                        <input
+                                            type="range"
+                                            min="4096"
+                                            max="262144"
+                                            step="1024"
+                                            value={settings.maxTokens}
+                                            onChange={(e) => {
+                                                const newMaxTokens = parseInt(e.target.value)
+                                                setSettings(prev => ({ ...prev, maxTokens: newMaxTokens }))
+                                                setUserSettings(prev => ({ ...prev, maxTokens: newMaxTokens }))
+                                                saveUserSettingsToServer({ ...userSettings, maxTokens: newMaxTokens })
+                                            }}
+                                            className={`w-full ${isDarkMode ? 'accent-blue-400' : 'accent-blue-600'
+                                                }`}
+                                        />
+                                    </div>
+
                                 </div>
-                            )}
-
-                            <div>
-                                <label className={`block text-sm font-medium mb-1 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                                    }`}>
-                                    {t('settings.model.label')} {isLoadingModels && <span className="text-xs text-gray-500">({t('settings.model.loading')})</span>}
-                                    {availableModels.length === 0 && !isLoadingModels && (
-                                        <span className="text-xs text-red-500 ml-2">({t('settings.model.none')})</span>
-                                    )}
-                                </label>
-                                <select
-                                    value={settings.model}
-                                    onChange={(e) => {
-                                        const newModel = e.target.value
-                                        setSettings(prev => ({ ...prev, model: newModel }))
-                                        setUserSettings(prev => ({ ...prev, model: newModel }))
-                                        saveUserSettingsToServer({ ...userSettings, model: newModel })
-                                    }}
-                                    disabled={isLoadingModels}
-                                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDarkMode
-                                        ? 'bg-gray-700 border-gray-600 text-white disabled:opacity-50'
-                                        : 'bg-white border-gray-300 disabled:opacity-50'
-                                        }`}
-                                >
-                                    {isLoadingModels ? (
-                                        <option value="">{t('settings.model.placeholder')}</option>
-                                    ) : availableModels.length > 0 ? (
-                                        availableModels.map(model => (
-                                            <option key={model.id} value={model.id}>
-                                                {model.name}
-                                            </option>
-                                        ))
-                                    ) : (
-                                        <option value="">{t('settings.model.noModels')}</option>
-                                    )}
-                                </select>
-                            </div>
-                        </div>
-
-                        {/* 右側：生成參數 */}
-                        <div className="space-y-4">
-                            <h3 className={`text-sm font-semibold transition-colors ${isDarkMode ? 'text-gray-200' : 'text-gray-800'
-                                }`}>
-                                {t('settings.panels.generation')}
-                            </h3>
-
-                            <div>
-                                <label className={`block text-sm font-medium mb-1 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                                    }`}>
-                                    {t('settings.parameters.temperature', { value: settings.temperature })}
-                                </label>
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="2"
-                                    step="0.1"
-                                    value={settings.temperature}
-                                    onChange={(e) => {
-                                        const newTemperature = parseFloat(e.target.value)
-                                        setSettings(prev => ({ ...prev, temperature: newTemperature }))
-                                        setUserSettings(prev => ({ ...prev, temperature: newTemperature }))
-                                        saveUserSettingsToServer({ ...userSettings, temperature: newTemperature })
-                                    }}
-                                    className={`w-full ${isDarkMode ? 'accent-blue-400' : 'accent-blue-600'
-                                        }`}
-                                />
-                            </div>
-
-                            <div>
-                                <label className={`block text-sm font-medium mb-1 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                                    }`}>
-                                    {t('settings.parameters.topP', { value: settings.topP })}
-                                </label>
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="1"
-                                    step="0.05"
-                                    value={settings.topP}
-                                    onChange={(e) => {
-                                        const newTopP = parseFloat(e.target.value)
-                                        setSettings(prev => ({ ...prev, topP: newTopP }))
-                                        setUserSettings(prev => ({ ...prev, topP: newTopP }))
-                                        saveUserSettingsToServer({ ...userSettings, topP: newTopP })
-                                    }}
-                                    className={`w-full ${isDarkMode ? 'accent-blue-400' : 'accent-blue-600'
-                                        }`}
-                                />
-                            </div>
-
-                            <div>
-                                <label className={`block text-sm font-medium mb-1 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                                    }`}>
-                                    {t('settings.parameters.topK', { value: settings.topK })}
-                                </label>
-                                <input
-                                    type="range"
-                                    min="1"
-                                    max="100"
-                                    step="1"
-                                    value={settings.topK}
-                                    onChange={(e) => {
-                                        const newTopK = parseInt(e.target.value)
-                                        setSettings(prev => ({ ...prev, topK: newTopK }))
-                                        setUserSettings(prev => ({ ...prev, topK: newTopK }))
-                                        saveUserSettingsToServer({ ...userSettings, topK: newTopK })
-                                    }}
-                                    className={`w-full ${isDarkMode ? 'accent-blue-400' : 'accent-blue-600'
-                                        }`}
-                                />
-                            </div>
-
-                            <div>
-                                <label className={`block text-sm font-medium mb-1 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                                    }`}>
-                                    {t('settings.parameters.maxTokens', { value: settings.maxTokens })}
-                                </label>
-                                <input
-                                    type="range"
-                                    min="4096"
-                                    max="262144"
-                                    step="1024"
-                                    value={settings.maxTokens}
-                                    onChange={(e) => {
-                                        const newMaxTokens = parseInt(e.target.value)
-                                        setSettings(prev => ({ ...prev, maxTokens: newMaxTokens }))
-                                        setUserSettings(prev => ({ ...prev, maxTokens: newMaxTokens }))
-                                        saveUserSettingsToServer({ ...userSettings, maxTokens: newMaxTokens })
-                                    }}
-                                    className={`w-full ${isDarkMode ? 'accent-blue-400' : 'accent-blue-600'
-                                        }`}
-                                />
-                            </div>
-
-                        </div>
+                            </>
+                        )}
                     </div>
                 </div>
             )}

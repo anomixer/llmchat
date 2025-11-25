@@ -17,14 +17,17 @@ interface HeaderProps {
     showConversations: boolean
     settings: { model: string }
     conversations: Array<{ id: string; title: string }>
+    availableModels: Array<{ id: string; name: string }>
     isLoadingModels?: boolean
     onToggleTheme: () => void
     onToggleFullscreen: () => void
     onToggleSettings: () => void
+    onToggleModelOnly: () => void
     onToggleConversations: () => void
     onNewConversation: () => void
     onClearChat: () => void
     onExportConversation: (format: 'json' | 'markdown') => void
+    onModelChange: (modelId: string) => void
     onLogout: () => void
     user: User
     onAdminView?: () => void
@@ -37,14 +40,17 @@ export const Header: React.FC<HeaderProps> = ({
     showConversations,
     settings,
     conversations,
+    availableModels,
     isLoadingModels = false,
     onToggleTheme,
     onToggleFullscreen,
     onToggleSettings,
+    onToggleModelOnly,
     onToggleConversations,
     onNewConversation,
     onClearChat,
     onExportConversation,
+    onModelChange,
     onLogout,
     user,
     onAdminView
@@ -61,17 +67,57 @@ export const Header: React.FC<HeaderProps> = ({
                 <h1 className={`text-xl font-semibold transition-colors ${isDarkMode ? 'text-white' : 'text-gray-900'
                     }`}>{t('app.title')} <span className={`text-xs font-extralight transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
                         }`}>{t('app.version')}</span></h1>
-                <button
-                    onClick={onToggleSettings}
-                    className={`px-2 py-1 text-xs rounded-md transition-colors cursor-pointer ${isDarkMode
-                        ? 'bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600'
-                        : 'bg-gray-100 text-gray-600 border border-gray-300 hover:bg-gray-200'
-                        }`}
-                    title={showSettings ? t('header.model.closeSettings') : t('header.model.openSettings')}
-                    data-button="model"
-                >
-                    {isLoadingModels ? t('header.model.loading') : (settings.model || t('header.model.none'))}
-                </button>
+                <div className="relative">
+                    <button
+                        onClick={() => {
+                            const menu = document.getElementById('model-menu')
+                            if (menu) menu.classList.toggle('hidden')
+                        }}
+                        className={`px-2 py-1 text-xs rounded-md transition-colors cursor-pointer flex items-center space-x-1 ${isDarkMode
+                            ? 'bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600'
+                            : 'bg-gray-100 text-gray-600 border border-gray-300 hover:bg-gray-200'
+                            }`}
+                        title={t('header.model.openSettings')}
+                        data-button="model"
+                    >
+                        <span>{isLoadingModels ? t('header.model.loading') : (settings.model || t('header.model.none'))}</span>
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                    <div
+                        id="model-menu"
+                        className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg z-10 hidden border border-gray-200 dark:border-gray-700 max-h-60 overflow-y-auto"
+                    >
+                        <div className="py-1">
+                            {isLoadingModels ? (
+                                <div className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">
+                                    {t('header.model.loading')}
+                                </div>
+                            ) : availableModels.length > 0 ? (
+                                availableModels.map(model => (
+                                    <button
+                                        key={model.id}
+                                        onClick={() => {
+                                            onModelChange(model.id)
+                                            document.getElementById('model-menu')?.classList.add('hidden')
+                                        }}
+                                        className={`block w-full text-left px-4 py-2 text-sm transition-colors ${settings.model === model.id
+                                                ? (isDarkMode ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800')
+                                                : (isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100')
+                                            }`}
+                                    >
+                                        {model.name}
+                                    </button>
+                                ))
+                            ) : (
+                                <div className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">
+                                    {t('header.model.noModels')}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
             </div>
             <div className="flex items-center space-x-2">
                 {/* GitHub 連結 */}
