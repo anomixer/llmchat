@@ -5,14 +5,14 @@ import { LanguageSelector } from './LanguageSelector'
 
 interface AuthProps {
     onLogin: (email: string, password: string) => Promise<void>
-    onRegister: (email: string, password: string) => Promise<{ verificationUrl: string; emailSent: boolean; alreadyExists?: boolean }>
-    onResendVerification: (email: string) => Promise<{ verificationUrl: string; emailSent: boolean }>
+    onRegister: (email: string, password: string, language: string) => Promise<{ verificationUrl: string; emailSent: boolean; alreadyExists?: boolean }>
+    onResendVerification: (email: string, language: string) => Promise<{ verificationUrl: string; emailSent: boolean }>
     isLoading: boolean
     error: string | null
 }
 
 export const Auth: React.FC<AuthProps> = ({ onLogin, onRegister, onResendVerification, isLoading, error }) => {
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
     const [isLogin, setIsLogin] = useState(true)
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
@@ -53,6 +53,16 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onRegister, onResendVerific
         loadConfig()
     }, [])
 
+	// 檢測lang
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search)
+        const langParam = params.get('lang')
+
+        if (langParam && ['zh-TW', 'zh-CN', 'en', 'ja', 'ko'].includes(langParam)) {
+            i18n.changeLanguage(langParam)
+        }
+    }, [])
+
     // 應用主題
     useEffect(() => {
         document.body.classList.toggle('dark-theme', isDarkMode)
@@ -85,8 +95,8 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onRegister, onResendVerific
             if (isLogin) {
                 await onLogin(email.trim(), password)
             } else {
-                // 調用註冊API
-                const result = await onRegister(email.trim(), password)
+                // 調用註冊API，傳遞當前選擇的語言
+                const result = await onRegister(email.trim(), password, i18n.language)
 
                 if (result.alreadyExists) {
                     // 重複註冊，顯示特殊訊息
@@ -125,7 +135,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onRegister, onResendVerific
         if (!email.trim()) return
 
         try {
-            const result = await onResendVerification(email.trim())
+            const result = await onResendVerification(email.trim(), i18n.language)
             setResendSuccess({
                 email: email.trim(),
                 verificationUrl: result.verificationUrl,

@@ -14,8 +14,8 @@ interface AuthContextType {
     isLoading: boolean
     error: string | null
     login: (email: string, password: string) => Promise<void>
-    register: (email: string, password: string) => Promise<{ verificationUrl: string; emailSent: boolean; alreadyExists?: boolean }>
-    resendVerification: (email: string) => Promise<{ verificationUrl: string; emailSent: boolean }>
+    register: (email: string, password: string, language: string) => Promise<{ verificationUrl: string; emailSent: boolean; alreadyExists?: boolean }>
+    resendVerification: (email: string, language: string) => Promise<{ verificationUrl: string; emailSent: boolean }>
     logout: () => Promise<void>
     verifyAuth: (token?: string) => Promise<void>
 }
@@ -91,7 +91,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
     }
 
-    const register = async (email: string, password: string) => {
+    const register = async (email: string, password: string, language: string) => {
         // 不設置loading狀態，讓前端自己處理
         setError(null)
 
@@ -101,7 +101,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ email, password }),
+                body: JSON.stringify({ email, password, language }),
             })
 
             const data = await response.json()
@@ -129,7 +129,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
     }
 
-    const resendVerification = async (email: string) => {
+    const resendVerification = async (email: string, language: string) => {
         setIsLoading(true)
         setError(null)
 
@@ -139,7 +139,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ email }),
+                body: JSON.stringify({ email, language }),
             })
 
             const data = await response.json()

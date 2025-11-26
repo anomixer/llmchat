@@ -76,7 +76,7 @@ class UserService {
     }
 
     // 註冊新用戶
-    async register(email, password) {
+    async register(email, password, language = 'zh-TW') {
         // 檢查 email 是否已存在
         if (this.users.find(user => user.email === email)) {
             throw new Error('Email 已存在')
@@ -104,7 +104,7 @@ class UserService {
             conversations: [],
             // 用戶個人設定
             settings: {
-                language: 'zh-TW', // 預設語言
+                language: language, // 使用註冊時選擇的語言
                 theme: 'auto', // auto, light, dark
                 model: '',
                 temperature: 0.7,

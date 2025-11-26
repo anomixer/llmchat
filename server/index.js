@@ -44,6 +44,161 @@ const defaultApiKey = process.env.OLLAMA_API_KEY || ''
 const ollamaProvider = new OllamaProvider(defaultApiUrl, defaultApiKey)
 const chatProvider = new ChatProvider(ollamaProvider)
 
+function getVerificationPageHTML(isSuccess, errorMessage, language, frontendUrl) {
+    const pageTexts = {
+        'zh-TW': {
+            successTitle: 'Email 驗證成功！',
+            successMessage: '您的帳號已成功啟用。現在您可以登入使用了。',
+            successButton: '返回登入頁面',
+            errorTitle: 'Email 驗證失敗',
+            errorButton: '返回首頁'
+        },
+        'zh-CN': {
+            successTitle: '邮箱验证成功！',
+            successMessage: '您的账号已成功启用。现在您可以登录使用了。',
+            successButton: '返回登录页面',
+            errorTitle: '邮箱验证失败',
+            errorButton: '返回首页'
+        },
+        'en': {
+            successTitle: 'Email Verification Successful!',
+            successMessage: 'Your account has been successfully activated. You can now log in.',
+            successButton: 'Back to Login',
+            errorTitle: 'Email Verification Failed',
+            errorButton: 'Back to Home'
+        },
+        'ja': {
+            successTitle: 'メール確認成功！',
+            successMessage: 'アカウントが正常にアクティブ化されました。今すぐログインできます。',
+            successButton: 'ログインページに戻る',
+            errorTitle: 'メール確認失敗',
+            errorButton: 'ホームに戻る'
+        },
+        'ko': {
+            successTitle: '이메일 확인 성공！',
+            successMessage: '계정이 성공적으로 활성화되었습니다. 이제 로그인할 수 있습니다.',
+            successButton: '로그인 페이지로 돌아가기',
+            errorTitle: '이메일 확인 실패',
+            errorButton: '홈으로 돌아가기'
+        }
+    }
+
+    const texts = pageTexts[language] || pageTexts['zh-TW']
+    const title = isSuccess ? texts.successTitle : texts.errorTitle
+    const message = isSuccess ? texts.successMessage : errorMessage
+    const buttonText = isSuccess ? texts.successButton : texts.errorButton
+    const iconSvg = isSuccess ? '✓' : '✕'
+    const iconColor = isSuccess ? '#10b981' : '#ef4444'
+
+    return `
+        <!DOCTYPE html>
+        <html lang="${language}">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>${title}</title>
+            <style>
+                body {
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    margin: 0;
+                    padding: 0;
+                    min-height: 100vh;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                .container {
+                    background: white;
+                    border-radius: 12px;
+                    padding: 2rem;
+                    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+                    text-align: center;
+                    max-width: 400px;
+                    width: 90%;
+                }
+                .icon {
+                    color: ${iconColor};
+                    font-size: 3rem;
+                    margin-bottom: 1rem;
+                }
+                h1 {
+                    color: #1f2937;
+                    margin-bottom: 1rem;
+                }
+                p {
+                    color: #6b7280;
+                    margin-bottom: 2rem;
+                    line-height: 1.6;
+                }
+                .btn {
+                    display: inline-block;
+                    background: #3b82f6;
+                    color: white;
+                    border: none;
+                    padding: 12px 24px;
+                    border-radius: 8px;
+                    text-decoration: none;
+                    font-weight: 500;
+                    transition: background-color 0.2s;
+                    cursor: pointer;
+                }
+                .btn:hover {
+                    background: #2563eb;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="icon">${iconSvg}</div>
+                <h1>${title}</h1>
+                <p>${message}</p>
+                <a href="${frontendUrl}?lang=${language}" class="btn">${buttonText}</a>
+            </div>
+        </body>
+        </html>
+    `
+}
+
+// 驗證頁面多語言文本
+const verificationPageTexts = {
+    'zh-TW': {
+        successTitle: 'Email 驗證成功！',
+        successMessage: '您的帳號已成功啟用。現在您可以登入使用了。',
+        successButton: '返回登入頁面',
+        errorTitle: 'Email 驗證失敗',
+        errorButton: '返回首頁'
+    },
+    'zh-CN': {
+        successTitle: '邮箱验证成功！',
+        successMessage: '您的账号已成功启用。现在您可以登录使用了。',
+        successButton: '返回登录页面',
+        errorTitle: '邮箱验证失败',
+        errorButton: '返回首页'
+    },
+    'en': {
+        successTitle: 'Email Verification Successful!',
+        successMessage: 'Your account has been successfully activated. You can now log in.',
+        successButton: 'Back to Login',
+        errorTitle: 'Email Verification Failed',
+        errorButton: 'Back to Home'
+    },
+    'ja': {
+        successTitle: 'メール確認成功！',
+        successMessage: 'アカウントが正常にアクティブ化されました。今すぐログインできます。',
+        successButton: 'ログインページに戻る',
+        errorTitle: 'メール確認失敗',
+        errorButton: 'ホームに戻る'
+    },
+    'ko': {
+        successTitle: '이메일 확인 성공！',
+        successMessage: '계정이 성공적으로 활성화되었습니다. 이제 로그인할 수 있습니다。',
+        successButton: '로그인 페이지로 돌아가기',
+        errorTitle: '이메일 확인 실패',
+        errorButton: '홈으로 돌아가기'
+    }
+}
+
 // 健康檢查端點
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() })
@@ -52,7 +207,7 @@ app.get('/api/health', (req, res) => {
 // 用戶註冊
 app.post('/api/auth/register', async (req, res) => {
     try {
-        const { email, password } = req.body
+        const { email, password, language } = req.body
 
         if (!email || !password) {
             return res.status(400).json({ error: 'Email 和密碼不能為空' })
@@ -68,18 +223,18 @@ app.post('/api/auth/register', async (req, res) => {
             return res.status(400).json({ error: '密碼至少6個字符' })
         }
 
-        const user = await userService.register(email, password)
+        // 使用用戶選擇的語言，如果沒有則使用預設值
+        const userLanguage = language || 'zh-TW'
+        const user = await userService.register(email, password, userLanguage)
 
         // 生成驗證鏈接 - 使用前端URL，前端會代理到後端
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000'
-        const verificationUrl = `${frontendUrl}/api/auth/verify-email/${user.emailVerificationToken}`
+        const verificationUrl = `${frontendUrl}/api/auth/verify-email/${user.emailVerificationToken}?lang=${userLanguage}`
 
         // 嘗試發送驗證郵件
         let emailSent = false
         try {
-            // 嘗試從用戶設定中獲取語言，如果沒有則使用預設語言
-            const userSettings = userService.getUserSettings(user.id)
-            const userLanguage = userSettings?.language || 'zh-TW'
+            // 使用用戶註冊時選擇的語言
             await emailService.sendVerificationEmail(email, verificationUrl, user.email.split('@')[0], userLanguage)
             emailSent = true
             console.log('Verification email sent to:', email)
@@ -143,169 +298,53 @@ app.get('/api/auth/verify', authenticateToken, (req, res) => {
 app.get('/api/auth/verify-email/:token', (req, res) => {
     try {
         const { token } = req.params
-        const user = userService.verifyEmail(token)
+        const { lang } = req.query
+        const language = lang && ['zh-TW', 'zh-CN', 'en', 'ja', 'ko'].includes(lang) ? lang : 'zh-TW'
 
-        // 返回成功頁面 - 鏈接指向前端
+        const user = userService.verifyEmail(token)
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000'
-        res.send(`
-            <!DOCTYPE html>
-            <html lang="zh-TW">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Email 驗證成功</title>
-                <style>
-                    body {
-                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                        margin: 0;
-                        padding: 0;
-                        min-height: 100vh;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                    }
-                    .container {
-                        background: white;
-                        border-radius: 12px;
-                        padding: 2rem;
-                        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-                        text-align: center;
-                        max-width: 400px;
-                        width: 90%;
-                    }
-                    .success-icon {
-                        color: #10b981;
-                        font-size: 3rem;
-                        margin-bottom: 1rem;
-                    }
-                    h1 {
-                        color: #1f2937;
-                        margin-bottom: 1rem;
-                    }
-                    p {
-                        color: #6b7280;
-                        margin-bottom: 2rem;
-                    }
-                    .btn {
-                        background: #3b82f6;
-                        color: white;
-                        border: none;
-                        padding: 12px 24px;
-                        border-radius: 8px;
-                        text-decoration: none;
-                        display: inline-block;
-                        font-weight: 500;
-                        transition: background-color 0.2s;
-                    }
-                    .btn:hover {
-                        background: #2563eb;
-                    }
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                    <div class="success-icon">✓</div>
-                    <h1>Email 驗證成功！</h1>
-                    <p>您的帳號已成功啟用。現在您可以登入使用了。</p>
-                    <a href="${frontendUrl}" class="btn">返回登入頁面</a>
-                </div>
-            </body>
-            </html>
-        `)
+        const html = getVerificationPageHTML(true, '', language, frontendUrl)
+
+        res.set('Content-Type', 'text/html; charset=utf-8')
+        res.send(html)
+
     } catch (error) {
         console.error('Email verification error:', error)
 
-        // 返回錯誤頁面
+        const { lang } = req.query
+        const language = lang && ['zh-TW', 'zh-CN', 'en', 'ja', 'ko'].includes(lang) ? lang : 'zh-TW'
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000'
-        res.status(400).send(`
-            <!DOCTYPE html>
-            <html lang="zh-TW">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Email 驗證失敗</title>
-                <style>
-                    body {
-                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                        margin: 0;
-                        padding: 0;
-                        min-height: 100vh;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                    }
-                    .container {
-                        background: white;
-                        border-radius: 12px;
-                        padding: 2rem;
-                        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-                        text-align: center;
-                        max-width: 400px;
-                        width: 90%;
-                    }
-                    .error-icon {
-                        color: #ef4444;
-                        font-size: 3rem;
-                        margin-bottom: 1rem;
-                    }
-                    h1 {
-                        color: #1f2937;
-                        margin-bottom: 1rem;
-                    }
-                    p {
-                        color: #6b7280;
-                        margin-bottom: 2rem;
-                    }
-                    .btn {
-                        background: #6b7280;
-                        color: white;
-                        border: none;
-                        padding: 12px 24px;
-                        border-radius: 8px;
-                        text-decoration: none;
-                        display: inline-block;
-                        font-weight: 500;
-                    }
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                    <div class="error-icon">✕</div>
-                    <h1>Email 驗證失敗</h1>
-                    <p>${error.message}</p>
-                    <a href="${frontendUrl}" class="btn">返回首頁</a>
-                </div>
-            </body>
-            </html>
-        `)
+        const html = getVerificationPageHTML(false, error.message, language, frontendUrl)
+
+        res.status(400)
+        res.set('Content-Type', 'text/html; charset=utf-8')
+        res.send(html)
     }
 })
 
 // 重新發送驗證 Email
 app.post('/api/auth/resend-verification', async (req, res) => {
     try {
-        const { email } = req.body
+        const { email, language } = req.body
 
         if (!email) {
             return res.status(400).json({ error: '請提供 Email 地址' })
         }
 
+        const user = userService.users.find(u => u.email === email)
+        const userLanguage = language || (user?.settings?.language) || 'zh-TW'
+
         const token = userService.resendVerificationEmail(email)
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000'
-        const verificationUrl = `${frontendUrl}/api/auth/verify-email/${token}`
+        const verificationUrl = `${frontendUrl}/api/auth/verify-email/${token}?lang=${userLanguage}`
 
-        // 嘗試發送驗證郵件
         let emailSent = false
         try {
-            // 對於新註冊用戶，使用預設語言（之後可以在設定中更改）
-            await emailService.sendVerificationEmail(email, verificationUrl, '', 'zh-TW')
+            await emailService.sendVerificationEmail(email, verificationUrl, email.split('@')[0], userLanguage)
             emailSent = true
             console.log('Resend verification email sent to:', email)
         } catch (emailError) {
             console.error('Failed to resend verification email:', emailError)
-            // 不阻擋操作，但記錄錯誤
         }
 
         res.json({
