@@ -294,6 +294,30 @@ app.get('/api/auth/verify', authenticateToken, (req, res) => {
     res.json({ user: req.user })
 })
 
+// 多語言錯誤消息
+const verificationErrorMessages = {
+    'zh-TW': {
+        expired: '驗證鏈接已過期，請重新註冊帳號',
+        invalid: '無效或過期的驗證鏈接'
+    },
+    'zh-CN': {
+        expired: '验证链接已过期，请重新注册账号',
+        invalid: '无效或过期的验证链接'
+    },
+    'en': {
+        expired: 'Verification link has expired, please register again',
+        invalid: 'Invalid or expired verification link'
+    },
+    'ja': {
+        expired: '確認リンクが期限切れです。もう一度登録してください',
+        invalid: '無効または期限切れの確認リンク'
+    },
+    'ko': {
+        expired: '확인 링크가 만료되었습니다. 다시 등록하세요',
+        invalid: '유효하지 않거나 만료된 확인 링크'
+    }
+}
+
 // Email 驗證
 app.get('/api/auth/verify-email/:token', (req, res) => {
     try {
@@ -314,7 +338,14 @@ app.get('/api/auth/verify-email/:token', (req, res) => {
         const { lang } = req.query
         const language = lang && ['zh-TW', 'zh-CN', 'en', 'ja', 'ko'].includes(lang) ? lang : 'zh-TW'
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000'
-        const html = getVerificationPageHTML(false, error.message, language, frontendUrl)
+        
+        // 根據錯誤類型返回對應語言的消息
+        let errorMessage = verificationErrorMessages[language].invalid
+        if (error.message.includes('過期') || error.message.includes('过期')) {
+            errorMessage = verificationErrorMessages[language].expired
+        }
+        
+        const html = getVerificationPageHTML(false, errorMessage, language, frontendUrl)
 
         res.status(400)
         res.set('Content-Type', 'text/html; charset=utf-8')
