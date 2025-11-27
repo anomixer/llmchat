@@ -22,6 +22,7 @@ coverage/
 data/
 data/users.json
 data/sessions.json
+temp.json
 
 # Editor directories and files
 .vscode/*
