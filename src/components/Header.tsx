@@ -156,7 +156,7 @@ export const Header: React.FC<HeaderProps> = ({
                             : 'bg-white border-gray-200'
                             }`}>
                             <div className="py-2">
-                                {/* GitHub 連結 */}
+                                {/* View on GitHub */}
                                 <a
                                     href="https://github.com/anomixer/llmchat"
                                     target="_blank"
@@ -177,7 +177,11 @@ export const Header: React.FC<HeaderProps> = ({
                                     />
                                     <span>{t('header.github')}</span>
                                 </a>
-                                {/* 對話列表 */}
+
+                                {/* 分隔線 */}
+                                <div className="border-t border-gray-200 dark:border-gray-600 my-1"></div>
+
+                                {/* Conversations */}
                                 <button
                                     data-button="conversations"
                                     onClick={() => {
@@ -195,7 +199,8 @@ export const Header: React.FC<HeaderProps> = ({
                                     <MessageSquare className="h-4 w-4" />
                                     <span>{t('header.conversations.button')}</span>
                                 </button>
-                                {/* 新對話 */}
+
+                                {/* + New conversations */}
                                 <button
                                     onClick={() => {
                                         onNewConversation()
@@ -210,22 +215,8 @@ export const Header: React.FC<HeaderProps> = ({
                                     <Plus className="h-4 w-4" />
                                     <span>{t('conversation.new')}</span>
                                 </button>
-                                {/* 導出 */}
-                                <div className="border-t border-gray-200 dark:border-gray-600 my-1"></div>
-                                <button
-                                    onClick={() => {
-                                        onExportConversation('json')
-                                        setIsMobileMenuOpen(false)
-                                        window.dispatchEvent(new CustomEvent('closeMobileMenu'))
-                                    }}
-                                    className={`flex items-center space-x-3 w-full text-left px-4 py-2 text-sm transition-colors ${isDarkMode
-                                        ? 'text-gray-300 hover:bg-gray-700'
-                                        : 'text-gray-900 hover:bg-gray-100'
-                                        }`}
-                                >
-                                    <Download className="h-4 w-4" />
-                                    <span>{t('conversation.export.json')}</span>
-                                </button>
+
+                                {/* Export as markdown */}
                                 <button
                                     onClick={() => {
                                         onExportConversation('markdown')
@@ -240,7 +231,8 @@ export const Header: React.FC<HeaderProps> = ({
                                     <Download className="h-4 w-4" />
                                     <span>{t('conversation.export.markdown')}</span>
                                 </button>
-                                {/* 清除對話 */}
+
+                                {/* Clear conversations */}
                                 <button
                                     onClick={() => {
                                         onClearChat()
@@ -255,7 +247,11 @@ export const Header: React.FC<HeaderProps> = ({
                                     <Trash2 className="h-4 w-4" />
                                     <span>{t('conversation.clear.button')}</span>
                                 </button>
-                                {/* 主題切換 */}
+
+                                {/* 分隔線 */}
+                                <div className="border-t border-gray-200 dark:border-gray-600 my-1"></div>
+
+                                {/* Switch to light mode */}
                                 <button
                                     onClick={() => {
                                         onToggleTheme()
@@ -270,6 +266,7 @@ export const Header: React.FC<HeaderProps> = ({
                                     {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                                     <span>{isDarkMode ? t('header.theme.light') : t('header.theme.dark')}</span>
                                 </button>
+
                                 {/* 全螢幕切換 */}
                                 <button
                                     onClick={() => {
@@ -285,32 +282,26 @@ export const Header: React.FC<HeaderProps> = ({
                                     {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
                                     <span>{isFullscreen ? t('header.fullscreen.exit') : t('header.fullscreen.enter')}</span>
                                 </button>
-                                {/* 用戶信息 */}
+                                {/* 用戶信息 - 管理員可點擊進入管理頁面 */}
                                 <div className="border-t border-gray-200 dark:border-gray-600 my-1"></div>
-                                <div className={`flex items-center justify-between px-4 py-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-900'}`}>
-                                    <span className="text-sm font-medium">{user.email}</span>
-                                    {user.role === 'admin' && (
-                                        <span className="text-xs px-2 py-0.5 rounded-full bg-red-500 text-white">
-                                            {t('header.adminBadge')}
-                                        </span>
-                                    )}
-                                </div>
-                                {/* 管理按鈕 */}
-                                {user.role === 'admin' && onAdminView && (
+                                {user.role === 'admin' && onAdminView ? (
                                     <button
                                         onClick={() => {
                                             onAdminView()
                                             setIsMobileMenuOpen(false)
                                             window.dispatchEvent(new CustomEvent('closeMobileMenu'))
                                         }}
-                                        className={`flex items-center space-x-3 w-full text-left px-4 py-2 text-sm transition-colors ${isDarkMode
-                                            ? 'text-purple-400 hover:bg-gray-700'
-                                            : 'text-purple-800 hover:bg-gray-100'
-                                            }`}
+                                        className={`flex items-center justify-between w-full text-left px-4 py-2 text-sm transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 ${isDarkMode ? 'text-gray-300' : 'text-gray-900'}`}
                                     >
-                                        <Users className="h-4 w-4" />
-                                        <span>{t('header.adminButton')}</span>
+                                        <span className="font-medium">{user.email}</span>
+                                        <span className="text-xs px-2 py-0.5 rounded-full bg-red-500 text-white">
+                                            {t('header.adminBadge')}
+                                        </span>
                                     </button>
+                                ) : (
+                                    <div className={`flex items-center justify-between px-4 py-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-900'}`}>
+                                        <span className="text-sm font-medium">{user.email}</span>
+                                    </div>
                                 )}
                                 {/* 登出 */}
                                 <button
@@ -473,30 +464,28 @@ export const Header: React.FC<HeaderProps> = ({
                     >
                         {isFullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
                     </button>
-                    {/* 用戶信息 */}
-                    <div className={`flex items-center space-x-2 px-3 py-1 rounded-lg transition-colors ${isDarkMode
-                        ? 'bg-gray-700 text-gray-300'
-                        : 'bg-gray-100 text-gray-700'
-                        }`}>
-                        <span className="text-sm font-medium">{user.email}</span>
-                        {user.role === 'admin' && (
-                            <span className={`text-xs px-2 py-0.5 rounded-full bg-red-500 text-white`}>
-                                {t('header.adminBadge')}
-                            </span>
-                        )}
-                    </div>
-                    {/* 管理按鈕（僅管理員可見） */}
-                    {user.role === 'admin' && onAdminView && (
+                    {/* 用戶信息 - 管理員可點擊進入管理頁面 */}
+                    {user.role === 'admin' && onAdminView ? (
                         <button
                             onClick={onAdminView}
-                            className={`p-2 rounded-lg transition-colors ${isDarkMode
-                                ? 'text-gray-400 hover:text-purple-400 hover:bg-gray-700'
-                                : 'text-gray-500 hover:text-purple-600 hover:bg-purple-50'
+                            className={`flex items-center space-x-2 px-3 py-1 rounded-lg transition-colors cursor-pointer ${isDarkMode
+                                ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                 }`}
                             title={t('header.adminButton')}
                         >
-                            <Users className="h-5 w-5" />
+                            <span className="text-sm font-medium">{user.email}</span>
+                            <span className={`text-xs px-2 py-0.5 rounded-full bg-red-500 text-white`}>
+                                {t('header.adminBadge')}
+                            </span>
                         </button>
+                    ) : (
+                        <div className={`flex items-center space-x-2 px-3 py-1 rounded-lg transition-colors ${isDarkMode
+                            ? 'bg-gray-700 text-gray-300'
+                            : 'bg-gray-100 text-gray-700'
+                            }`}>
+                            <span className="text-sm font-medium">{user.email}</span>
+                        </div>
                     )}
                     {/* 登出按鈕 */}
                     <button

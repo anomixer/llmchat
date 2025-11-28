@@ -27,10 +27,15 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onRegister, onResendVerific
     const [isDarkMode, setIsDarkMode] = useState(() => {
         try {
             const saved = localStorage.getItem('theme')
-            return saved ? JSON.parse(saved) : false
+            if (saved !== null) {
+                return JSON.parse(saved)
+            } else {
+                // 沒有手動設定，檢查瀏覽器偏好
+                return window.matchMedia('(prefers-color-scheme: dark)').matches
+            }
         } catch (error) {
             console.error('Error loading theme from localStorage:', error)
-            return false
+            return true // fallback to dark mode
         }
     })
 
@@ -68,6 +73,26 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onRegister, onResendVerific
         document.body.classList.toggle('dark-theme', isDarkMode)
         document.documentElement.classList.toggle('dark', isDarkMode)
     }, [isDarkMode])
+
+    // 監聽瀏覽器主題變化
+    useEffect(() => {
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+
+        const handleThemeChange = (e: MediaQueryListEvent) => {
+            // 只有在用戶沒有手動設定主題時才跟隨瀏覽器
+            const savedTheme = localStorage.getItem('theme')
+            if (savedTheme === null) { // 沒有手動設定過
+                setIsDarkMode(e.matches)
+            }
+        }
+
+        // 添加監聽器
+        mediaQuery.addEventListener('change', handleThemeChange)
+
+        return () => {
+            mediaQuery.removeEventListener('change', handleThemeChange)
+        }
+    }, [])
 
     // 切換主題函數
     const toggleTheme = () => {
