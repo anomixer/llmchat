@@ -239,6 +239,9 @@ export class OllamaProvider {
                         throw new Error('Aborted')
                     }
 
+                    // 跳過空行
+                    if (!line.trim()) continue
+
                     try {
                         const data = JSON.parse(line)
                         console.log('Stream data received:', data)
@@ -251,8 +254,31 @@ export class OllamaProvider {
                             return
                         }
                     } catch (e) {
-                        console.error('Parse error:', e, 'Line:', line)
-                        // 忽略解析錯誤
+                        console.error('Parse error:', e.message, 'Line:', line)
+
+                        // 嘗試處理不完整的JSON - 如果是以"message":{"開頭但沒有結尾，可能是被截斷
+                        if (line.includes('"message":{') && !line.includes('}')) {
+                            console.warn('Detected potentially truncated JSON line, attempting to complete it')
+
+                            // 嘗試添加缺失的結尾
+                            const completedLine = line + '}}'
+                            try {
+                                const data = JSON.parse(completedLine)
+                                console.log('Successfully recovered truncated JSON:', data)
+                                yield completedLine + '\n'
+
+                                if (data.done) {
+                                    console.log('Stream completed after recovery')
+                                    return
+                                }
+                            } catch (recoveryError) {
+                                console.error('Failed to recover truncated JSON:', recoveryError.message)
+                                // 仍然忽略這個錯誤，但記錄更詳細的信息
+                            }
+                        } else {
+                            // 對於其他類型的解析錯誤，記錄詳細信息但不丟棄數據
+                            console.warn('Skipping malformed JSON line, but this may cause data loss')
+                        }
                     }
                 }
             }

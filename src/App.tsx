@@ -853,8 +853,40 @@ const App: React.FC = () => {
         setIsProcessingQueue(true)
         const nextItem = speechQueue[0]
 
-        // 過濾掉表情符號，避免語音合成讀出表情符號
-        const filteredText = nextItem.text.replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '').trim()
+        // 清理文字以供語音合成：移除表情符號和Markdown標記符號，但保留程式碼內容
+        let filteredText = nextItem.text
+
+        // 移除表情符號
+        filteredText = filteredText.replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '')
+
+        // 移除Markdown標記符號，但保留內容
+        filteredText = filteredText
+            // 移除標題的 # 符號
+            .replace(/^#+\s*/gm, '')
+            // 移除粗體/斜體標記，但保留內容
+            .replace(/\*\*\*(.*?)\*\*\*/g, '$1')  // ***bold italic***
+            .replace(/\*\*(.*?)\*\*/g, '$1')      // **bold**
+            .replace(/\*(.*?)\*/g, '$1')          // *italic*
+            .replace(/__(.*?)__/g, '$1')          // __underline__
+            .replace(/_(.*?)_/g, '$1')            // _italic_
+            // 移除刪除線標記，但保留內容
+            .replace(/~~(.*?)~~/g, '$1')          // ~~strikethrough~~
+            // 移除鏈接標記，但保留文字
+            .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')  // [text](url)
+            // 移除引用標記
+            .replace(/^>\s*/gm, '')
+            // 移除列表標記
+            .replace(/^[\s]*[-\*\+]\s+/gm, '')
+            .replace(/^[\s]*\d+\.\s+/gm, '')
+            // 移除表格分隔線 (---)
+            .replace(/^[\s]*\|[\s\-\|]*\|[\s]*$/gm, '')
+            .replace(/^\s*\|[:-]+\|\s*$/gm, '')
+            // 移除程式碼區塊標記，但保留內容
+            .replace(/```[\w]*\n?([\s\S]*?)```/g, '$1')
+            .replace(/`([^`]+)`/g, '$1')
+            // 移除多餘的空白行和清理
+            .replace(/\n\s*\n/g, '\n')
+            .trim()
 
         const utterance = new SpeechSynthesisUtterance(filteredText)
 
@@ -1199,6 +1231,12 @@ const App: React.FC = () => {
         setStopConfirmText('') // 重置確認文字
         let currentRequestId: string | null = null // 存儲當前請求ID
 
+        // 防抖更新狀態的變數
+        let pendingContentUpdate = ''
+        let pendingThinkingUpdate = ''
+        let lastUpdateTime = Date.now()
+        const UPDATE_INTERVAL = 50 // 每50ms最多更新一次UI
+
         try {
             const currentConversation = conversations.find(c => c.id === conversationId)
             const response = await fetch('/api/chat/stream', {
@@ -1256,22 +1294,19 @@ const App: React.FC = () => {
                                 // 處理 content 字段（可能包含標籤式思考）
                                 if (data.message?.content) {
                                     const { thinking, content } = processStreamChunk(data.message.content)
-                                    setStreamingThinking(thinking)
-                                    setStreamingMessage(content)
+                                    pendingContentUpdate = content
                                     finalStateRef.current.content = content
                                     // 只在有實際思考內容時才設置，避免覆蓋原生 thinking
                                     if (thinking) {
+                                        pendingThinkingUpdate = thinking
                                         finalStateRef.current.thinking = thinking
                                     }
                                 }
 
                                 // 處理 thinking 字段（原生 thinking 模型）
                                 if (data.message?.thinking) {
-                                    setStreamingThinking(prev => {
-                                        const newThinking = prev + data.message.thinking
-                                        finalStateRef.current.thinking = newThinking
-                                        return newThinking
-                                    })
+                                    pendingThinkingUpdate = (pendingThinkingUpdate || finalStateRef.current.thinking) + data.message.thinking
+                                    finalStateRef.current.thinking = pendingThinkingUpdate
                                 }
 
                                 if (data.done) {
@@ -1279,15 +1314,73 @@ const App: React.FC = () => {
                                     break
                                 }
                             } catch (e) {
-                                console.error('Parse error:', e, 'Line:', line)
-                                // 忽略解析錯誤
+                                console.error('Parse error:', e instanceof Error ? e.message : String(e), 'Line:', line)
+
+                                // 嘗試處理不完整的JSON - 如果是以"message":{"開頭但沒有結尾，可能是被截斷
+                                if (line.includes('"message":{') && !line.includes('}')) {
+                                    console.warn('Detected potentially truncated JSON line on frontend, attempting to complete it')
+
+                                    // 嘗試添加缺失的結尾
+                                    const completedLine = line + '}}'
+                                    try {
+                                        const data = JSON.parse(completedLine)
+                                        console.log('Successfully recovered truncated JSON on frontend:', data)
+
+                                        // 處理恢復的數據
+                                        if (data.message?.content) {
+                                            const { thinking, content } = processStreamChunk(data.message.content)
+                                            pendingContentUpdate = content
+                                            finalStateRef.current.content = content
+                                            if (thinking) {
+                                                pendingThinkingUpdate = thinking
+                                                finalStateRef.current.thinking = thinking
+                                            }
+                                        }
+
+                                        if (data.message?.thinking) {
+                                            pendingThinkingUpdate = (pendingThinkingUpdate || finalStateRef.current.thinking) + data.message.thinking
+                                            finalStateRef.current.thinking = pendingThinkingUpdate
+                                        }
+
+                                        if (data.done) {
+                                            console.log('Stream completed after frontend recovery')
+                                            break
+                                        }
+                                    } catch (recoveryError) {
+                                        console.error('Failed to recover truncated JSON on frontend:', recoveryError instanceof Error ? recoveryError.message : String(recoveryError))
+                                    }
+                                } else {
+                                    console.warn('Skipping malformed JSON line on frontend, but this may cause data loss')
+                                }
                             }
+                        }
+
+                        // 防抖更新UI狀態
+                        const now = Date.now()
+                        if (now - lastUpdateTime >= UPDATE_INTERVAL) {
+                            if (pendingContentUpdate !== '') {
+                                setStreamingMessage(pendingContentUpdate)
+                            }
+                            if (pendingThinkingUpdate !== '') {
+                                setStreamingThinking(pendingThinkingUpdate)
+                            }
+                            lastUpdateTime = now
+                            pendingContentUpdate = ''
+                            pendingThinkingUpdate = ''
                         }
 
                         // 如果在中斷過程中，跳出外層循環
                         if (!shouldContinueStreamingRef.current) {
                             break
                         }
+                    }
+
+                    // 應用最後的待處理更新
+                    if (pendingContentUpdate !== '') {
+                        setStreamingMessage(pendingContentUpdate)
+                    }
+                    if (pendingThinkingUpdate !== '') {
+                        setStreamingThinking(pendingThinkingUpdate)
                     }
 
                     // 使用 finalStateRef 獲取最終狀態，避免狀態更新時機問題
