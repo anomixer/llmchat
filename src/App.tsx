@@ -69,7 +69,9 @@ interface Message {
     thinking?: string
     timestamp: Date
     expandedFiles?: boolean
+
     interrupted?: boolean
+    hiddenContent?: string
 }
 
 interface SpeechQueueItem {
@@ -1190,10 +1192,25 @@ const App: React.FC = () => {
             messageContent = messageContent + '\n\n[附加檔案: ' + attachedFiles.map(f => f.name).join(', ') + ']'
         }
 
+        // 讀取檔案內容並構建隱藏內容
+        let hiddenContent = messageContent
+        if (attachedFiles.length > 0) {
+            try {
+                const fileContents = await Promise.all(attachedFiles.map(async file => {
+                    const content = await readFileContent(file)
+                    return `--- File: ${file.name} ---\n${content}\n--- End of File ---`
+                }))
+                hiddenContent = messageContent + '\n\n' + fileContents.join('\n\n')
+            } catch (error) {
+                console.error('Error reading attached files:', error)
+            }
+        }
+
         const userMessage: Message = {
             id: Date.now().toString(),
             role: 'user',
             content: messageContent,
+            hiddenContent: hiddenContent !== messageContent ? hiddenContent : undefined,
             timestamp: new Date()
         }
 
@@ -1246,9 +1263,12 @@ const App: React.FC = () => {
                     'Authorization': `Bearer ${token}`,
                 },
                 body: JSON.stringify({
-                    message: userMessage.content,
+                    message: userMessage.hiddenContent || userMessage.content,
                     settings: settings,
-                    history: currentConversation?.messages || [],
+                    history: (currentConversation?.messages || []).map(msg => ({
+                        role: msg.role,
+                        content: msg.hiddenContent || msg.content
+                    })),
                     language: i18n.language,
                     conversationId: conversationId
                 }),
