@@ -41,7 +41,7 @@ Get up and chatting with large language models featuring glass-morphism effect.
 - **管理員功能**: 管理員可以查看所有用戶、管理用戶帳戶、啟用/禁用用戶帳戶
 - **智能主題適應**: 自動跟隨瀏覽器明暗模式設定，用戶也可手動切換主題
 - **登入畫面多語言**: 登入/註冊畫面支援多語言切換，自動檢測瀏覽器語言
-- **分檔對話存儲**: 每個用戶的對話記錄單獨存檔為 {email}.json，提供更好的數據隔離和備份便利性
+- **分檔對話儲存**: 每個用戶的對話記錄單獨存檔為 {email}.json，提供更好的數據隔離和備份便利性
 - **個人設定系統**: 用戶可保存個人化的語言、主題、AI 模型參數等設定
 - **密碼管理**: 用戶可以在設定中安全地更改密碼，包含當前密碼驗證和新密碼確認機制
 
@@ -75,7 +75,7 @@ Get up and chatting with large language models featuring glass-morphism effect.
 
 ## 📋 系統需求
 
-- **Node.js** 16.0.0 或更高版本
+- **Node.js** 18.0.0 或更高版本
 - **NPM** 8.0.0 或更高版本
 - **Ollama** - 本地大語言模型執行環境
 
@@ -128,6 +128,8 @@ npm run server
 npm run client
 ```
 
+> **後端入口**: 後端目前以 `server/src/start.ts` 作為唯一入口（`npm run server` 即執行該檔案）。
+
 ### 5. 開啟瀏覽器
 
 應用程式將自動在瀏覽器中開啟，或手動訪問：
@@ -150,6 +152,15 @@ llmchat/
 │   │   ├── Admin.tsx      # 管理員面板組件
 │   │   ├── Header.tsx     # 應用標題欄組件
 │   │   └── LanguageSelector.tsx # 語言選擇器組件
+│   ├── hooks/             # React Hooks（已將複雜邏輯抽離）
+│   │   ├── useChatStreaming.ts
+│   │   ├── useConversations.ts
+│   │   ├── useSpeech.ts
+│   │   ├── useAutoScroll.ts
+│   │   ├── useKeyboardShortcuts.ts
+│   │   ├── useOutsideClickClosePanels.ts
+│   │   ├── useMobileView.ts
+│   │   └── useThemeEffects.ts
 │   ├── i18n/              # 國際化配置
 │   │   └── index.ts       # i18n 初始化和配置
 │   └── locales/           # 語言資源文件
@@ -159,17 +170,18 @@ llmchat/
 │       ├── ja.json        # 日文翻譯
 │       └── ko.json        # 韓文翻譯
 ├── server/                # 後端原始碼
-│   ├── index.js           # Express 伺服器
-│   ├── userService.js     # 用戶認證服務
-│   ├── emailService.js    # Email 發送服務
-│   ├── chatProvider.js    # 聊天邏輯
-│   └── ollamaProvider.js  # Ollama 整合
-├── data/                  # 用戶數據存儲目錄（不會提交到版本控制）
-│   ├── users.json         # 用戶帳戶和個人資料
-│   ├── sessions.json      # 用戶登入會話數據
-│   └── conversations/     # 用戶對話記錄目錄
-│       ├── user1@example.com.json  # 各用戶的對話記錄
-│       └── user2@example.com.json
+│   ├── data/              # 用戶數據儲存目錄（不會提交到版本控制）
+│   │   ├── users.json     # 用戶帳戶和個人資料
+│   │   ├── sessions.json  # 用戶登入會話數據
+│   │   └── conversations/ # 用戶對話記錄目錄
+│   └── src/
+│       ├── start.ts       # 後端入口
+│       ├── app.ts         # 建立 Express app（routes/middlewares/providers 注入）
+│       ├── routes/        # API routes
+│       ├── middlewares/   # Express middlewares
+│       ├── services/      # user/email 等 service
+│       ├── providers/     # Ollama provider / chat provider
+│       └── templates/     # Email templates
 ├── public/                # 靜態資源
 │   ├── favicon.svg        # 網站圖標
 │   └── github.svg         # GitHub 官方標誌
@@ -244,14 +256,14 @@ FROM_NAME=LLMChat
 
 ### 後端設定
 
-在 `server/index.js` 中，您可以調整：
+在 `server/src/start.ts` 中，您可以調整：
 
 - **服務端埠口**: 預設 3001
 - **CORS 設定**: 跨域訪問控制
 - **請求超時**: 30秒
 - **環境變數**: 支援 OLLAMA_API_URL 和 OLLAMA_API_KEY
 
-在 `server/ollamaProvider.js` 中，您可以調整：
+在 `server/src/providers/ollamaProvider.ts` 中，您可以調整：
 
 - **Ollama 連接**: 通過環境變數或預設值設定
 - **生成參數**: temperature, top_p, repeat_penalty
@@ -260,10 +272,10 @@ FROM_NAME=LLMChat
 
 ### 用戶數據管理
 
-#### 數據存儲位置
-- **用戶數據**: `data/users.json` - 包含用戶帳戶信息和個人設定
-- **會話數據**: `data/sessions.json` - 包含用戶登入會話信息
-- **對話記錄**: `data/conversations/{email}.json` - 各用戶的獨立對話記錄文件
+#### 數據儲存位置
+- **用戶數據**: `server/data/users.json` - 包含用戶帳戶信息和個人設定
+- **會話數據**: `server/data/sessions.json` - 包含用戶登入會話信息
+- **對話記錄**: `server/data/conversations/{email}.json` - 各用戶的獨立對話記錄文件
 
 #### 管理員備份用戶數據
 管理員可以通過以下方式備份所有用戶數據：
@@ -271,13 +283,13 @@ FROM_NAME=LLMChat
 1. **手動備份文件**:
     ```bash
     # 備份用戶數據
-    cp data/users.json backup/users_$(date +%Y%m%d_%H%M%S).json
+    cp server/data/users.json backup/users_$(date +%Y%m%d_%H%M%S).json
 
     # 備份會話數據（可選）
-    cp data/sessions.json backup/sessions_$(date +%Y%m%d_%H%M%S).json
+    cp server/data/sessions.json backup/sessions_$(date +%Y%m%d_%H%M%S).json
 
     # 備份所有用戶對話記錄
-    cp -r data/conversations backup/conversations_$(date +%Y%m%d_%H%M%S)
+    cp -r server/data/conversations backup/conversations_$(date +%Y%m%d_%H%M%S)
     ```
 
 2. **導出特定用戶數據**:
@@ -293,9 +305,9 @@ FROM_NAME=LLMChat
     BACKUP_DIR="backups/$TIMESTAMP"
 
     mkdir -p "$BACKUP_DIR"
-    cp data/users.json "$BACKUP_DIR/"
-    cp data/sessions.json "$BACKUP_DIR/"
-    cp -r data/conversations "$BACKUP_DIR/"
+    cp server/data/users.json "$BACKUP_DIR/"
+    cp server/data/sessions.json "$BACKUP_DIR/"
+    cp -r server/data/conversations "$BACKUP_DIR/"
 
     echo "備份完成: $BACKUP_DIR"
     ```
@@ -305,9 +317,9 @@ FROM_NAME=LLMChat
 ```bash
 # 停止服務器
 # 複製備份文件
-cp backup/users_20241120_143000.json data/users.json
-cp backup/sessions_20241120_143000.json data/sessions.json
-cp -r backup/conversations_20241120_143000 data/conversations
+cp backup/users_20241120_143000.json server/data/users.json
+cp backup/sessions_20241120_143000.json server/data/sessions.json
+cp -r backup/conversations_20241120_143000 server/data/conversations
 # 重新啟動服務器
 ```
 
@@ -571,14 +583,14 @@ npm run preview
 - 如果需要更多管理員，可以通過現有管理員賬戶修改用戶角色
 
 #### 用戶數據丟失
-- 檢查 `data/users.json` 文件是否存在
+- 檢查 `server/data/users.json` 文件是否存在
 - 如果文件損壞，可以從備份恢復
 - 如果沒有備份，需要用戶重新註冊
 
 #### 無法登入特定帳戶
 - 檢查用戶是否被管理員禁用
 - 驗證 Email 和密碼是否正確
-- 檢查 `data/users.json` 中的用戶狀態
+- 檢查 `server/data/users.json` 中的用戶狀態
 
 #### Email 驗證鏈接無效
 - 檢查 FRONTEND_URL 環境變數是否正確設定為您的前端域名（例如：https://llmchat.example.com）
@@ -617,6 +629,12 @@ npm run preview
 - 檢查 TypeScript 版本：`npx tsc --version`
 
 ## 🔄 更新日誌
+
+### v251213
+
+- 🔧 **後端入口統一**: 後端以 `server/src/start.ts` 作為唯一入口，避免維護兩套入口邏輯
+- 🧩 **前端 Hooks 重構**: 將串流聊天、對話管理、語音、以及 UI utilities（theme / autoscroll / keyboard shortcuts / outside click / mobile view）抽離成 hooks，降低 `App.tsx` 複雜度
+- 🏷️ **版本同步**: `package.json` 與前端顯示版本號統一更新
 
 ### v251208
 
@@ -676,10 +694,10 @@ npm run preview
 - 🎨 **登入畫面多語言支援**: 登入/註冊畫面加入語言選擇器，自動檢測瀏覽器語言
 - 🌙 **登入畫面主題切換**: 登入畫面右上角添加主題切換按鈕，支援亮色/暗色模式切換
 - 🌙 **智能主題適應**: 主程式自動跟隨瀏覽器明暗模式設定，用戶仍可手動切換
-- 📁 **個人對話分檔存儲**: 每個用戶的對話記錄單獨存成 {email}.json 文件，提供更好的數據隔離
+- 📁 **個人對話分檔儲存**: 每個用戶的對話記錄單獨存成 {email}.json 文件，提供更好的數據隔離
 - ⚙️ **個人設定系統**: 新增完整的用戶個人設定欄位，包含語言、主題、AI 模型參數等
 - 🔧 **設定 API**: 新增獲取和更新用戶個人設定的 API 端點
-- 🗂️ **數據結構優化**: 重構數據存儲架構，提升可維護性和擴展性
+- 🗂️ **數據結構優化**: 重構數據儲存架構，提升可維護性和擴展性
 - 📧 **多語言郵件支援**: 驗證郵件現在支援 5 種語言，根據用戶設定自動選擇合適語言
 - 📧 **驗證郵件優化**: 增強驗證郵件樣式，確保在各郵件客戶端正常顯示按鈕文字
 - ⏰ **令牌過期機制**: 實現24小時驗證鏈接過期，過期後需重新註冊帳號
@@ -691,7 +709,7 @@ npm run preview
 - 🔐 **用戶認證系統**: 新增完整的用戶註冊和登入功能，首位註冊者自動成為管理員
 - 👤 **個人化對話**: 每個用戶的聊天記錄完全獨立，登入後自動恢復個人對話歷史
 - 👑 **管理員功能**: 管理員可以查看所有用戶、管理用戶角色、啟用/禁用用戶帳戶
-- 🗂️ **用戶數據管理**: 用戶數據和對話記錄安全存儲在本地文件系統
+- 🗂️ **用戶數據管理**: 用戶數據和對話記錄安全儲存在本地文件系統
 - 🔑 **會話管理**: 實現安全的會話令牌管理，支援7天登入狀態保持
 - 🛡️ **權限控制**: 基於角色的訪問控制，保護敏感功能
 - 🎨 **登入介面**: 美觀的登入/註冊介面，支援密碼顯示/隱藏切換
@@ -719,7 +737,7 @@ npm run preview
 
 - ⚡ **效能大幅優化**: 添加 React.memo 和防抖處理，解決長內容滾動和輸入的 laggy 問題
 - 🔧 **組件優化**: MarkdownMessage 組件添加記憶化，提升渲染效能
-- 🎯 **智能狀態管理**: 使用 useRef 優化串流狀態存儲，避免狀態更新時機問題
+- 🎯 **智能狀態管理**: 使用 useRef 優化串流狀態儲存，避免狀態更新時機問題
 - 🔄 **即時串流解析**: 支援思考標籤的實時串流解析，提供流暢的思考過程顯示體驗
 - 📝 **智能內容分離**: 自動解析 `<think>思考內容</think>最終內容` 格式，將思考過程顯示在專用框框中
 - 🧠 **增強思考過程支援**: 新增對 deepseek/qwen3 等 thinking 類 LLM 模型的 `<think>` 標籤解析支援
@@ -777,7 +795,7 @@ npm run preview
 - 🛡️ **確認機制**: 添加刪除對話和清除內容的確認視窗
 
 
-## � 未來功能
+## 🚧 未來功能
 
 - [ ] UI再改良
 - [ ] 支援更多Provider的模型
@@ -788,18 +806,18 @@ npm run preview
 
 1. **用戶認證**: 應用程式使用本地用戶認證系統，首位註冊者自動成為管理員
 2. **Email 驗證**: 新用戶註冊後需要驗證Email地址才能登入，驗證鏈接24小時內有效，過期後需重新註冊帳號
-3. **個人化設定**: 每個用戶的語言偏好、主題設定、AI 模型參數等都會自動保存並在登入時恢復
-4. **對話記錄隔離**: 每個用戶的對話記錄完全獨立存儲，確保隱私和數據安全
-5. **主題適應**: 應用程式會自動跟隨瀏覽器的明暗模式設定，但用戶也可手動切換
 3. **SMTP 配置**: 必須正確設定 SMTP_USER 和 SMTP_PASS 環境變數才能發送驗證郵件，未設定時用戶無法註冊
-4. **數據安全**: 用戶數據和對話記錄存儲在本地文件系統，不會上傳到雲端
-5. **數據備份**: 管理員應定期備份 `data/users.json` 文件，包含所有用戶帳戶和對話記錄
-6. **會話管理**: 登入狀態在服務器重啟時會重置，但會在 7 天內保持有效
-7. **管理員權限**: 管理員可以管理所有用戶帳戶，請妥善保管管理員密碼
-8. **數據恢復**: 如需恢復用戶數據，從備份文件複製到 `data/` 目錄並重啟服務器
-9. **硬體要求**: 大型模型需要足夠的 RAM（建議 8GB 以上）
-10. **首次使用**: 首次啟動模型可能需要下載，請耐心等待
-11. **性能**: 模型大小會影響響應速度
+4. **個人化設定**: 每個用戶的語言偏好、主題設定、AI 模型參數等都會自動保存並在登入時恢復
+5. **主題適應**: 應用程式會自動跟隨瀏覽器的明暗模式設定，但用戶也可手動切換
+6. **對話記錄隔離**: 每個用戶的對話記錄完全獨立儲存，確保隱私和數據安全
+7. **數據安全**: 用戶數據和對話記錄儲存在本地文件系統，不會上傳到雲端
+8. **數據備份**: 管理員應定期備份 `server/data/users.json` 文件，包含所有用戶帳戶和對話記錄
+9. **會話管理**: 登入狀態在服務器重啟時會重置，但會在 7 天內保持有效
+10. **管理員權限**: 管理員可以管理所有用戶帳戶，請妥善保管管理員密碼
+11. **數據恢復**: 如需恢復用戶數據，從備份文件複製到 `server/data/` 目錄並重啟服務器
+12. **硬體要求**: 大型模型需要足夠的 RAM（建議 8GB 以上）
+13. **首次使用**: 首次啟動模型可能需要下載，請耐心等待
+14. **性能**: 模型大小會影響響應速度
 
 ## 🤝 貢獻
 

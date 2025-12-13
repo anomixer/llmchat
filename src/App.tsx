@@ -7,87 +7,15 @@ import { Header } from './components/Header'
 import { Auth } from './components/Auth'
 import { Admin } from './components/Admin'
 import { useAuth } from './AuthContext'
-
-// Web Speech API types
-declare global {
-    interface Window {
-        SpeechRecognition: typeof SpeechRecognition
-        webkitSpeechRecognition: typeof SpeechRecognition
-    }
-}
-
-interface SpeechRecognition extends EventTarget {
-    continuous: boolean
-    interimResults: boolean
-    lang: string
-    start(): void
-    stop(): void
-    abort(): void
-    onstart: ((this: SpeechRecognition, ev: Event) => any) | null
-    onend: ((this: SpeechRecognition, ev: Event) => any) | null
-    onresult: ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => any) | null
-    onerror: ((this: SpeechRecognition, ev: SpeechRecognitionErrorEvent) => any) | null
-}
-
-interface SpeechRecognitionEvent extends Event {
-    results: SpeechRecognitionResultList
-    resultIndex: number
-}
-
-interface SpeechRecognitionErrorEvent extends Event {
-    error: string
-    message: string
-}
-
-interface SpeechRecognitionResultList {
-    readonly length: number
-    item(index: number): SpeechRecognitionResult
-    [index: number]: SpeechRecognitionResult
-}
-
-interface SpeechRecognitionResult {
-    readonly length: number
-    item(index: number): SpeechRecognitionAlternative
-    [index: number]: SpeechRecognitionAlternative
-    isFinal: boolean
-}
-
-interface SpeechRecognitionAlternative {
-    transcript: string
-    confidence: number
-}
-
-declare var SpeechRecognition: {
-    prototype: SpeechRecognition
-    new(): SpeechRecognition
-}
-
-interface Message {
-    id: string
-    role: 'user' | 'assistant'
-    content: string
-    thinking?: string
-    timestamp: Date
-    expandedFiles?: boolean
-
-    interrupted?: boolean
-    hiddenContent?: string
-}
-
-interface SpeechQueueItem {
-    id: string
-    text: string
-    messageId: string
-    timestamp: Date
-}
-
-interface Conversation {
-    id: string
-    title: string
-    messages: Message[]
-    createdAt: Date
-    updatedAt: Date
-}
+import { useChatStreaming } from './hooks/useChatStreaming'
+import { useConversations } from './hooks/useConversations'
+import type { Conversation, Message } from './hooks/useConversations'
+import { useSpeech } from './hooks/useSpeech'
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
+import { useOutsideClickClosePanels } from './hooks/useOutsideClickClosePanels'
+import { useMobileView } from './hooks/useMobileView'
+import { useAutoScroll } from './hooks/useAutoScroll'
+import { useApplyThemeClasses, usePrefersColorSchemeSync } from './hooks/useThemeEffects'
 
 interface ChatSettings {
     model: string
@@ -102,38 +30,48 @@ interface ChatSettings {
 const App: React.FC = () => {
     const { t, i18n } = useTranslation()
     const { user, token, login, register, resendVerification, logout, isLoading: authLoading, error: authError } = useAuth()
+    const { isStreaming, streamingMessage, streamingThinking, stopRequested, stopConfirmText, requestStop, streamChat } = useChatStreaming({ token })
     const [currentView, setCurrentView] = useState<'chat' | 'admin'>('chat')
 
-    // 創建初始對話
-    const createInitialConversation = (): Conversation => ({
-        id: Date.now().toString(),
-        title: `${t('conversation.defaultTitle')} 1`,
-        messages: [],
-        createdAt: new Date(),
-        updatedAt: new Date()
-    })
-
-    // 初始化對話列表 - 現在從服務器加載
-    const [conversations, setConversations] = useState<Conversation[]>([createInitialConversation()])
-    const [conversationsLoaded, setConversationsLoaded] = useState(false)
-
-    const [currentConversationId, setCurrentConversationId] = useState<string>(() => {
-        try {
-            const saved = localStorage.getItem('currentConversationId')
-            if (saved && conversations.some((c: Conversation) => c.id === saved)) {
-                return saved
-            }
-            return conversations[0].id
-        } catch (error) {
-            console.error('Error loading currentConversationId from localStorage:', error)
-            return conversations[0].id
-        }
+    const {
+        conversations,
+        conversationsLoaded,
+        currentConversationId,
+        setCurrentConversationId,
+        createConversation,
+        createNewConversation: createNewConversationInternal,
+        addConversation,
+        removeConversation,
+        updateConversationTitle,
+        clearConversationMessages,
+        appendMessage
+    } = useConversations({
+        token,
+        getDefaultConversationTitle: (index: number) => `${t('conversation.defaultTitle')} ${index}`
     })
     const [input, setInput] = useState('')
     const [isLoading, setIsLoading] = useState(false)
 
+    const {
+        isRecording,
+        startVoiceInput,
+        isSpeaking,
+        speechQueue,
+        globalSpeakingMessageId,
+        currentPlayingItemRef,
+        toggleSpeechForMessage,
+        getSpeechButtonState,
+        isSpeechButtonDisabled
+    } = useSpeech({
+        userId: user?.id,
+        language: i18n.language,
+        onTranscript: (text: string) => setInput(prev => prev + text),
+        unsupportedVoiceInputText: t('input.voice.unsupported'),
+        unsupportedVoiceText: t('messages.voice.unsupported')
+    })
+
     // 防抖輸入處理，避免頻繁的高度調整
-    const inputTimeoutRef = useRef<number | null>(null)
+    const inputTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
     const setInputDebounced = useCallback((value: string) => {
         setInput(value)
@@ -186,18 +124,8 @@ const App: React.FC = () => {
         topK: 40
     })
     const [attachedFiles, setAttachedFiles] = useState<File[]>([])
-    const [isRecording, setIsRecording] = useState(false)
-    const [isSpeaking, setIsSpeaking] = useState(false)
-    const [isStreaming, setIsStreaming] = useState(false)
-    const [speechQueue, setSpeechQueue] = useState<SpeechQueueItem[]>([])
-    const [currentPlayingId, setCurrentPlayingId] = useState<string | null>(null)
-    const [isProcessingQueue, setIsProcessingQueue] = useState(false)
-    const [globalSpeakingMessageId, setGlobalSpeakingMessageId] = useState<string | null>(null)
-    const speechChannelRef = useRef<BroadcastChannel | null>(null)
-    const currentPlayingItemRef = useRef<SpeechQueueItem | null>(null)
-    const [forceUpdate, setForceUpdate] = useState(0)
     const [isFullscreen, setIsFullscreen] = useState(false)
-    const [isMobileView, setIsMobileView] = useState(false)
+    const isMobileView = useMobileView(768)
     // 密碼更改相關狀態
     const [currentPassword, setCurrentPassword] = useState('')
     const [newPassword, setNewPassword] = useState('')
@@ -206,67 +134,24 @@ const App: React.FC = () => {
     const [passwordChangeError, setPasswordChangeError] = useState('')
     // 永遠啟用串流模式
     const streamingModeEnabled = true
-    const [streamingMessage, setStreamingMessage] = useState('')
-    const [streamingThinking, setStreamingThinking] = useState('')
-    const [stopRequested, setStopRequested] = useState(false)
-    const [stopConfirmText, setStopConfirmText] = useState('')
-
-    // 用於存儲最終串流狀態的 ref
-    const finalStateRef = useRef({ content: '', thinking: '' })
     const [expandedThinking, setExpandedThinking] = useState<Set<string>>(new Set())
     const [expandedFiles, setExpandedFiles] = useState<Set<string>>(new Set())
     const [showStreamingThinking, setShowStreamingThinking] = useState(false)
-    // 用於控制串流是否應該繼續的 ref
-    const shouldContinueStreamingRef = useRef(true)
-    const currentRequestIdRef = useRef<string | null>(null) // 存儲當前串流請求ID
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const textareaRef = useRef<HTMLTextAreaElement>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
-    const recognitionRef = useRef<SpeechRecognition | null>(null)
-    const synthRef = useRef<SpeechSynthesis | null>(null)
     const messagesContainerRef = useRef<HTMLDivElement>(null)
-    const [shouldAutoScroll, setShouldAutoScroll] = useState(true)
 
     // 當前對話的消息
     const currentMessages = conversations.find(c => c.id === currentConversationId)?.messages || []
 
-    const scrollToBottom = () => {
-        if (shouldAutoScroll) {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-        }
-    }
-
-    // 檢查用戶是否在底部附近
-    const isNearBottom = () => {
-        const container = messagesContainerRef.current
-        if (!container) return true
-
-        // 使用百分比計算：距離底部5%內算作底部
-        const scrollTop = container.scrollTop
-        const scrollHeight = container.scrollHeight
-        const clientHeight = container.clientHeight
-        const scrollPercent = (scrollTop / (scrollHeight - clientHeight)) * 100
-
-        // 如果內容高度小於等於容器高度，總是算作底部
-        if (scrollHeight <= clientHeight) return true
-
-        // 距離底部2%內算作底部（即滾動到98%位置）
-        return scrollPercent > 98
-    }
-
-    // 處理滾動事件
-    const handleScroll = () => {
-        if (isNearBottom()) {
-            // 無論是否在串流中，只要用戶滾動到底部附近就重新啟用自動滾動
-            setShouldAutoScroll(true)
-        } else if (isStreaming) {
-            // 在串流過程中，如果沒有在底部附近就禁用自動滾動
-            setShouldAutoScroll(false)
-        } else {
-            // 非串流狀態下，遠離底部時禁用自動滾動
-            setShouldAutoScroll(false)
-        }
-    }
+    const { shouldAutoScroll, setShouldAutoScroll, scrollToBottom } = useAutoScroll({
+        isStreaming,
+        messagesEndRef,
+        messagesContainerRef,
+        currentMessages,
+        streamingMessage
+    })
 
     // 切換主題函數
     const toggleTheme = () => {
@@ -364,142 +249,11 @@ const App: React.FC = () => {
         }
     }
 
-    useEffect(() => {
-        scrollToBottom()
-    }, [currentMessages])
-
-    // 當流式消息更新時也滾動到底部
-    useEffect(() => {
-        scrollToBottom()
-    }, [streamingMessage])
-
-    // 添加滾動事件監聽器
-    useEffect(() => {
-        const container = messagesContainerRef.current
-        if (container) {
-            container.addEventListener('scroll', handleScroll)
-            return () => container.removeEventListener('scroll', handleScroll)
-        }
-    }, [shouldAutoScroll])
-
-    // 移除舊的高度調整 useEffect，因為現在在防抖函數中處理
-
-    // 初始化語音狀態同步頻道
-    useEffect(() => {
-        if (typeof BroadcastChannel !== 'undefined') {
-            speechChannelRef.current = new BroadcastChannel('llmchat-speech-sync')
-
-            speechChannelRef.current.onmessage = (event) => {
-                const { type, messageId, sessionId } = event.data
-                // 只處理來自其他session的消息
-                if (sessionId !== user?.id) {
-                    if (type === 'speech-start') {
-                        setGlobalSpeakingMessageId(messageId)
-                    } else if (type === 'speech-end') {
-                        setGlobalSpeakingMessageId(null)
-                    }
-                }
-            }
-        }
-
-        return () => {
-            if (speechChannelRef.current) {
-                speechChannelRef.current.close()
-            }
-        }
-    }, [user?.id])
-
     // 監聽瀏覽器主題變化
-    useEffect(() => {
-        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-
-        const handleThemeChange = (e: MediaQueryListEvent) => {
-            // 只有在用戶沒有手動設定主題時才跟隨瀏覽器
-            const savedTheme = localStorage.getItem('theme')
-            if (savedTheme === null) { // 沒有手動設定過
-                setIsDarkMode(e.matches)
-                document.documentElement.classList.toggle('dark', e.matches)
-            }
-        }
-
-        // 初始檢查
-        const savedTheme = localStorage.getItem('theme')
-        if (savedTheme === null) { // 沒有手動設定過
-            setIsDarkMode(mediaQuery.matches)
-            document.documentElement.classList.toggle('dark', mediaQuery.matches)
-        } else {
-            // 如果有手動設定過的主題，也要設置dark類別
-            const isDark = JSON.parse(savedTheme)
-            document.documentElement.classList.toggle('dark', isDark)
-        }
-
-        // 添加監聽器
-        mediaQuery.addEventListener('change', handleThemeChange)
-
-        return () => {
-            mediaQuery.removeEventListener('change', handleThemeChange)
-        }
-    }, [])
+    usePrefersColorSchemeSync({ setIsDarkMode })
 
     // 初始化主題類別
-    useEffect(() => {
-        document.body.classList.toggle('dark-theme', isDarkMode)
-        document.documentElement.classList.toggle('dark', isDarkMode)
-    }, [isDarkMode])
-
-    // 響應式檢測
-    useEffect(() => {
-        const checkMobileView = () => {
-            setIsMobileView(window.innerWidth < 768)
-        }
-
-        checkMobileView()
-        window.addEventListener('resize', checkMobileView)
-
-        return () => window.removeEventListener('resize', checkMobileView)
-    }, [])
-
-    // 從服務器加載用戶對話
-    const loadUserConversations = async () => {
-        if (!token) return
-
-        try {
-            const response = await fetch('/api/conversations', {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
-            })
-
-            if (response.ok) {
-                const data = await response.json()
-                const serverConversations = data.conversations.map((conv: any) => ({
-                    ...conv,
-                    createdAt: new Date(conv.createdAt),
-                    updatedAt: new Date(conv.updatedAt),
-                    messages: conv.messages.map((msg: any) => ({
-                        ...msg,
-                        timestamp: new Date(msg.timestamp)
-                    }))
-                }))
-
-                // 設置用戶的對話，清空之前的狀態
-                if (serverConversations.length > 0) {
-                    setConversations(serverConversations)
-                    // 設置當前對話為第一個
-                    setCurrentConversationId(serverConversations[0].id)
-                } else {
-                    // 如果沒有對話，創建一個新的
-                    const newConv = createInitialConversation()
-                    setConversations([newConv])
-                    setCurrentConversationId(newConv.id)
-                }
-            }
-        } catch (error) {
-            console.error('Error loading conversations:', error)
-        } finally {
-            setConversationsLoaded(true)
-        }
-    }
+    useApplyThemeClasses({ isDarkMode })
 
     // 從服務器加載用戶設定
     const loadUserSettings = async () => {
@@ -553,24 +307,6 @@ const App: React.FC = () => {
             }
         } catch (error) {
             console.error('Error loading user settings:', error)
-        }
-    }
-
-    // 保存對話到服務器
-    const saveConversationsToServer = async (conversationsToSave: Conversation[]) => {
-        if (!token) return
-
-        try {
-            await fetch('/api/conversations', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ conversations: conversationsToSave }),
-            })
-        } catch (error) {
-            console.error('Error saving conversations:', error)
         }
     }
 
@@ -647,16 +383,12 @@ const App: React.FC = () => {
         }
     }
 
-    // 當用戶登入時加載對話和設定，當用戶登出時重置狀態
+    // 當用戶登入時加載設定，當用戶登出時重置狀態
     useEffect(() => {
         if (user && token && !conversationsLoaded) {
-            loadUserConversations()
             loadUserSettings()
         } else if (!user && conversationsLoaded) {
-            // 用戶登出時重置對話狀態和設定
-            setConversations([])
-            setConversationsLoaded(false)
-            setCurrentConversationId('')
+            // 用戶登出時重置設定
             setUserSettings({
                 language: 'zh-TW',
                 theme: 'auto',
@@ -671,28 +403,9 @@ const App: React.FC = () => {
         }
     }, [user, token, conversationsLoaded])
 
-    // 當對話變化時保存到服務器
-    useEffect(() => {
-        if (conversationsLoaded && user && token) {
-            saveConversationsToServer(conversations)
-        }
-    }, [conversations, conversationsLoaded, user, token])
-
-    useEffect(() => {
-        localStorage.setItem('currentConversationId', currentConversationId)
-    }, [currentConversationId])
-
     // 創建新對話
     const createNewConversation = () => {
-        const newConversation: Conversation = {
-            id: Date.now().toString(),
-            title: `${t('conversation.defaultTitle')} ${conversations.length + 1}`,
-            messages: [],
-            createdAt: new Date(),
-            updatedAt: new Date()
-        }
-        setConversations(prev => [...prev, newConversation])
-        setCurrentConversationId(newConversation.id)
+        createNewConversationInternal()
         setShouldAutoScroll(true) // 創建新對話時啟用自動滾動
     }
 
@@ -710,18 +423,7 @@ const App: React.FC = () => {
         const confirmed = window.confirm(t('conversation.delete.confirm', { title: conversation.title }))
         if (!confirmed) return
 
-        setConversations(prev => prev.filter(c => c.id !== conversationId))
-        if (currentConversationId === conversationId) {
-            const remaining = conversations.filter(c => c.id !== conversationId)
-            setCurrentConversationId(remaining.length > 0 ? remaining[0].id : '')
-        }
-    }
-
-    // 更新對話標題
-    const updateConversationTitle = (conversationId: string, title: string) => {
-        setConversations(prev => prev.map(c =>
-            c.id === conversationId ? { ...c, title, updatedAt: new Date() } : c
-        ))
+        removeConversation(conversationId)
     }
 
     // 處理檔案選擇
@@ -767,299 +469,6 @@ const App: React.FC = () => {
                 reader.readAsText(file)
             }
         })
-    }
-
-    // 初始化語音識別
-    const initSpeechRecognition = () => {
-        if (!('SpeechRecognition' in window) && !('webkitSpeechRecognition' in window)) {
-            alert(t('input.voice.unsupported'))
-            return null
-        }
-
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-        const recognition = new SpeechRecognition()
-
-        recognition.continuous = false
-        recognition.interimResults = false
-
-        // 根據當前語言設定語音識別語言
-        const languageMap: { [key: string]: string } = {
-            'zh-TW': 'zh-TW',
-            'zh-CN': 'zh-CN',
-            'en': 'en-US',
-            'ja': 'ja-JP',
-            'ko': 'ko-KR'
-        }
-        recognition.lang = languageMap[i18n.language] || 'zh-TW'
-
-        recognition.onstart = () => {
-            setIsRecording(true)
-        }
-
-        recognition.onend = () => {
-            setIsRecording(false)
-        }
-
-        recognition.onresult = (event) => {
-            const transcript = event.results[0][0].transcript
-            setInput(prev => prev + transcript)
-        }
-
-        recognition.onerror = (event) => {
-            console.error('語音識別錯誤:', event.error)
-            setIsRecording(false)
-        }
-
-        return recognition
-    }
-
-    // 開始語音輸入
-    const startVoiceInput = () => {
-        if (isRecording) {
-            recognitionRef.current?.stop()
-            return
-        }
-
-        if (!recognitionRef.current) {
-            recognitionRef.current = initSpeechRecognition()
-        }
-
-        if (recognitionRef.current) {
-            recognitionRef.current.start()
-        }
-    }
-
-    // 添加到語音隊列
-    const addToSpeechQueue = (text: string, messageId: string) => {
-        if (!('speechSynthesis' in window)) {
-            alert(t('messages.voice.unsupported'))
-            return
-        }
-
-        const queueItem: SpeechQueueItem = {
-            id: Date.now().toString(),
-            text: text,
-            messageId: messageId,
-            timestamp: new Date()
-        }
-
-        setSpeechQueue(prev => [...prev, queueItem])
-    }
-
-    // 處理語音隊列的核心函數
-    const processSpeechQueue = useCallback(() => {
-        if (speechQueue.length === 0 || isProcessingQueue) {
-            return
-        }
-
-        setIsProcessingQueue(true)
-        const nextItem = speechQueue[0]
-
-        // 清理文字以供語音合成：移除表情符號和Markdown標記符號，但保留程式碼內容
-        let filteredText = nextItem.text
-
-        // 移除表情符號
-        filteredText = filteredText.replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '')
-
-        // 移除Markdown標記符號，但保留內容
-        filteredText = filteredText
-            // 移除標題的 # 符號
-            .replace(/^#+\s*/gm, '')
-            // 移除粗體/斜體標記，但保留內容
-            .replace(/\*\*\*(.*?)\*\*\*/g, '$1')  // ***bold italic***
-            .replace(/\*\*(.*?)\*\*/g, '$1')      // **bold**
-            .replace(/\*(.*?)\*/g, '$1')          // *italic*
-            .replace(/__(.*?)__/g, '$1')          // __underline__
-            .replace(/_(.*?)_/g, '$1')            // _italic_
-            // 移除刪除線標記，但保留內容
-            .replace(/~~(.*?)~~/g, '$1')          // ~~strikethrough~~
-            // 移除鏈接標記，但保留文字
-            .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')  // [text](url)
-            // 移除引用標記
-            .replace(/^>\s*/gm, '')
-            // 移除列表標記
-            .replace(/^[\s]*[-\*\+]\s+/gm, '')
-            .replace(/^[\s]*\d+\.\s+/gm, '')
-            // 移除表格分隔線 (---)
-            .replace(/^[\s]*\|[\s\-\|]*\|[\s]*$/gm, '')
-            .replace(/^\s*\|[:-]+\|\s*$/gm, '')
-            // 移除程式碼區塊標記，但保留內容
-            .replace(/```[\w]*\n?([\s\S]*?)```/g, '$1')
-            .replace(/`([^`]+)`/g, '$1')
-            // 移除多餘的空白行和清理
-            .replace(/\n\s*\n/g, '\n')
-            .trim()
-
-        const utterance = new SpeechSynthesisUtterance(filteredText)
-
-        // 根據當前語言設定語音合成語言
-        const languageMap: { [key: string]: string } = {
-            'zh-TW': 'zh-TW',
-            'zh-CN': 'zh-CN',
-            'en': 'en-US',
-            'ja': 'ja-JP',
-            'ko': 'ko-KR'
-        }
-        utterance.lang = languageMap[i18n.language] || 'zh-TW'
-        utterance.rate = 1
-        utterance.pitch = 1
-
-        utterance.onstart = () => {
-            // 在語音真正開始時才設置播放狀態
-            currentPlayingItemRef.current = nextItem
-            setCurrentPlayingId(nextItem.id)
-            setIsSpeaking(true)
-            // 廣播語音開始狀態
-            if (speechChannelRef.current) {
-                speechChannelRef.current.postMessage({
-                    type: 'speech-start',
-                    messageId: nextItem.messageId,
-                    sessionId: user?.id
-                })
-            }
-            setGlobalSpeakingMessageId(nextItem.messageId)
-        }
-
-        utterance.onend = () => {
-            currentPlayingItemRef.current = null
-            setIsSpeaking(false)
-            setCurrentPlayingId(null)
-            setIsProcessingQueue(false)
-            setGlobalSpeakingMessageId(null)
-
-            // 廣播語音結束狀態
-            if (speechChannelRef.current) {
-                speechChannelRef.current.postMessage({
-                    type: 'speech-end',
-                    messageId: null,
-                    sessionId: user?.id
-                })
-            }
-
-            // 移除已播放的項目，useEffect 會處理剩餘項目
-            setSpeechQueue(prev => prev.slice(1))
-        }
-
-        utterance.onerror = () => {
-            currentPlayingItemRef.current = null
-            setIsSpeaking(false)
-            setCurrentPlayingId(null)
-            setIsProcessingQueue(false)
-            setGlobalSpeakingMessageId(null)
-
-            // 廣播語音結束狀態
-            if (speechChannelRef.current) {
-                speechChannelRef.current.postMessage({
-                    type: 'speech-end',
-                    messageId: null,
-                    sessionId: user?.id
-                })
-            }
-
-            // 移除失敗的項目，繼續處理下一個
-            setSpeechQueue(prev => prev.slice(1))
-        }
-
-        window.speechSynthesis.speak(utterance)
-    }, [speechQueue, isProcessingQueue, i18n.language])
-
-    // 監聽隊列變化，自動處理
-    useEffect(() => {
-        if (speechQueue.length > 0 && !isProcessingQueue) {
-            processSpeechQueue()
-        }
-    }, [speechQueue, isProcessingQueue, processSpeechQueue])
-
-
-    // 跳過當前語音
-    const skipCurrentSpeech = () => {
-        if (isSpeaking && 'speechSynthesis' in window) {
-            window.speechSynthesis.cancel()
-            currentPlayingItemRef.current = null
-            setIsSpeaking(false)
-            setCurrentPlayingId(null)
-            setGlobalSpeakingMessageId(null)
-
-            // 廣播語音結束狀態
-            if (speechChannelRef.current) {
-                speechChannelRef.current.postMessage({
-                    type: 'speech-end',
-                    messageId: null,
-                    sessionId: user?.id
-                })
-            }
-
-            // 移除當前項目並繼續處理下一個
-            setSpeechQueue(prev => prev.slice(1))
-            setIsProcessingQueue(false)
-
-            // useEffect 會自動處理剩餘項目
-        }
-    }
-
-    // 清除語音隊列
-    const clearSpeechQueue = () => {
-        if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel()
-        }
-        currentPlayingItemRef.current = null
-        setIsSpeaking(false)
-        setCurrentPlayingId(null)
-        setGlobalSpeakingMessageId(null)
-        setSpeechQueue([])
-        setIsProcessingQueue(false)
-
-        // 廣播語音結束狀態
-        if (speechChannelRef.current) {
-            speechChannelRef.current.postMessage({
-                type: 'speech-end',
-                messageId: null,
-                sessionId: user?.id
-            })
-        }
-    }
-
-    // 從隊列中移除特定項目
-    const removeFromSpeechQueue = (messageId: string) => {
-        setSpeechQueue(prev => {
-            const filtered = prev.filter(item => item.messageId !== messageId)
-            // 如果移除的是正在播放的項目，停止播放
-            if (prev.length > 0 && prev[0].messageId === messageId && isSpeaking) {
-                if ('speechSynthesis' in window) {
-                    window.speechSynthesis.cancel()
-                }
-                currentPlayingItemRef.current = null
-                setIsSpeaking(false)
-                setCurrentPlayingId(null)
-                setGlobalSpeakingMessageId(null)
-                setIsProcessingQueue(false)
-
-                // 廣播語音結束狀態
-                if (speechChannelRef.current) {
-                    speechChannelRef.current.postMessage({
-                        type: 'speech-end',
-                        messageId: null,
-                        sessionId: user?.id
-                    })
-                }
-
-                // 重新開始處理隊列
-                if (filtered.length > 0) {
-                    setTimeout(() => {
-                        if (!isProcessingQueue) {
-                            processSpeechQueue()
-                        }
-                    }, 100)
-                }
-            }
-            return filtered
-        })
-    }
-
-    // 舊的 speakText 函數，保持向後相容但改為使用隊列
-    const speakText = (text: string, messageId?: string) => {
-        const msgId = messageId || 'manual'
-        addToSpeechQueue(text, msgId)
     }
 
     // 導出對話記錄
@@ -1110,78 +519,6 @@ const App: React.FC = () => {
         URL.revokeObjectURL(url)
     }
 
-    // 串流思考標籤解析器狀態
-    let streamParserState = {
-        inThinkTag: false,
-        accumulatedThinking: '',
-        accumulatedContent: '',
-        pendingBuffer: '' // 待處理的buffer
-    }
-
-    // 重置解析器狀態
-    const resetStreamParser = () => {
-        streamParserState = {
-            inThinkTag: false,
-            accumulatedThinking: '',
-            accumulatedContent: '',
-            pendingBuffer: ''
-        }
-    }
-
-    // 處理串流內容的增量解析
-    const processStreamChunk = (chunk: string) => {
-        streamParserState.pendingBuffer += chunk
-
-        // 持續處理直到不能再處理
-        let continueProcessing = true
-        while (continueProcessing && streamParserState.pendingBuffer.length > 0) {
-            continueProcessing = false
-
-            if (!streamParserState.inThinkTag) {
-                // 尋找 <think> 標籤
-                const thinkStart = streamParserState.pendingBuffer.indexOf('<think>')
-
-                if (thinkStart !== -1) {
-                    // 找到 <think> 標籤
-                    const contentBeforeTag = streamParserState.pendingBuffer.substring(0, thinkStart)
-                    streamParserState.accumulatedContent += contentBeforeTag
-                    streamParserState.inThinkTag = true
-                    streamParserState.pendingBuffer = streamParserState.pendingBuffer.substring(thinkStart + 7) // 移除 '<think>'
-                    continueProcessing = true // 繼續處理剩餘內容
-                }
-                // 如果沒有找到 <think>，保留在buffer中
-            } else {
-                // 在思考標籤內，尋找 </think> 標籤
-                const thinkEnd = streamParserState.pendingBuffer.indexOf('</think>')
-
-                if (thinkEnd !== -1) {
-                    // 找到 </think> 標籤
-                    const thinkingContent = streamParserState.pendingBuffer.substring(0, thinkEnd)
-                    streamParserState.accumulatedThinking += thinkingContent
-                    streamParserState.inThinkTag = false
-                    streamParserState.pendingBuffer = streamParserState.pendingBuffer.substring(thinkEnd + 8) // 移除 '</think>'
-                    continueProcessing = true // 繼續處理剩餘內容
-                }
-                // 如果沒有找到 </think>，保留在buffer中
-            }
-        }
-
-        // 將剩餘的buffer內容加到對應的累積內容中
-        if (streamParserState.pendingBuffer.length > 0) {
-            if (streamParserState.inThinkTag) {
-                streamParserState.accumulatedThinking += streamParserState.pendingBuffer
-            } else {
-                streamParserState.accumulatedContent += streamParserState.pendingBuffer
-            }
-            streamParserState.pendingBuffer = ''
-        }
-
-        return {
-            thinking: streamParserState.accumulatedThinking,
-            content: streamParserState.accumulatedContent
-        }
-    }
-
     // 流式發送消息
     const sendStreamingMessage = async () => {
         if ((!input.trim() && attachedFiles.length === 0) || isLoading) return
@@ -1217,239 +554,51 @@ const App: React.FC = () => {
         // 如果沒有當前對話，創建一個新的並包含用戶消息
         let conversationId = currentConversationId
         if (!conversationId) {
-            const newConversation: Conversation = {
-                id: Date.now().toString(),
+            const newConversation = createConversation({
                 title: `對話 ${conversations.length + 1}`,
-                messages: [userMessage],
-                createdAt: new Date(),
-                updatedAt: new Date()
-            }
-            setConversations(prev => [...prev, newConversation])
-            setCurrentConversationId(newConversation.id)
+                messages: [userMessage]
+            })
+            addConversation(newConversation, true)
             conversationId = newConversation.id
         } else {
             // 更新現有對話消息
-            setConversations(prev => prev.map(c =>
-                c.id === conversationId
-                    ? { ...c, messages: [...c.messages, userMessage], updatedAt: new Date() }
-                    : c
-            ))
+            appendMessage(conversationId, userMessage)
         }
 
         setInput('')
         setAttachedFiles([]) // 清除附加檔案
         setIsLoading(true)
-        setStreamingMessage('')
-        setStreamingThinking('')
-        resetStreamParser() // 重置串流解析器狀態
-        finalStateRef.current = { content: '', thinking: '' } // 重置最終狀態
-        shouldContinueStreamingRef.current = true // 重置串流繼續標誌
-        setStopRequested(false) // 重置停止請求狀態
-        setStopConfirmText('') // 重置確認文字
-        let currentRequestId: string | null = null // 存儲當前請求ID
-
-        // 防抖更新狀態的變數
-        let pendingContentUpdate = ''
-        let pendingThinkingUpdate = ''
-        let lastUpdateTime = Date.now()
-        const UPDATE_INTERVAL = 50 // 每50ms最多更新一次UI
 
         try {
-            const currentConversation = conversations.find(c => c.id === conversationId)
-            const response = await fetch('/api/chat/stream', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                    message: userMessage.hiddenContent || userMessage.content,
-                    settings: settings,
-                    history: (currentConversation?.messages || []).map(msg => ({
-                        role: msg.role,
-                        content: msg.hiddenContent || msg.content
-                    })),
-                    language: i18n.language,
-                    conversationId: conversationId
-                }),
+            const baseConversation = conversations.find(c => c.id === conversationId)
+            const historyMessages = [...(baseConversation?.messages || []), userMessage]
+
+            const result = await streamChat({
+                message: userMessage.hiddenContent || userMessage.content,
+                settings,
+                history: historyMessages.map(msg => ({
+                    role: msg.role,
+                    content: msg.hiddenContent || msg.content
+                })),
+                language: i18n.language
             })
 
-            // 獲取 request ID 用於停止
-            currentRequestId = response.headers.get('X-Request-ID')
-            currentRequestIdRef.current = currentRequestId
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`)
+            const assistantMessage: Message = {
+                id: (Date.now() + 1).toString(),
+                role: 'assistant',
+                content: result.wasInterrupted ? result.content + '\n\n**' + t('messages.interrupted') + '**' : result.content,
+                thinking: result.thinking || undefined,
+                timestamp: new Date(),
+                interrupted: result.wasInterrupted
             }
 
-            const reader = response.body?.getReader()
-            const decoder = new TextDecoder()
-            let accumulatedContent = ''
+            appendMessage(conversationId, assistantMessage)
 
-            if (reader) {
-                try {
-                    while (shouldContinueStreamingRef.current) {
-                        const { done, value } = await reader.read()
-                        if (done) {
-                            console.log('Stream reader done')
-                            break
-                        }
-
-                        const chunk = decoder.decode(value, { stream: true })
-                        console.log('Received chunk:', chunk)
-
-                        // 解析 Ollama 的 JSON Lines 格式
-                        const lines = chunk.split('\n').filter(line => line.trim())
-
-                        for (const line of lines) {
-                            // 檢查是否在中斷過程中
-                            if (!shouldContinueStreamingRef.current) {
-                                break
-                            }
-
-                            try {
-                                const data = JSON.parse(line)
-                                console.log('Parsed stream data:', data)
-
-                                // 處理 content 字段（可能包含標籤式思考）
-                                if (data.message?.content) {
-                                    const { thinking, content } = processStreamChunk(data.message.content)
-                                    pendingContentUpdate = content
-                                    finalStateRef.current.content = content
-                                    // 只在有實際思考內容時才設置，避免覆蓋原生 thinking
-                                    if (thinking) {
-                                        pendingThinkingUpdate = thinking
-                                        finalStateRef.current.thinking = thinking
-                                    }
-                                }
-
-                                // 處理 thinking 字段（原生 thinking 模型）
-                                if (data.message?.thinking) {
-                                    pendingThinkingUpdate = (pendingThinkingUpdate || finalStateRef.current.thinking) + data.message.thinking
-                                    finalStateRef.current.thinking = pendingThinkingUpdate
-                                }
-
-                                if (data.done) {
-                                    console.log('Stream completed')
-                                    break
-                                }
-                            } catch (e) {
-                                console.error('Parse error:', e instanceof Error ? e.message : String(e), 'Line:', line)
-
-                                // 嘗試處理不完整的JSON - 如果是以"message":{"開頭但沒有結尾，可能是被截斷
-                                if (line.includes('"message":{') && !line.includes('}')) {
-                                    console.warn('Detected potentially truncated JSON line on frontend, attempting to complete it')
-
-                                    // 嘗試添加缺失的結尾
-                                    const completedLine = line + '}}'
-                                    try {
-                                        const data = JSON.parse(completedLine)
-                                        console.log('Successfully recovered truncated JSON on frontend:', data)
-
-                                        // 處理恢復的數據
-                                        if (data.message?.content) {
-                                            const { thinking, content } = processStreamChunk(data.message.content)
-                                            pendingContentUpdate = content
-                                            finalStateRef.current.content = content
-                                            if (thinking) {
-                                                pendingThinkingUpdate = thinking
-                                                finalStateRef.current.thinking = thinking
-                                            }
-                                        }
-
-                                        if (data.message?.thinking) {
-                                            pendingThinkingUpdate = (pendingThinkingUpdate || finalStateRef.current.thinking) + data.message.thinking
-                                            finalStateRef.current.thinking = pendingThinkingUpdate
-                                        }
-
-                                        if (data.done) {
-                                            console.log('Stream completed after frontend recovery')
-                                            break
-                                        }
-                                    } catch (recoveryError) {
-                                        console.error('Failed to recover truncated JSON on frontend:', recoveryError instanceof Error ? recoveryError.message : String(recoveryError))
-                                    }
-                                } else {
-                                    console.warn('Skipping malformed JSON line on frontend, but this may cause data loss')
-                                }
-                            }
-                        }
-
-                        // 防抖更新UI狀態
-                        const now = Date.now()
-                        if (now - lastUpdateTime >= UPDATE_INTERVAL) {
-                            if (pendingContentUpdate !== '') {
-                                setStreamingMessage(pendingContentUpdate)
-                            }
-                            if (pendingThinkingUpdate !== '') {
-                                setStreamingThinking(pendingThinkingUpdate)
-                            }
-                            lastUpdateTime = now
-                            pendingContentUpdate = ''
-                            pendingThinkingUpdate = ''
-                        }
-
-                        // 如果在中斷過程中，跳出外層循環
-                        if (!shouldContinueStreamingRef.current) {
-                            break
-                        }
-                    }
-
-                    // 應用最後的待處理更新
-                    if (pendingContentUpdate !== '') {
-                        setStreamingMessage(pendingContentUpdate)
-                    }
-                    if (pendingThinkingUpdate !== '') {
-                        setStreamingThinking(pendingThinkingUpdate)
-                    }
-
-                    // 使用 finalStateRef 獲取最終狀態，避免狀態更新時機問題
-                    const finalContent = finalStateRef.current.content
-                    const finalThinking = finalStateRef.current.thinking
-
-                    console.log('Stream completed, final response:', finalContent, 'thinking:', finalThinking)
-
-                    // 檢查是否被用戶中斷
-                    const wasInterrupted = !shouldContinueStreamingRef.current
-
-                    // 流式回應完成
-                    const assistantMessage: Message = {
-                        id: (Date.now() + 1).toString(),
-                        role: 'assistant',
-                        content: wasInterrupted ? finalContent + '\n\n**' + t('messages.interrupted') + '**' : finalContent,
-                        thinking: finalThinking || undefined,
-                        timestamp: new Date(),
-                        interrupted: wasInterrupted
-                    }
-
-                    setConversations(prev => prev.map(c =>
-                        c.id === conversationId
-                            ? { ...c, messages: [...c.messages, assistantMessage], updatedAt: new Date() }
-                            : c
-                    ))
-
-                    // 更新對話標題（如果這是第一條消息）
-                    if (currentConversation && currentConversation.messages.length === 0) {
-                        const title = userMessage.content.length > 20
-                            ? userMessage.content.substring(0, 20) + '...'
-                            : userMessage.content
-                        updateConversationTitle(conversationId, title)
-                    }
-                } finally {
-                    reader.releaseLock()
-
-                    // 如果被中斷，確保最終狀態已更新
-                    if (!shouldContinueStreamingRef.current) {
-                        // 處理剩餘的buffer內容
-                        if (streamParserState.pendingBuffer.length > 0) {
-                            const { thinking, content } = processStreamChunk('')
-                            finalStateRef.current.content += content
-                            if (thinking) {
-                                finalStateRef.current.thinking += thinking
-                            }
-                        }
-                    }
-                }
+            if (baseConversation && baseConversation.messages.length === 0) {
+                const title = userMessage.content.length > 20
+                    ? userMessage.content.substring(0, 20) + '...'
+                    : userMessage.content
+                updateConversationTitle(conversationId, title)
             }
         } catch (error) {
             console.error('Error sending streaming message:', error)
@@ -1459,19 +608,9 @@ const App: React.FC = () => {
                 content: t('messages.error'),
                 timestamp: new Date()
             }
-            setConversations(prev => prev.map(c =>
-                c.id === conversationId
-                    ? { ...c, messages: [...c.messages, errorMessage], updatedAt: new Date() }
-                    : c
-            ))
+            appendMessage(conversationId, errorMessage)
         } finally {
             setIsLoading(false)
-            setIsStreaming(false)
-            setStreamingMessage('')
-            setStreamingThinking('')
-            setStopRequested(false) // 清除停止請求狀態
-            setStopConfirmText('') // 清除確認文字
-            currentRequestIdRef.current = null // 清除請求ID
             // 發送完成後自動聚焦到輸入框
             setTimeout(() => {
                 textareaRef.current?.focus()
@@ -1488,91 +627,17 @@ const App: React.FC = () => {
 
 
     // 鍵盤快捷鍵
-    useEffect(() => {
-        const handleKeyDown = (event: KeyboardEvent) => {
-            // Ctrl/Cmd + I: 新對話
-            if ((event.ctrlKey || event.metaKey) && event.key === 'i') {
-                event.preventDefault()
-                createNewConversation()
-            }
-            // Ctrl/Cmd + K: 清除對話
-            if ((event.ctrlKey || event.metaKey) && event.key === 'k') {
-                event.preventDefault()
-                clearChat()
-            }
-            // Ctrl/Cmd + ,: 開啟設定
-            if ((event.ctrlKey || event.metaKey) && event.key === ',') {
-                event.preventDefault()
-                setShowSettings(!showSettings)
-            }
-            // Ctrl/Cmd + B: 切換對話列表
-            if ((event.ctrlKey || event.metaKey) && event.key === 'b') {
-                event.preventDefault()
-                setShowConversations(!showConversations)
-            }
-            // Escape: 關閉面板
-            if (event.key === 'Escape') {
-                if (showSettings) setShowSettings(false)
-                if (showConversations) setShowConversations(false)
-            }
-        }
-
-        document.addEventListener('keydown', handleKeyDown)
-        return () => document.removeEventListener('keydown', handleKeyDown)
-    }, [showSettings, showConversations])
+    useKeyboardShortcuts({
+        showSettings,
+        showConversations,
+        setShowSettings,
+        setShowConversations,
+        onNewConversation: createNewConversation,
+        onClearChat: clearChat
+    })
 
     // 點擊外部關閉面板
-    useEffect(() => {
-        const handleClickOutside = (event: Event) => {
-            // 關閉導出菜單
-            const menu = document.getElementById('export-menu')
-            const exportButton = document.querySelector('[data-button="export"]')
-            if (menu && exportButton && !menu.contains(event.target as Node) && !exportButton.contains(event.target as Node)) {
-                menu.classList.add('hidden')
-            }
-
-            // 關閉對話列表面板 - 點擊任何地方都關閉，除了對話列表面板和按鈕本身
-            const conversationsPanel = document.querySelector('[data-panel="conversations"]')
-            const conversationsButton = document.querySelector('[data-button="conversations"]')
-            if (showConversations && conversationsPanel &&
-                !conversationsPanel.contains(event.target as Node) &&
-                (!conversationsButton || !conversationsButton.contains(event.target as Node))) {
-                setShowConversations(false)
-            }
-
-            // 關閉設定面板 - 排除模型按鈕
-            const settingsPanel = document.querySelector('[data-panel="settings"]')
-            const settingsButton = document.querySelector('[data-button="settings"]')
-            const modelButton = document.querySelector('[data-button="model"]')
-            if (showSettings && settingsPanel &&
-                !settingsPanel.contains(event.target as Node) &&
-                (!settingsButton || !settingsButton.contains(event.target as Node)) &&
-                (!modelButton || !modelButton.contains(event.target as Node))) {
-                setShowSettings(false)
-            }
-
-            // 關閉模型選單
-            const modelMenu = document.getElementById('model-menu')
-            if (modelMenu && modelButton && !modelMenu.contains(event.target as Node) && !modelButton.contains(event.target as Node)) {
-                modelMenu.classList.add('hidden')
-            }
-
-            // 關閉手機選單 - 通過發送自定義事件給Header組件
-            const mobileMenu = document.querySelector('[data-mobile-menu]')
-            const mobileMenuButton = document.querySelector('[data-mobile-menu-button]')
-            if (mobileMenu && mobileMenuButton && !mobileMenu.contains(event.target as Node) && !mobileMenuButton.contains(event.target as Node)) {
-                // 發送事件通知Header組件關閉手機選單
-                window.dispatchEvent(new CustomEvent('closeMobileMenu'))
-            }
-        }
-
-        document.addEventListener('mousedown', handleClickOutside)
-        document.addEventListener('touchstart', handleClickOutside)
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside)
-            document.removeEventListener('touchstart', handleClickOutside)
-        }
-    }, [showConversations, showSettings])
+    useOutsideClickClosePanels({ showConversations, showSettings, setShowConversations, setShowSettings })
 
     // 當 API URL 變化時重新載入模型列表 (防抖)
     useEffect(() => {
@@ -1594,44 +659,13 @@ const App: React.FC = () => {
     }, [])
 
     const sendMessage = async () => {
-        console.log('Starting streaming message...')
-        setIsStreaming(true) // 立即設置串流狀態
         await sendStreamingMessage()
     }
 
     // 處理發送按鈕點擊
     const handleSendClick = () => {
         if (isStreaming) {
-            // 在串流過程中，按鈕用於停止
-            if (!stopRequested) {
-                // 第一次點擊，顯示確認提示
-                setStopRequested(true)
-                setStopConfirmText('再按一次停止生成')
-                // 設置定時器，5秒後重置狀態
-                setTimeout(() => {
-                    setStopRequested(false)
-                    setStopConfirmText('')
-                }, 5000)
-            } else {
-                // 第二次點擊，真正停止
-                shouldContinueStreamingRef.current = false
-                setStopRequested(false)
-                setStopConfirmText('')
-                // 調用後端停止端點
-                if (currentRequestIdRef.current) {
-                    fetch('/api/chat/stop', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            requestId: currentRequestIdRef.current
-                        }),
-                    }).catch(error => {
-                        console.error('停止請求失敗:', error)
-                    })
-                }
-            }
+            requestStop()
         } else {
             // 非串流狀態，正常發送
             sendMessage()
@@ -1646,16 +680,12 @@ const App: React.FC = () => {
         }
     }
 
-    const clearChat = () => {
+    function clearChat() {
         if (currentConversationId) {
             const confirmed = window.confirm(t('conversation.clear.confirm'))
             if (!confirmed) return
 
-            setConversations(prev => prev.map(c =>
-                c.id === currentConversationId
-                    ? { ...c, messages: [], updatedAt: new Date() }
-                    : c
-            ))
+            clearConversationMessages(currentConversationId)
         }
     }
 
@@ -2273,42 +1303,10 @@ const App: React.FC = () => {
                                                 onClick={(e) => {
                                                     e.stopPropagation()
 
-                                                    // 檢查這個消息是否正在播放
-                                                    const isCurrentMessagePlaying = isSpeaking && currentPlayingItemRef.current?.messageId === message.id
-
-                                                    if (isCurrentMessagePlaying) {
-                                                        // 正在播放這個消息，點擊停止播放
-                                                        if ('speechSynthesis' in window) {
-                                                            window.speechSynthesis.cancel()
-                                                        }
-
-                                                        // 立即更新狀態
-                                                        setIsSpeaking(false)
-                                                        setCurrentPlayingId(null)
-                                                        setGlobalSpeakingMessageId(null)
-                                                        setSpeechQueue(prev => prev.slice(1))
-                                                        setIsProcessingQueue(false)
-
-                                                        // 廣播語音結束狀態
-                                                        if (speechChannelRef.current) {
-                                                            speechChannelRef.current.postMessage({
-                                                                type: 'speech-end',
-                                                                messageId: null,
-                                                                sessionId: user?.id
-                                                            })
-                                                        }
-                                                    } else if (speechQueue.some(item => item.messageId === message.id)) {
-                                                        // 在隊列中但不是正在播放，點擊移除
-                                                        removeFromSpeechQueue(message.id)
-                                                    } else if (globalSpeakingMessageId !== message.id) {
-                                                        // 沒有在隊列中且沒有被其他session佔用，添加播放
-                                                        speakText(message.content, message.id)
-                                                    }
+                                                    toggleSpeechForMessage({ messageId: message.id, text: message.content })
                                                 }}
                                                 className={`p-1 rounded-full transition-colors shadow-sm ${(() => {
-                                                    const isPlayingThis = isSpeaking && currentPlayingItemRef.current?.messageId === message.id
-                                                    const isGlobalPlaying = globalSpeakingMessageId === message.id
-                                                    const isInQueue = speechQueue.some(item => item.messageId === message.id)
+                                                    const { isPlayingThis, isGlobalPlaying, isInQueue } = getSpeechButtonState(message.id)
 
                                                     if (isPlayingThis) {
                                                         return 'bg-green-500 text-white hover:bg-green-600' // 本session播放中 - 綠色 (最高優先級)
@@ -2332,7 +1330,7 @@ const App: React.FC = () => {
                                                                 ? t('messages.voice.removeFromQueue')
                                                                 : t('messages.voice.play')
                                                 }
-                                                disabled={globalSpeakingMessageId === message.id && !(isSpeaking && currentPlayingItemRef.current?.messageId === message.id)} // 只有其他session播放時才禁用，本session播放時不禁用
+                                                disabled={isSpeechButtonDisabled(message.id)} // 只有其他session播放時才禁用，本session播放時不禁用
                                                 style={{ zIndex: 10, pointerEvents: 'auto' }}
                                             >
                                                 <Volume2 className="h-3 w-3" />
@@ -2370,65 +1368,62 @@ const App: React.FC = () => {
                         </div>
                     </div>
                 )}
-                {isStreaming && (() => {
-                    console.log('Rendering streaming UI, message:', streamingMessage, 'thinking:', streamingThinking)
-                    return (
-                        <div className="flex items-start space-x-3">
-                            <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${isDarkMode
-                                ? 'bg-gray-700 text-gray-300'
-                                : 'bg-gray-200 text-gray-600'
+                {isStreaming && (
+                    <div className="flex items-start space-x-3">
+                        <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${isDarkMode
+                            ? 'bg-gray-700 text-gray-300'
+                            : 'bg-gray-200 text-gray-600'
+                            }`}>
+                            <Bot className="h-4 w-4" />
+                        </div>
+                        <div className={`flex-1 max-w-[90%] transition-colors`}>
+                            <div className={`inline-block px-4 py-2 rounded-lg transition-colors ${isDarkMode
+                                ? 'bg-gray-800 text-gray-100 border border-gray-700'
+                                : 'bg-white text-gray-900 border border-gray-200'
                                 }`}>
-                                <Bot className="h-4 w-4" />
-                            </div>
-                            <div className={`flex-1 max-w-[90%] transition-colors`}>
-                                <div className={`inline-block px-4 py-2 rounded-lg transition-colors ${isDarkMode
-                                    ? 'bg-gray-800 text-gray-100 border border-gray-700'
-                                    : 'bg-white text-gray-900 border border-gray-200'
-                                    }`}>
-                                    <MarkdownMessage
-                                        content={streamingMessage || t('messages.generating')}
-                                        isDarkMode={isDarkMode}
-                                        isUser={false}
-                                    />
-                                    <div className="flex space-x-1 mt-2">
-                                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
-                                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                                    </div>
-                                    {streamingThinking && (
-                                        <div className="mt-3 border-t border-gray-200 dark:border-gray-600 pt-3">
-                                            <button
-                                                onClick={() => setShowStreamingThinking(!showStreamingThinking)}
-                                                className={`flex items-center space-x-2 text-sm font-medium transition-colors ${isDarkMode
-                                                    ? 'text-gray-400 hover:text-gray-200'
-                                                    : 'text-gray-600 hover:text-gray-800'
-                                                    }`}
-                                            >
-                                                <span>{t('messages.thinking')}</span>
-                                                <svg
-                                                    className={`w-4 h-4 transition-transform ${showStreamingThinking ? 'rotate-90' : ''}`}
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    viewBox="0 0 24 24"
-                                                >
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                                </svg>
-                                            </button>
-                                            {showStreamingThinking && (
-                                                <div className={`mt-2 p-3 rounded-md text-sm transition-colors ${isDarkMode
-                                                    ? 'bg-gray-700 text-gray-300 border border-gray-600'
-                                                    : 'bg-gray-50 text-gray-700 border border-gray-200'
-                                                    }`}>
-                                                    <pre className="whitespace-pre-wrap break-words font-mono text-xs">{streamingThinking}</pre>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
+                                <MarkdownMessage
+                                    content={streamingMessage || t('messages.generating')}
+                                    isDarkMode={isDarkMode}
+                                    isUser={false}
+                                />
+                                <div className="flex space-x-1 mt-2">
+                                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
+                                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                                 </div>
+                                {streamingThinking && (
+                                    <div className="mt-3 border-t border-gray-200 dark:border-gray-600 pt-3">
+                                        <button
+                                            onClick={() => setShowStreamingThinking(!showStreamingThinking)}
+                                            className={`flex items-center space-x-2 text-sm font-medium transition-colors ${isDarkMode
+                                                ? 'text-gray-400 hover:text-gray-200'
+                                                : 'text-gray-600 hover:text-gray-800'
+                                                }`}
+                                        >
+                                            <span>{t('messages.thinking')}</span>
+                                            <svg
+                                                className={`w-4 h-4 transition-transform ${showStreamingThinking ? 'rotate-90' : ''}`}
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                            </svg>
+                                        </button>
+                                        {showStreamingThinking && (
+                                            <div className={`mt-2 p-3 rounded-md text-sm transition-colors ${isDarkMode
+                                                ? 'bg-gray-700 text-gray-300 border border-gray-600'
+                                                : 'bg-gray-50 text-gray-700 border border-gray-200'
+                                                }`}>
+                                                <pre className="whitespace-pre-wrap break-words font-mono text-xs">{streamingThinking}</pre>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </div>
-                    )
-                })()}
+                    </div>
+                )}
                 <div ref={messagesEndRef} />
             </div>
 

@@ -19,10 +19,10 @@ coverage/
 .env.production.local
 
 # User data and sessions (contains sensitive user information)
-data/
-data/users.json
-data/sessions.json
-temp.json
+server/data/
+server/data/users.json
+server/data/sessions.json
+server/temp.json
 
 # Editor directories and files
 .vscode/*

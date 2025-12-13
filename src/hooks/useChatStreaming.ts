@@ -1,0 +1,326 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
+
+export interface StreamChatInput {
+    message: string
+    settings: any
+    history: Array<{ role: string; content: string }>
+    language: string
+}
+
+export interface StreamChatResult {
+    content: string
+    thinking: string
+    wasInterrupted: boolean
+}
+
+type ParserState = {
+    inThinkTag: boolean
+    accumulatedThinking: string
+    accumulatedContent: string
+    pendingBuffer: string
+}
+
+function createInitialParserState(): ParserState {
+    return {
+        inThinkTag: false,
+        accumulatedThinking: '',
+        accumulatedContent: '',
+        pendingBuffer: ''
+    }
+}
+
+export function useChatStreaming(args: { token: string | null }) {
+    const { token } = args
+
+    const [isStreaming, setIsStreaming] = useState(false)
+    const [streamingMessage, setStreamingMessage] = useState('')
+    const [streamingThinking, setStreamingThinking] = useState('')
+    const [stopRequested, setStopRequested] = useState(false)
+    const [stopConfirmText, setStopConfirmText] = useState('')
+
+    const shouldContinueRef = useRef(true)
+    const currentRequestIdRef = useRef<string | null>(null)
+    const readerRef = useRef<ReadableStreamDefaultReader<Uint8Array> | null>(null)
+    const stopResetTimerRef = useRef<number | null>(null)
+
+    const parserStateRef = useRef<ParserState>(createInitialParserState())
+    const finalStateRef = useRef({ content: '', thinking: '' })
+
+    const resetParser = useCallback(() => {
+        parserStateRef.current = createInitialParserState()
+    }, [])
+
+    const processStreamChunk = useCallback((chunk: string) => {
+        const state = parserStateRef.current
+        state.pendingBuffer += chunk
+
+        let continueProcessing = true
+        while (continueProcessing && state.pendingBuffer.length > 0) {
+            continueProcessing = false
+
+            if (!state.inThinkTag) {
+                const thinkStart = state.pendingBuffer.indexOf('<think>')
+
+                if (thinkStart !== -1) {
+                    const contentBeforeTag = state.pendingBuffer.substring(0, thinkStart)
+                    state.accumulatedContent += contentBeforeTag
+                    state.inThinkTag = true
+                    state.pendingBuffer = state.pendingBuffer.substring(thinkStart + 7)
+                    continueProcessing = true
+                }
+            } else {
+                const thinkEnd = state.pendingBuffer.indexOf('</think>')
+
+                if (thinkEnd !== -1) {
+                    const thinkingContent = state.pendingBuffer.substring(0, thinkEnd)
+                    state.accumulatedThinking += thinkingContent
+                    state.inThinkTag = false
+                    state.pendingBuffer = state.pendingBuffer.substring(thinkEnd + 8)
+                    continueProcessing = true
+                }
+            }
+        }
+
+        if (state.pendingBuffer.length > 0) {
+            if (state.inThinkTag) {
+                state.accumulatedThinking += state.pendingBuffer
+            } else {
+                state.accumulatedContent += state.pendingBuffer
+            }
+            state.pendingBuffer = ''
+        }
+
+        return {
+            thinking: state.accumulatedThinking,
+            content: state.accumulatedContent
+        }
+    }, [])
+
+    const clearStopTimer = useCallback(() => {
+        if (stopResetTimerRef.current) {
+            window.clearTimeout(stopResetTimerRef.current)
+            stopResetTimerRef.current = null
+        }
+    }, [])
+
+    const requestStop = useCallback(() => {
+        if (!isStreaming) return
+
+        if (!stopRequested) {
+            setStopRequested(true)
+            setStopConfirmText('再按一次停止生成')
+
+            clearStopTimer()
+            stopResetTimerRef.current = window.setTimeout(() => {
+                setStopRequested(false)
+                setStopConfirmText('')
+            }, 5000)
+            return
+        }
+
+        // second click
+        shouldContinueRef.current = false
+        setStopRequested(false)
+        setStopConfirmText('')
+        clearStopTimer()
+
+        try {
+            readerRef.current?.cancel().catch(() => {})
+        } catch {
+            // ignore
+        }
+
+        const requestId = currentRequestIdRef.current
+        if (requestId) {
+            fetch('/api/chat/stop', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ requestId })
+            }).catch(() => {})
+        }
+    }, [clearStopTimer, isStreaming, stopRequested])
+
+    const streamChat = useCallback(async (input: StreamChatInput): Promise<StreamChatResult> => {
+        if (!token) {
+            throw new Error('Missing auth token')
+        }
+
+        setIsStreaming(true)
+        setStreamingMessage('')
+        setStreamingThinking('')
+        setStopRequested(false)
+        setStopConfirmText('')
+        clearStopTimer()
+
+        resetParser()
+        finalStateRef.current = { content: '', thinking: '' }
+        shouldContinueRef.current = true
+        currentRequestIdRef.current = null
+
+        let pendingContentUpdate = ''
+        let pendingThinkingUpdate = ''
+        let lastUpdateTime = Date.now()
+        const UPDATE_INTERVAL = 50
+
+        try {
+            const response = await fetch('/api/chat/stream', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    message: input.message,
+                    settings: input.settings,
+                    history: input.history,
+                    language: input.language
+                })
+            })
+
+            currentRequestIdRef.current = response.headers.get('X-Request-ID')
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`)
+            }
+
+            const reader = response.body?.getReader()
+            readerRef.current = reader || null
+            const decoder = new TextDecoder()
+
+            if (reader) {
+                while (shouldContinueRef.current) {
+                    const { done, value } = await reader.read()
+                    if (done) {
+                        break
+                    }
+
+                    const chunk = decoder.decode(value, { stream: true })
+                    const lines = chunk.split('\n').filter(line => line.trim())
+
+                    for (const line of lines) {
+                        if (!shouldContinueRef.current) break
+
+                        try {
+                            const data = JSON.parse(line)
+
+                            if (data.message?.content) {
+                                const { thinking, content } = processStreamChunk(data.message.content)
+                                pendingContentUpdate = content
+                                finalStateRef.current.content = content
+
+                                if (thinking) {
+                                    pendingThinkingUpdate = thinking
+                                    finalStateRef.current.thinking = thinking
+                                }
+                            }
+
+                            if (data.message?.thinking) {
+                                pendingThinkingUpdate = (pendingThinkingUpdate || finalStateRef.current.thinking) + data.message.thinking
+                                finalStateRef.current.thinking = pendingThinkingUpdate
+                            }
+
+                            if (data.done) {
+                                break
+                            }
+                        } catch {
+                            if (line.includes('"message":{') && !line.includes('}')) {
+                                const completedLine = line + '}}'
+                                try {
+                                    const data = JSON.parse(completedLine)
+
+                                    if (data.message?.content) {
+                                        const { thinking, content } = processStreamChunk(data.message.content)
+                                        pendingContentUpdate = content
+                                        finalStateRef.current.content = content
+                                        if (thinking) {
+                                            pendingThinkingUpdate = thinking
+                                            finalStateRef.current.thinking = thinking
+                                        }
+                                    }
+
+                                    if (data.message?.thinking) {
+                                        pendingThinkingUpdate = (pendingThinkingUpdate || finalStateRef.current.thinking) + data.message.thinking
+                                        finalStateRef.current.thinking = pendingThinkingUpdate
+                                    }
+
+                                    if (data.done) {
+                                        break
+                                    }
+                                } catch {
+                                    // ignore
+                                }
+                            }
+                        }
+                    }
+
+                    const now = Date.now()
+                    if (now - lastUpdateTime >= UPDATE_INTERVAL) {
+                        if (pendingContentUpdate !== '') {
+                            setStreamingMessage(pendingContentUpdate)
+                        }
+                        if (pendingThinkingUpdate !== '') {
+                            setStreamingThinking(pendingThinkingUpdate)
+                        }
+                        lastUpdateTime = now
+                        pendingContentUpdate = ''
+                        pendingThinkingUpdate = ''
+                    }
+
+                    if (!shouldContinueRef.current) {
+                        break
+                    }
+                }
+
+                if (pendingContentUpdate !== '') {
+                    setStreamingMessage(pendingContentUpdate)
+                }
+                if (pendingThinkingUpdate !== '') {
+                    setStreamingThinking(pendingThinkingUpdate)
+                }
+            }
+
+            const finalContent = finalStateRef.current.content
+            const finalThinking = finalStateRef.current.thinking
+
+            return {
+                content: finalContent,
+                thinking: finalThinking,
+                wasInterrupted: !shouldContinueRef.current
+            }
+        } finally {
+            try {
+                readerRef.current?.releaseLock()
+            } catch {
+                // ignore
+            }
+            readerRef.current = null
+            currentRequestIdRef.current = null
+            setIsStreaming(false)
+            setStopRequested(false)
+            setStopConfirmText('')
+        }
+    }, [clearStopTimer, processStreamChunk, resetParser, token])
+
+    useEffect(() => {
+        return () => {
+            clearStopTimer()
+            try {
+                readerRef.current?.cancel().catch(() => {})
+            } catch {
+                // ignore
+            }
+        }
+    }, [clearStopTimer])
+
+    return {
+        isStreaming,
+        streamingMessage,
+        streamingThinking,
+        stopRequested,
+        stopConfirmText,
+        requestStop,
+        streamChat
+    }
+}
