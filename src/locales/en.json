@@ -171,7 +171,7 @@
         "verificationLinkGenerated": "Verification link generated, please copy the following link to your browser:",
         "verificationSent": "We have sent a verification link to:",
         "verificationLink": "Verification link:",
-        "verificationInstructions": "Please click the link or copy it to your browser to complete email verification, then you can log in.",
+        "verificationInstructions": "Please check your email to receive the activation letter.",
         "copyLink": "Copy",
         "linkCopied": "Verification link copied to clipboard",
         "backToLogin": "Back to Login",

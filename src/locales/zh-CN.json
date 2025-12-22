@@ -172,7 +172,7 @@
         "verificationLinkGenerated": "验证链接已生成，请复制以下链接到浏览器打开：",
         "verificationSent": "我们已发送验证链接到您的邮箱：",
         "verificationLink": "验证链接：",
-        "verificationInstructions": "请点击链接或复制链接到浏览器打开，完成邮箱验证后即可登录使用。",
+        "verificationInstructions": "请检查您的邮箱收取启用信。",
         "copyLink": "复制",
         "linkCopied": "验证链接已复制到剪贴板",
         "backToLogin": "返回登录",

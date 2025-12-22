@@ -294,10 +294,12 @@ const App: React.FC = () => {
                     }
                 }
 
-                // 更新聊天設定
+                // 更新聊天設定，只覆蓋非空值
                 setSettings(prev => ({
                     ...prev,
-                    ...serverSettings
+                    ...Object.fromEntries(
+                        Object.entries(serverSettings).filter(([_, value]) => value !== '' && value !== null && value !== undefined)
+                    )
                 }))
 
                 // 如果用戶有自定義的 API URL，重新載入模型列表

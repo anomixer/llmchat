@@ -171,7 +171,7 @@
         "verificationLinkGenerated": "確認リンクが生成されました。以下のリンクをブラウザで開いてください：",
         "verificationSent": "確認リンクを送信しました：",
         "verificationLink": "確認リンク：",
-        "verificationInstructions": "リンクをクリックするか、ブラウザで開いてメールアドレスを確認してください。その後ログインできます。",
+        "verificationInstructions": "メールを確認してアクティベーションの手紙を受信してください。",
         "copyLink": "コピー",
         "linkCopied": "確認リンクがクリップボードにコピーされました",
         "backToLogin": "ログインに戻る",

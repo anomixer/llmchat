@@ -1,4 +1,4 @@
 export const APP_CONFIG = {
     title: 'LLMChat',
-    version: 'v251213'
+    version: 'v251222'
 } as const

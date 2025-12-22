@@ -174,7 +174,7 @@
         "verificationLinkGenerated": "驗證鏈接已生成，請複製以下鏈接到瀏覽器開啟：",
         "verificationSent": "我們已發送驗證鏈接到您的信箱：",
         "verificationLink": "驗證鏈接：",
-        "verificationInstructions": "請點擊鏈接或複製鏈接到瀏覽器開啟，完成 Email 驗證後即可登入使用。",
+        "verificationInstructions": "請檢查您的郵箱收取啟用信。",
         "copyLink": "複製",
         "linkCopied": "驗證鏈接已複製到剪貼簿",
         "backToLogin": "返回登入",

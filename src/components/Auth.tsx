@@ -231,7 +231,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onRegister, onResendVerific
                                 ? 'text-red-700 dark:text-red-300'
                                 : 'text-green-700 dark:text-green-300'
                                 } mb-4`}>
-                                {isDuplicateRegistration ? t('auth.duplicateRegistrationMessage') : t('auth.registrationSuccess')}
+                                {isDuplicateRegistration ? t('auth.duplicateRegistrationMessage') : t('auth.verificationInstructions')}
                             </p>
                             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-4">
                                 <div className={`h-2 rounded-full animate-pulse ${isDuplicateRegistration
