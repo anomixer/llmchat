@@ -102,7 +102,10 @@
             "temperature": "Temperature: {{value}} (Controls output randomness 0-2: Low=deterministic, logical, consistent; High=diverse, creative, surprising)",
             "topP": "Top P: {{value}} (Controls core sampling probability 0-1: High=high probability; Low=low probability)",
             "topK": "Top K: {{value}} (Limits candidate token count 1-100: High=more sampling; Low=less sampling)",
-            "maxTokens": "Max Context: {{value}} (Sets maximum context length for responses 4096-262144)"
+            "maxTokens": "Max Context: {{value}} (Sets maximum context length for responses 4096-262144)",
+            "showTokenStats": "Show Token Stats",
+            "on": "On",
+            "off": "Off"
         },
         "adminOnly": "Admin",
         "adminOnlyMessage": "Only administrators can configure the following API settings"

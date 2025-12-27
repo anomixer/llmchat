@@ -104,7 +104,10 @@
             "temperature": "溫度: {{value}} (控制輸出的隨機性參數 0-2：低溫=確定、邏輯、一致；高溫=多樣、創造、驚喜)",
             "topP": "Top P: {{value}} (控制核心採樣的機率參數 0-1：高=高機率；低=低機率)",
             "topK": "Top K: {{value}} (限制候選Token的數量參數 1-100：高=取樣多；低=取樣少)",
-            "maxTokens": "最大 Context 數: {{value}} (設定生成回應的最大上下文長度 4096-262144)"
+            "maxTokens": "最大 Context 數: {{value}} (設定生成回應的最大上下文長度 4096-262144)",
+            "showTokenStats": "顯示 Token 統計",
+            "on": "開啟",
+            "off": "關閉"
         },
         "adminOnly": "管理員",
         "adminOnlyMessage": "只有管理員才能設定以下API配置"

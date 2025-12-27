@@ -25,12 +25,13 @@ interface ChatSettings {
     apiKey: string
     topP: number
     topK: number
+    showTokenStats: boolean
 }
 
 const App: React.FC = () => {
     const { t, i18n } = useTranslation()
     const { user, token, login, register, resendVerification, logout, isLoading: authLoading, error: authError } = useAuth()
-    const { isStreaming, streamingMessage, streamingThinking, stopRequested, stopConfirmText, requestStop, streamChat } = useChatStreaming({ token })
+    const { isStreaming, streamingMessage, streamingThinking, stopRequested, stopConfirmText, tokenCount, tokensPerSecond, requestStop, streamChat } = useChatStreaming({ token })
     const [currentView, setCurrentView] = useState<'chat' | 'admin'>('chat')
 
     const {
@@ -110,7 +111,8 @@ const App: React.FC = () => {
         apiUrl: '',
         apiKey: '',
         topP: 0.9,
-        topK: 40
+        topK: 40,
+        showTokenStats: true
     })
     const [userSettings, setUserSettings] = useState({
         language: 'zh-TW',
@@ -121,7 +123,8 @@ const App: React.FC = () => {
         apiUrl: '',
         apiKey: '',
         topP: 0.9,
-        topK: 40
+        topK: 40,
+        showTokenStats: true
     })
     const [attachedFiles, setAttachedFiles] = useState<File[]>([])
     const [isFullscreen, setIsFullscreen] = useState(false)
@@ -302,10 +305,10 @@ const App: React.FC = () => {
                     )
                 }))
 
-                // 如果用戶有自定義的 API URL，重新載入模型列表
-                if (serverSettings.apiUrl && serverSettings.apiUrl !== settings.apiUrl) {
-                    setTimeout(() => loadAvailableModels(), 100) // 稍微延遲確保設定已更新
-                }
+                // 用戶設定載入後，重新載入模型列表以確保使用正確的 apiUrl
+                setTimeout(() => {
+                    loadAvailableModels()
+                }, 200) // 稍微延遲確保設定已更新
             }
         } catch (error) {
             console.error('Error loading user settings:', error)
@@ -400,7 +403,8 @@ const App: React.FC = () => {
                 apiUrl: '',
                 apiKey: '',
                 topP: 0.9,
-                topK: 40
+                topK: 40,
+                showTokenStats: true
             })
         }
     }, [user, token, conversationsLoaded])
@@ -591,7 +595,9 @@ const App: React.FC = () => {
                 content: result.wasInterrupted ? result.content + '\n\n**' + t('messages.interrupted') + '**' : result.content,
                 thinking: result.thinking || undefined,
                 timestamp: new Date(),
-                interrupted: result.wasInterrupted
+                interrupted: result.wasInterrupted,
+                tokenCount: result.tokenCount,
+                tokensPerSecond: result.tokensPerSecond
             }
 
             appendMessage(conversationId, assistantMessage)
@@ -623,7 +629,11 @@ const App: React.FC = () => {
     // 組件掛載時載入預設配置和模型列表
     useEffect(() => {
         loadDefaultConfig().then(() => {
-            loadAvailableModels()
+            // 如果用戶還沒登入，先用預設設定載入模型列表
+            // 用戶登入後會通過 loadUserSettings() 重新載入
+            if (!token) {
+                loadAvailableModels()
+            }
         })
     }, [])
 
@@ -1156,6 +1166,39 @@ const App: React.FC = () => {
                                         />
                                     </div>
 
+                                    <div>
+                                        <label className={`block text-sm font-medium mb-2 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                                            }`}>
+                                            {t('settings.parameters.showTokenStats')}
+                                        </label>
+                                        <div className="flex items-center space-x-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setSettings(prev => ({ ...prev, showTokenStats: !prev.showTokenStats }))
+                                                    setUserSettings(prev => ({ ...prev, showTokenStats: !prev.showTokenStats }))
+                                                    saveUserSettingsToServer({ ...userSettings, showTokenStats: !userSettings.showTokenStats })
+                                                }}
+                                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                                    settings.showTokenStats
+                                                        ? 'bg-blue-600'
+                                                        : isDarkMode
+                                                            ? 'bg-gray-600'
+                                                            : 'bg-gray-300'
+                                                }`}
+                                            >
+                                                <span
+                                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                                        settings.showTokenStats ? 'translate-x-6' : 'translate-x-1'
+                                                    }`}
+                                                />
+                                            </button>
+                                            <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                                {settings.showTokenStats ? t('settings.parameters.on') : t('settings.parameters.off')}
+                                            </span>
+                                        </div>
+                                    </div>
+
                                 </div>
                             </>
                         )}
@@ -1337,6 +1380,17 @@ const App: React.FC = () => {
                                             >
                                                 <Volume2 className="h-3 w-3" />
                                             </button>
+                                        </div>
+                                    )}
+
+                                    {/* Token 統計 - AI 消息才顯示，根據設定控制 */}
+                                    {message.role === 'assistant' && (message.tokenCount !== undefined || isStreaming) && settings.showTokenStats && (
+                                        <div className={`mt-2 text-xs font-mono transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                            {(isStreaming || message.tokenCount !== undefined) && (
+                                                <span className="inline-block px-2 py-1 rounded-sm bg-gray-100 dark:bg-gray-700">
+                                                    {message.tokenCount || tokenCount} tokens | {(message.tokensPerSecond || tokensPerSecond).toFixed(2)} tokens/s
+                                                </span>
+                                            )}
                                         </div>
                                     )}
                                 </div>

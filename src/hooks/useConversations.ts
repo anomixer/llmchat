@@ -10,6 +10,8 @@ export interface Message {
 
     interrupted?: boolean
     hiddenContent?: string
+    tokenCount?: number
+    tokensPerSecond?: number
 }
 
 export interface Conversation {

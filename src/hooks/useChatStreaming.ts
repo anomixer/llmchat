@@ -11,6 +11,8 @@ export interface StreamChatResult {
     content: string
     thinking: string
     wasInterrupted: boolean
+    tokenCount: number
+    tokensPerSecond: number
 }
 
 type ParserState = {
@@ -37,6 +39,8 @@ export function useChatStreaming(args: { token: string | null }) {
     const [streamingThinking, setStreamingThinking] = useState('')
     const [stopRequested, setStopRequested] = useState(false)
     const [stopConfirmText, setStopConfirmText] = useState('')
+    const [tokenCount, setTokenCount] = useState(0)
+    const [tokensPerSecond, setTokensPerSecond] = useState(0)
 
     const shouldContinueRef = useRef(true)
     const currentRequestIdRef = useRef<string | null>(null)
@@ -152,6 +156,8 @@ export function useChatStreaming(args: { token: string | null }) {
         setStreamingThinking('')
         setStopRequested(false)
         setStopConfirmText('')
+        setTokenCount(0)
+        setTokensPerSecond(0)
         clearStopTimer()
 
         resetParser()
@@ -161,6 +167,8 @@ export function useChatStreaming(args: { token: string | null }) {
 
         let pendingContentUpdate = ''
         let pendingThinkingUpdate = ''
+        let currentTokenCount = 0
+        const generationStartTime = Date.now()
         let lastUpdateTime = Date.now()
         const UPDATE_INTERVAL = 50
 
@@ -214,6 +222,8 @@ export function useChatStreaming(args: { token: string | null }) {
                                     pendingThinkingUpdate = thinking
                                     finalStateRef.current.thinking = thinking
                                 }
+
+                                currentTokenCount++
                             }
 
                             if (data.message?.thinking) {
@@ -238,6 +248,7 @@ export function useChatStreaming(args: { token: string | null }) {
                                             pendingThinkingUpdate = thinking
                                             finalStateRef.current.thinking = thinking
                                         }
+                                        currentTokenCount++
                                     }
 
                                     if (data.message?.thinking) {
@@ -263,6 +274,10 @@ export function useChatStreaming(args: { token: string | null }) {
                         if (pendingThinkingUpdate !== '') {
                             setStreamingThinking(pendingThinkingUpdate)
                         }
+                        setTokenCount(currentTokenCount)
+                        const elapsedSeconds = (now - generationStartTime) / 1000
+                        const speed = currentTokenCount / (elapsedSeconds || 1)
+                        setTokensPerSecond(speed)
                         lastUpdateTime = now
                         pendingContentUpdate = ''
                         pendingThinkingUpdate = ''
@@ -279,6 +294,9 @@ export function useChatStreaming(args: { token: string | null }) {
                 if (pendingThinkingUpdate !== '') {
                     setStreamingThinking(pendingThinkingUpdate)
                 }
+                setTokenCount(currentTokenCount)
+                const elapsedSeconds = (Date.now() - generationStartTime) / 1000
+                setTokensPerSecond(currentTokenCount / (elapsedSeconds || 1))
             }
 
             const finalContent = finalStateRef.current.content
@@ -287,7 +305,9 @@ export function useChatStreaming(args: { token: string | null }) {
             return {
                 content: finalContent,
                 thinking: finalThinking,
-                wasInterrupted: !shouldContinueRef.current
+                wasInterrupted: !shouldContinueRef.current,
+                tokenCount: currentTokenCount,
+                tokensPerSecond: currentTokenCount / ((Date.now() - generationStartTime) / 1000 || 1)
             }
         } finally {
             try {
@@ -320,6 +340,8 @@ export function useChatStreaming(args: { token: string | null }) {
         streamingThinking,
         stopRequested,
         stopConfirmText,
+        tokenCount,
+        tokensPerSecond,
         requestStop,
         streamChat
     }
