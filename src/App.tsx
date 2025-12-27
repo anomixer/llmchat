@@ -45,7 +45,8 @@ const App: React.FC = () => {
         removeConversation,
         updateConversationTitle,
         clearConversationMessages,
-        appendMessage
+        appendMessage,
+        deleteMessage
     } = useConversations({
         token,
         getDefaultConversationTitle: (index: number) => `${t('conversation.defaultTitle')} ${index}`
@@ -430,6 +431,22 @@ const App: React.FC = () => {
         if (!confirmed) return
 
         removeConversation(conversationId)
+    }
+
+    // 刪除訊息
+    const handleDeleteMessage = (conversationId: string, messageId: string) => {
+        const conversation = conversations.find(c => c.id === conversationId)
+        if (!conversation) return
+
+        const message = conversation.messages.find(m => m.id === messageId)
+        if (!message) return
+
+        // 刪除確認
+        const confirmed = window.confirm(t('messages.delete.confirm'))
+        if (!confirmed) return
+
+        // 執行刪除
+        deleteMessage(conversationId, messageId)
     }
 
     // 處理檔案選擇
@@ -1218,10 +1235,10 @@ const App: React.FC = () => {
                         <p className="text-sm">{t('app.welcome.fileHint')}</p>
                     </div>
                 ) : (
-                    currentMessages.map((message) => (
+                     currentMessages.map((message) => (
                         <div
                             key={message.id}
-                            className={`flex items-start space-x-3 ${message.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''
+                            className={`flex items-start space-x-3 group ${message.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''
                                 }`}
                         >
                             <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${message.role === 'user'
@@ -1236,7 +1253,7 @@ const App: React.FC = () => {
                                     <Bot className="h-4 w-4" />
                                 )}
                             </div>
-                            <div className={`flex-1 max-w-[90%] ${message.role === 'user' ? 'text-right' : ''
+                             <div className={`flex-1 max-w-[90%] ${message.role === 'user' ? 'text-right' : ''
                                 }`}>
                                 <div className={`inline-block px-4 py-2 rounded-lg transition-colors chat-message-content relative ${message.role === 'user'
                                     ? 'bg-blue-600 text-white'
@@ -1342,7 +1359,7 @@ const App: React.FC = () => {
 
                                     {/* 語音按鈕 - 放在對話框右上角，不遮擋內容 */}
                                     {message.role === 'assistant' && (
-                                        <div className="absolute top-1 right-1 flex items-center space-x-1 z-10">
+                                        <div className="absolute top-1 right-1 flex flex-col items-center space-y-1 z-10">
                                             <button
                                                 key={`speech-btn-${message.id}`}
                                                 onClick={(e) => {
@@ -1380,7 +1397,40 @@ const App: React.FC = () => {
                                             >
                                                 <Volume2 className="h-3 w-3" />
                                             </button>
+                                            {/* 刪除按鈕 - 在語音按鈕下方 */}
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    handleDeleteMessage(currentConversationId, message.id)
+                                                }}
+                                                className={`p-1 rounded-full transition-colors shadow-sm opacity-0 group-hover:opacity-100 ${
+                                                    isDarkMode
+                                                        ? 'text-gray-400 hover:text-red-400 hover:bg-gray-700'
+                                                        : 'text-gray-500 hover:text-red-600 hover:bg-red-50'
+                                                }`}
+                                                title={t('messages.delete.button')}
+                                            >
+                                                <Trash2 className="h-3 w-3" />
+                                            </button>
                                         </div>
+                                    )}
+
+                                    {/* 刪除按鈕 - 用戶訊息右上角 */}
+                                    {message.role === 'user' && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                handleDeleteMessage(currentConversationId, message.id)
+                                            }}
+                                            className={`absolute top-1 right-1 p-1 rounded-full transition-colors shadow-sm opacity-0 group-hover:opacity-100 ${
+                                                isDarkMode
+                                                    ? 'text-gray-400 hover:text-red-400 hover:bg-gray-600'
+                                                    : 'text-gray-500 hover:text-red-600 hover:bg-gray-200'
+                                            }`}
+                                            title={t('messages.delete.button')}
+                                        >
+                                            <Trash2 className="h-3 w-3" />
+                                        </button>
                                     )}
 
                                     {/* Token 統計 - AI 消息才顯示，根據設定控制 */}

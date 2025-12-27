@@ -119,6 +119,10 @@
         "files": "附加檔案",
         "interrupted": "(用戶中斷)",
         "error": "抱歉，發生錯誤。請檢查後端服務是否正常運行。",
+        "delete": {
+            "confirm": "確定要刪除這條訊息嗎？",
+            "button": "刪除訊息"
+        },
         "generating": "正在生成回應...",
         "copy": {
             "buttonTitle": "複製程式碼",

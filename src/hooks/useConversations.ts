@@ -206,6 +206,16 @@ export function useConversations(args: UseConversationsArgs) {
         )
     }, [])
 
+    const deleteMessage = useCallback((conversationId: string, messageId: string) => {
+        setConversations(prev =>
+            prev.map(c =>
+                c.id === conversationId
+                    ? { ...c, messages: c.messages.filter(msg => msg.id !== messageId), updatedAt: new Date() }
+                    : c
+            )
+        )
+    }, [])
+
     return {
         conversations,
         conversationsLoaded,
@@ -218,6 +228,7 @@ export function useConversations(args: UseConversationsArgs) {
         removeConversation,
         updateConversationTitle,
         clearConversationMessages,
-        appendMessage
+        appendMessage,
+        deleteMessage
     }
 }

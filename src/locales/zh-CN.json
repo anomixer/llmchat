@@ -117,6 +117,10 @@
         "files": "附加文件",
         "interrupted": "(用户中断)",
         "error": "抱歉，发生错误。请检查后端服务是否正常运行。",
+        "delete": {
+            "confirm": "确定要删除这条消息吗？",
+            "button": "删除消息"
+        },
         "generating": "正在生成回应...",
         "copy": {
             "buttonTitle": "复制代码",
