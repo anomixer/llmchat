@@ -32,10 +32,29 @@ export function createUserRouter(deps: { userService: UserService }) {
     // 獲取用戶設定
     router.get('/user/settings', authenticateToken(userService), (req: AuthedRequest, res: Response) => {
         try {
-            const settings = userService.getUserSettings(req.user!.userId)
+            const userId = req.user!.userId
+            let settings = userService.getUserSettings(userId)
             if (!settings) {
                 return res.status(404).json({ error: '用戶不存在' })
             }
+
+            // 深度克隆以避免修改原始物件
+            settings = JSON.parse(JSON.stringify(settings))
+
+            // 如果不是管理員且沒有自己的 API 設定，嘗試獲取管理員的設定作為補充
+            const currentUser = userService['users'].find((u: any) => u.id === userId)
+            if (currentUser && currentUser.role !== 'admin') {
+                const adminUser = userService['users'].find((u: any) => u.role === 'admin')
+                if (adminUser && adminUser.settings) {
+                    if (!settings!.apiUrl || settings!.apiUrl === '') {
+                        settings!.apiUrl = adminUser.settings.apiUrl
+                    }
+                    if (!settings!.apiKey || settings!.apiKey === '') {
+                        settings!.apiKey = adminUser.settings.apiKey
+                    }
+                }
+            }
+
             res.json({ settings })
         } catch (error) {
             console.error('Get user settings error:', error)

@@ -129,7 +129,7 @@ export function useChatStreaming(args: { token: string | null }) {
         clearStopTimer()
 
         try {
-            readerRef.current?.cancel().catch(() => {})
+            readerRef.current?.cancel().catch(() => { })
         } catch {
             // ignore
         }
@@ -142,7 +142,7 @@ export function useChatStreaming(args: { token: string | null }) {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ requestId })
-            }).catch(() => {})
+            }).catch(() => { })
         }
     }, [clearStopTimer, isStreaming, stopRequested])
 
@@ -229,9 +229,14 @@ export function useChatStreaming(args: { token: string | null }) {
                             if (data.message?.thinking) {
                                 pendingThinkingUpdate = (pendingThinkingUpdate || finalStateRef.current.thinking) + data.message.thinking
                                 finalStateRef.current.thinking = pendingThinkingUpdate
+                                currentTokenCount++ // 思考區塊也計入 Token 數
                             }
 
                             if (data.done) {
+                                // 當串流結束時，如果 Ollama 有提供精確的 Token 數統計，優先使用
+                                if (data.eval_count) {
+                                    currentTokenCount = data.eval_count
+                                }
                                 break
                             }
                         } catch {
@@ -254,9 +259,13 @@ export function useChatStreaming(args: { token: string | null }) {
                                     if (data.message?.thinking) {
                                         pendingThinkingUpdate = (pendingThinkingUpdate || finalStateRef.current.thinking) + data.message.thinking
                                         finalStateRef.current.thinking = pendingThinkingUpdate
+                                        currentTokenCount++ // 思考區塊也計入 Token 數
                                     }
 
                                     if (data.done) {
+                                        if (data.eval_count) {
+                                            currentTokenCount = data.eval_count
+                                        }
                                         break
                                     }
                                 } catch {
@@ -327,7 +336,7 @@ export function useChatStreaming(args: { token: string | null }) {
         return () => {
             clearStopTimer()
             try {
-                readerRef.current?.cancel().catch(() => {})
+                readerRef.current?.cancel().catch(() => { })
             } catch {
                 // ignore
             }

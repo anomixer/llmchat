@@ -203,25 +203,24 @@ const App: React.FC = () => {
         })
     }
 
-    // 載入預設配置
+    // 加載系統預設配置
     const loadDefaultConfig = async () => {
         try {
-            const response = await fetch('/api/config')
+            const response = await fetch(`/api/config?t=${Date.now()}`)
             if (response.ok) {
-                const config = await response.json()
-                setSettings(prev => ({
-                    ...prev,
-                    apiUrl: prev.apiUrl || config.apiUrl,
-                    apiKey: prev.apiKey || (config.apiKey === 'configured' ? '' : config.apiKey)
-                }))
+                const data = await response.json()
+
+                // 如果是未登錄狀態，應用預設 API 配置
+                if (!token) {
+                    setSettings(prev => ({
+                        ...prev,
+                        apiUrl: data.apiUrl || 'http://localhost:11434',
+                        apiKey: data.apiKey || ''
+                    }))
+                }
             }
         } catch (error) {
             console.error('Error loading default config:', error)
-            // 如果載入失敗，使用預設值
-            setSettings(prev => ({
-                ...prev,
-                apiUrl: prev.apiUrl || 'http://localhost:11434'
-            }))
         }
     }
 
@@ -230,7 +229,7 @@ const App: React.FC = () => {
         try {
             setIsLoadingModels(true)
             const apiUrl = settings.apiUrl || 'http://localhost:11434'
-            const response = await fetch(`/api/models?apiUrl=${encodeURIComponent(apiUrl)}`)
+            const response = await fetch(`/api/models?apiUrl=${encodeURIComponent(apiUrl)}&t=${Date.now()}`)
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`)
             }
@@ -239,15 +238,25 @@ const App: React.FC = () => {
                 id: model.name,
                 name: model.name
             }))
+
             setAvailableModels(models)
 
-            // 如果有模型且當前模型為空，使用第一個
-            if (models.length > 0 && !settings.model) {
-                setSettings(prev => ({ ...prev, model: models[0].id }))
+            // ✅ 核心修正：以抓到的模型為準
+            if (models.length > 0) {
+                // 如果當前沒選模型，或者當前選的模型不在新抓到的列表中
+                const isCurrentModelValid = models.some((m: any) => m.id === settings.model)
+                if (!settings.model || !isCurrentModelValid) {
+                    console.log(`模型 "${settings.model}" 不在列表中，自動切換至: ${models[0].id}`)
+                    setSettings(prev => ({ ...prev, model: models[0].id }))
+                }
+            } else {
+                // 如果抓不到任何模型，清空選定
+                setSettings(prev => ({ ...prev, model: '' }))
             }
         } catch (error) {
             console.error('Error loading models:', error)
-            setAvailableModels([]) // 不使用備用列表，只從 Ollama 獲取
+            setAvailableModels([])
+            setSettings(prev => ({ ...prev, model: '' }))
         } finally {
             setIsLoadingModels(false)
         }
@@ -264,14 +273,15 @@ const App: React.FC = () => {
         if (!token) return
 
         try {
-            // 先載入預設配置（從 .env）
-            const configResponse = await fetch('/api/config')
-            let defaultConfig = { apiUrl: 'http://localhost:11434', apiKey: '' }
+            // 先載入預設配置（從 .env），加上時間戳避免快取
+            const configResponse = await fetch(`/api/config?t=${Date.now()}`)
+            let defaultConfig: any = { apiUrl: 'http://localhost:11434', apiKey: '' }
             if (configResponse.ok) {
                 defaultConfig = await configResponse.json()
             }
 
-            const response = await fetch('/api/user/settings', {
+            // 獲取用戶設定，加上時間戳避免快取
+            const response = await fetch(`/api/user/settings?t=${Date.now()}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                 },
@@ -279,9 +289,9 @@ const App: React.FC = () => {
 
             if (response.ok) {
                 const data = await response.json()
-                const serverSettings = data.settings
+                const serverSettings: any = data.settings
 
-                // 更新用戶設定狀態
+                // 1. 強制更新用戶設定狀態
                 setUserSettings(serverSettings)
 
                 // 應用語言設定
@@ -296,49 +306,38 @@ const App: React.FC = () => {
                 // 應用主題設定
                 if (serverSettings.theme) {
                     if (serverSettings.theme === 'auto') {
-                        // 跟隨瀏覽器主題
                         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
                         setIsDarkMode(mediaQuery.matches)
                     } else {
-                        // 手動設定主題
                         setIsDarkMode(serverSettings.theme === 'dark')
                     }
                 }
 
-                // 更新聊天設定，實現優先順序：用戶設定 > .env 設定 > 預設值
+                // 2. 更新聊天設定，確保全域 settings 與 serverSettings 完全同步
                 setSettings(prev => {
                     const newSettings: any = { ...prev }
 
-                    // 對於每個設定項目，按優先順序選擇值
+                    // 合併邏輯：用戶/Admin設定 > .env設定
                     Object.keys(serverSettings).forEach(key => {
-                        const userValue = serverSettings[key]
-                        const envValue = (defaultConfig as any)[key]
-
-                        // 如果用戶有設定值（非空），使用用戶設定
-                        if (userValue !== '' && userValue !== null && userValue !== undefined) {
-                            newSettings[key] = userValue
-                        }
-                        // 否則，如果 .env 有設定值，使用 .env 設定
-                        else if (envValue !== '' && envValue !== null && envValue !== undefined) {
-                            newSettings[key] = envValue
+                        const val = serverSettings[key]
+                        if (val !== '' && val !== null && val !== undefined) {
+                            newSettings[key] = val
+                        } else if (defaultConfig[key]) {
+                            newSettings[key] = defaultConfig[key]
                         }
                     })
 
-                    // 特別處理 apiUrl 和 apiKey：如果用戶沒設定，使用 .env 的值
-                    if (!serverSettings.apiUrl || serverSettings.apiUrl === '') {
-                        newSettings.apiUrl = defaultConfig.apiUrl
-                    }
-                    if (!serverSettings.apiKey || serverSettings.apiKey === '') {
-                        newSettings.apiKey = defaultConfig.apiKey
-                    }
+                    // 特別處理 apiUrl 和 apiKey
+                    newSettings.apiUrl = serverSettings.apiUrl || defaultConfig.apiUrl || 'http://localhost:11434'
+                    newSettings.apiKey = serverSettings.apiKey || defaultConfig.apiKey || ''
 
                     return newSettings
                 })
 
-                // 用戶設定載入後，重新載入模型列表以確保使用正確的 apiUrl
+                // 3. 設定更新後，立即重新載入模型列表
                 setTimeout(() => {
                     loadAvailableModels()
-                }, 200) // 稍微延遲確保設定已更新
+                }, 100)
             }
         } catch (error) {
             console.error('Error loading user settings:', error)
@@ -362,6 +361,9 @@ const App: React.FC = () => {
             if (response.ok) {
                 const data = await response.json()
                 setUserSettings(data.settings)
+
+                // 保存成功後，立即重新載入模型列表以反映可能的 API 變動
+                loadAvailableModels()
             }
         } catch (error) {
             console.error('Error saving user settings:', error)
@@ -423,19 +425,21 @@ const App: React.FC = () => {
         if (user && token && !conversationsLoaded) {
             loadUserSettings()
         } else if (!user && conversationsLoaded) {
-            // 用戶登出時重置設定
-            setUserSettings({
+            // 用戶登出時重置設定，包括主畫面的 settings
+            const initialSettings = {
                 language: 'zh-TW',
                 theme: 'auto',
                 model: '',
                 temperature: 0.7,
                 maxTokens: 8192,
-                apiUrl: '',
+                apiUrl: 'http://localhost:11434',
                 apiKey: '',
                 topP: 0.9,
                 topK: 40,
                 showTokenStats: true
-            })
+            }
+            setUserSettings(initialSettings)
+            setSettings(initialSettings)
         }
     }, [user, token, conversationsLoaded])
 
