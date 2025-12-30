@@ -47,13 +47,17 @@ export function createApp(deps: {
 
     // 靜態文件服務 - 提供前端文件
     const distPath = path.join(path.dirname(__dirname), 'dist')
+    // 靜態文件服務 - 提供前端文件
+    const distPath = path.join(path.dirname(__dirname), 'dist')
     app.use(express.static(distPath))
-
     // SPA 路由 - 所有未匹配的路由都返回 index.html
-    app.use((req, res) => {
-        res.sendFile(path.join(distPath, 'index.html'))
-    })
 
+    app.use((req, res, next) => {
+        if (!req.path.startsWith('/api') && !req.path.startsWith('/v1')) {
+            return res.sendFile(path.join(distPath, 'index.html'))
+        }
+        next()
+		
     // 全局錯誤處理
     app.use((error: any, _req: Request, res: Response, _next: NextFunction) => {
         console.error('Global error:', error)
