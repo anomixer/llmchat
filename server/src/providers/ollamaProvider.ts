@@ -24,6 +24,7 @@ export interface ChatSettings {
     topP?: number
     topK?: number
     language?: string
+    showTokenStats?: boolean
 }
 
 export class OllamaProvider {
@@ -32,7 +33,8 @@ export class OllamaProvider {
     private client: AxiosInstance
 
     constructor(baseUrl = 'http://localhost:11434', apiKey = '') {
-        this.baseUrl = baseUrl
+        // 規範化 URL：去除末尾的斜槓並確保有協議
+        this.baseUrl = baseUrl.replace(/\/+$/, '')
         this.apiKey = apiKey
 
         const headers: Record<string, string> = {
@@ -45,8 +47,8 @@ export class OllamaProvider {
         }
 
         this.client = axios.create({
-            baseURL: baseUrl,
-            timeout: 30000, // 30秒超時
+            baseURL: this.baseUrl,
+            timeout: 120000, // 增加到 120 秒超時
             headers
         })
     }
@@ -244,7 +246,7 @@ export class OllamaProvider {
                 if (abortSignal?.aborted) {
                     console.log('Stream aborted by signal')
                     const abortError = new Error('Aborted')
-                    ;(abortError as any).name = 'AbortError'
+                        ; (abortError as any).name = 'AbortError'
                     throw abortError
                 }
 
@@ -255,7 +257,7 @@ export class OllamaProvider {
                     if (abortSignal?.aborted) {
                         console.log('Stream aborted by signal during processing')
                         const abortError = new Error('Aborted')
-                        ;(abortError as any).name = 'AbortError'
+                            ; (abortError as any).name = 'AbortError'
                         throw abortError
                     }
 

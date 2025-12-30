@@ -215,7 +215,7 @@ const App: React.FC = () => {
                     setSettings(prev => ({
                         ...prev,
                         apiUrl: data.apiUrl || 'http://localhost:11434',
-                        apiKey: data.apiKey || ''
+                        apiKey: ''
                     }))
                 }
             }
@@ -229,7 +229,8 @@ const App: React.FC = () => {
         try {
             setIsLoadingModels(true)
             const apiUrl = settings.apiUrl || 'http://localhost:11434'
-            const response = await fetch(`/api/models?apiUrl=${encodeURIComponent(apiUrl)}&t=${Date.now()}`)
+            const apiKey = settings.apiKey || ''
+            const response = await fetch(`/api/models?apiUrl=${encodeURIComponent(apiUrl)}&apiKey=${encodeURIComponent(apiKey)}&t=${Date.now()}`)
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`)
             }
@@ -317,19 +318,30 @@ const App: React.FC = () => {
                 setSettings(prev => {
                     const newSettings: any = { ...prev }
 
-                    // 合併邏輯：用戶/Admin設定 > .env設定
+                    // ✅ 成對綁定邏輯：一旦選定 URL 來源，API Key 必須跟隨同個來源
+                    if (serverSettings.apiUrl && serverSettings.apiUrl !== '') {
+                        // 如果用戶有設定（或是從 Admin 繼承而來），使用這一對
+                        newSettings.apiUrl = serverSettings.apiUrl
+                        newSettings.apiKey = serverSettings.apiKey || ''
+                    } else if (defaultConfig.apiUrl && defaultConfig.apiUrl !== '') {
+                        // 否則使用系統預設環境變數這一對
+                        newSettings.apiUrl = defaultConfig.apiUrl
+                        newSettings.apiKey = defaultConfig.apiKey || ''
+                    } else {
+                        // 最後回降到 localhost
+                        newSettings.apiUrl = 'http://localhost:11434'
+                        newSettings.apiKey = ''
+                    }
+
+                    // 合併其他非連動參數
                     Object.keys(serverSettings).forEach(key => {
-                        const val = serverSettings[key]
-                        if (val !== '' && val !== null && val !== undefined) {
-                            newSettings[key] = val
-                        } else if (defaultConfig[key]) {
-                            newSettings[key] = defaultConfig[key]
+                        if (key !== 'apiUrl' && key !== 'apiKey') {
+                            const val = serverSettings[key]
+                            if (val !== '' && val !== null && val !== undefined) {
+                                newSettings[key] = val
+                            }
                         }
                     })
-
-                    // 特別處理 apiUrl 和 apiKey
-                    newSettings.apiUrl = serverSettings.apiUrl || defaultConfig.apiUrl || 'http://localhost:11434'
-                    newSettings.apiKey = serverSettings.apiKey || defaultConfig.apiKey || ''
 
                     return newSettings
                 })

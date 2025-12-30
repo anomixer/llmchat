@@ -298,6 +298,12 @@ class UserService {
         return []
     }
 
+    // 獲取管理員設定
+    getAdminSettings() {
+        const admin = this.users.find(u => u.role === 'admin')
+        return admin ? this.getUserSettings(admin.id) : null
+    }
+
     // 獲取用戶設定
     getUserSettings(userId: string) {
         const user = this.users.find(user => user.id === userId)

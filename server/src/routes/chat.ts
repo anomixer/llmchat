@@ -10,53 +10,60 @@ const DEBUG_STREAM = process.env.DEBUG_STREAM === '1'
 function buildChatSettings(payload: any, userService: UserService, userId: string, defaultApiUrl: string, defaultApiKey: string): Required<ChatSettings> {
     const language = normalizeLanguage(payload?.language || payload?.settings?.language)
 
-    // 獲取用戶設定
+    // 獲取各層級配置
     const userSettings = userService.getUserSettings(userId)
+    const adminSettings = userService.getAdminSettings()
 
-    // 獲取 admin 設定（如果用戶不是 admin）
-    let adminSettings = null
-    const currentUser = userService['users'].find((u: any) => u.id === userId)
-    if (currentUser && currentUser.role !== 'admin') {
-        const adminUser = userService['users'].find((u: any) => u.role === 'admin')
-        if (adminUser) {
-            adminSettings = adminUser.settings
+    // 定義配置層級 (由高到低)
+    const configs = [
+        {
+            name: 'payload',
+            apiUrl: payload?.settings?.apiUrl,
+            apiKey: payload?.settings?.apiKey
+        },
+        {
+            name: 'user',
+            apiUrl: (userSettings as any)?.apiUrl,
+            apiKey: (userSettings as any)?.apiKey
+        },
+        {
+            name: 'admin',
+            apiUrl: (adminSettings as any)?.apiUrl,
+            apiKey: (adminSettings as any)?.apiKey
+        },
+        {
+            name: 'env',
+            apiUrl: defaultApiUrl,
+            apiKey: defaultApiKey
+        }
+    ]
+
+    // 尋找第一個有定義 apiUrl 的層級
+    let selectedApiUrl = 'http://localhost:11434'
+    let selectedApiKey = ''
+    let source = 'hardcoded default'
+
+    for (const config of configs) {
+        if (config.apiUrl && config.apiUrl.trim() !== '') {
+            selectedApiUrl = config.apiUrl
+            selectedApiKey = config.apiKey || '' // 就算是空的也要帶，不能去抓下一個層級的 Key
+            source = config.name
+            break
         }
     }
 
-    // 優先順序：payload > 用戶設定 > admin 設定 > .env 設定 > 預設值
-    const getSettingValue = (key: string, defaultValue: any) => {
-        // 1. 優先使用 payload 中的值
-        if (payload?.settings?.[key] !== undefined && payload?.settings?.[key] !== '') {
-            return payload.settings[key]
-        }
-        // 2. 使用用戶設定
-        if (userSettings?.[key as keyof typeof userSettings] !== undefined && (userSettings as any)[key] !== '') {
-            return (userSettings as any)[key]
-        }
-        // 3. 使用 admin 設定（如果用戶不是 admin）
-        if (adminSettings?.[key as keyof typeof adminSettings] !== undefined && (adminSettings as any)[key] !== '') {
-            return (adminSettings as any)[key]
-        }
-        // 4. 使用 .env 設定
-        if (key === 'apiUrl' && defaultApiUrl) {
-            return defaultApiUrl
-        }
-        if (key === 'apiKey' && defaultApiKey) {
-            return defaultApiKey
-        }
-        // 5. 使用預設值
-        return defaultValue
-    }
+    console.log(`[ChatSettings] 使用配置來源: ${source}, URL: ${selectedApiUrl}, Key: ${selectedApiKey ? '********' : '(empty)'}`)
 
     return {
-        model: payload?.settings?.model || 'llama2',
-        temperature: payload?.settings?.temperature ?? 0.7,
-        maxTokens: payload?.settings?.maxTokens ?? 2048,
+        model: payload?.settings?.model || userSettings?.model || 'llama2',
+        temperature: parseFloat(payload?.settings?.temperature || userSettings?.temperature || 0.7),
+        maxTokens: parseInt(payload?.settings?.maxTokens || userSettings?.maxTokens || 8192),
         systemPrompt: payload?.settings?.systemPrompt || getSystemPrompt(language),
-        apiUrl: getSettingValue('apiUrl', 'http://localhost:11434'),
-        apiKey: getSettingValue('apiKey', ''),
-        topP: payload?.settings?.topP ?? 0.9,
-        topK: payload?.settings?.topK ?? 40,
+        apiUrl: selectedApiUrl,
+        apiKey: selectedApiKey,
+        topP: parseFloat(payload?.settings?.topP || userSettings?.topP || 0.9),
+        topK: parseInt(payload?.settings?.topK || userSettings?.topK || 40),
+        showTokenStats: payload?.settings?.showTokenStats ?? (userSettings as any)?.showTokenStats ?? true,
         language
     }
 }

@@ -41,16 +41,15 @@ export function createUserRouter(deps: { userService: UserService }) {
             // 深度克隆以避免修改原始物件
             settings = JSON.parse(JSON.stringify(settings))
 
-            // 如果不是管理員且沒有自己的 API 設定，嘗試獲取管理員的設定作為補充
-            const currentUser = userService['users'].find((u: any) => u.id === userId)
+            // 如果不是管理員，檢查是否需要繼承管理員的 API 配置 (成對繼承)
+            const currentUser = (userService as any).users?.find((u: any) => u.id === userId)
             if (currentUser && currentUser.role !== 'admin') {
-                const adminUser = userService['users'].find((u: any) => u.role === 'admin')
-                if (adminUser && adminUser.settings) {
-                    if (!settings!.apiUrl || settings!.apiUrl === '') {
-                        settings!.apiUrl = adminUser.settings.apiUrl
-                    }
-                    if (!settings!.apiKey || settings!.apiKey === '') {
-                        settings!.apiKey = adminUser.settings.apiKey
+                const adminSettings = userService.getAdminSettings()
+                if (adminSettings) {
+                    // 如果用戶自己沒設 URL，就整組跟隨 Admin 的
+                    if (!settings!.apiUrl || settings!.apiUrl.trim() === '') {
+                        settings!.apiUrl = (adminSettings as any).apiUrl
+                        settings!.apiKey = (adminSettings as any).apiKey
                     }
                 }
             }
