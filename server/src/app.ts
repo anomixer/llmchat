@@ -50,7 +50,7 @@ export function createApp(deps: {
     app.use(express.static(distPath))
 
     // SPA 路由 - 所有未匹配的路由都返回 index.html
-    app.get('/*', (req, res) => {
+    app.use((req, res) => {
         res.sendFile(path.join(distPath, 'index.html'))
     })
 
