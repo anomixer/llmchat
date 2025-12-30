@@ -7,24 +7,62 @@ import { authenticateToken, type AuthedRequest } from '../middlewares/authentica
 
 const DEBUG_STREAM = process.env.DEBUG_STREAM === '1'
 
-function buildChatSettings(payload: any): Required<ChatSettings> {
+function buildChatSettings(payload: any, userService: UserService, userId: string, defaultApiUrl: string, defaultApiKey: string): Required<ChatSettings> {
     const language = normalizeLanguage(payload?.language || payload?.settings?.language)
+
+    // 獲取用戶設定
+    const userSettings = userService.getUserSettings(userId)
+
+    // 獲取 admin 設定（如果用戶不是 admin）
+    let adminSettings = null
+    const currentUser = userService['users'].find((u: any) => u.id === userId)
+    if (currentUser && currentUser.role !== 'admin') {
+        const adminUser = userService['users'].find((u: any) => u.role === 'admin')
+        if (adminUser) {
+            adminSettings = adminUser.settings
+        }
+    }
+
+    // 優先順序：payload > 用戶設定 > admin 設定 > .env 設定 > 預設值
+    const getSettingValue = (key: string, defaultValue: any) => {
+        // 1. 優先使用 payload 中的值
+        if (payload?.settings?.[key] !== undefined && payload?.settings?.[key] !== '') {
+            return payload.settings[key]
+        }
+        // 2. 使用用戶設定
+        if (userSettings?.[key as keyof typeof userSettings] !== undefined && (userSettings as any)[key] !== '') {
+            return (userSettings as any)[key]
+        }
+        // 3. 使用 admin 設定（如果用戶不是 admin）
+        if (adminSettings?.[key as keyof typeof adminSettings] !== undefined && (adminSettings as any)[key] !== '') {
+            return (adminSettings as any)[key]
+        }
+        // 4. 使用 .env 設定
+        if (key === 'apiUrl' && defaultApiUrl) {
+            return defaultApiUrl
+        }
+        if (key === 'apiKey' && defaultApiKey) {
+            return defaultApiKey
+        }
+        // 5. 使用預設值
+        return defaultValue
+    }
 
     return {
         model: payload?.settings?.model || 'llama2',
         temperature: payload?.settings?.temperature ?? 0.7,
         maxTokens: payload?.settings?.maxTokens ?? 2048,
         systemPrompt: payload?.settings?.systemPrompt || getSystemPrompt(language),
-        apiUrl: payload?.settings?.apiUrl || 'http://localhost:11434',
-        apiKey: payload?.settings?.apiKey || '',
+        apiUrl: getSettingValue('apiUrl', 'http://localhost:11434'),
+        apiKey: getSettingValue('apiKey', ''),
         topP: payload?.settings?.topP ?? 0.9,
         topK: payload?.settings?.topK ?? 40,
         language
     }
 }
 
-export function createChatRouter(deps: { userService: UserService }) {
-    const { userService } = deps
+export function createChatRouter(deps: { userService: UserService; defaultApiUrl: string; defaultApiKey: string }) {
+    const { userService, defaultApiUrl, defaultApiKey } = deps
     const router = Router()
 
     // 存儲活躍的流式請求，用於停止
@@ -39,7 +77,7 @@ export function createChatRouter(deps: { userService: UserService }) {
                 return res.status(400).json({ error: '消息不能為空' })
             }
 
-            const chatSettings = buildChatSettings((req as any).body)
+            const chatSettings = buildChatSettings((req as any).body, userService, req.user!.userId, defaultApiUrl, defaultApiKey)
 
             const dynamicProvider = new OllamaProvider(chatSettings.apiUrl, chatSettings.apiKey)
             const dynamicChatProvider = new ChatProvider(dynamicProvider)
@@ -101,7 +139,7 @@ export function createChatRouter(deps: { userService: UserService }) {
             res.setHeader('Cache-Control', 'no-cache')
             res.setHeader('Connection', 'keep-alive')
 
-            const chatSettings = buildChatSettings((req as any).body)
+            const chatSettings = buildChatSettings((req as any).body, userService, req.user!.userId, defaultApiUrl, defaultApiKey)
             const dynamicProvider = new OllamaProvider(chatSettings.apiUrl, chatSettings.apiKey)
 
             try {

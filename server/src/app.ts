@@ -29,7 +29,11 @@ export function createApp(deps: {
     }))
 
     app.use('/api', createAuthRouter({ userService: deps.userService, emailService: deps.emailService }))
-    app.use('/api', createChatRouter({ userService: deps.userService }))
+    app.use('/api', createChatRouter({
+        userService: deps.userService,
+        defaultApiUrl: deps.defaultApiUrl,
+        defaultApiKey: deps.defaultApiKey
+    }))
     app.use('/api', createUserRouter({ userService: deps.userService }))
     app.use('/api', createAdminRouter({ userService: deps.userService }))
 

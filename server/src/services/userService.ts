@@ -17,6 +17,7 @@ export interface UserSettings {
     apiKey: string
     topP: number
     topK: number
+    showTokenStats: boolean
 }
 
 export interface UserRecord {
@@ -47,6 +48,8 @@ class UserService {
     conversationsDir: string
     users: UserRecord[]
     sessions: Record<string, SessionRecord>
+    private readonly ENCRYPTION_KEY = Buffer.from('4a616d6573426f6e643030374c4c4d43686174526f636b733132333435363738', 'hex') // 32 bytes
+    private readonly IV_LENGTH = 16
 
     constructor() {
         this.usersFile = path.join(__dirname, '..', '..', 'data', 'users.json')
@@ -152,7 +155,8 @@ class UserService {
                 apiUrl: '',
                 apiKey: '',
                 topP: 0.9,
-                topK: 40
+                topK: 40,
+                showTokenStats: true
             }
         }
 
@@ -297,16 +301,71 @@ class UserService {
     // 獲取用戶設定
     getUserSettings(userId: string) {
         const user = this.users.find(user => user.id === userId)
-        return user ? user.settings : null
+        if (!user) return null
+
+        // 為了不影響 memory 中的原始資料，我們返回一個副本並解密其中的 apiKey
+        const settings = { ...user.settings }
+        if (settings.apiKey) {
+            settings.apiKey = this.decrypt(settings.apiKey)
+        }
+        return settings
+    }
+
+    // 加密方法 (AES-256-CBC)
+    private encrypt(text: string): string {
+        if (!text) return ''
+        try {
+            const iv = crypto.randomBytes(this.IV_LENGTH)
+            const cipher = crypto.createCipheriv('aes-256-cbc', this.ENCRYPTION_KEY, iv)
+            let encrypted = cipher.update(text)
+            encrypted = Buffer.concat([encrypted, cipher.final()])
+            return iv.toString('hex') + ':' + encrypted.toString('hex')
+        } catch (e) {
+            console.error('加密 apiKey 失敗:', e)
+            return text
+        }
+    }
+
+    // 解解方法
+    private decrypt(text: string): string {
+        if (!text) return ''
+        // 如果不包含冒號，表示是舊的明文資料，直接返回
+        if (!text.includes(':')) return text
+
+        try {
+            const textParts = text.split(':')
+            const iv = Buffer.from(textParts.shift()!, 'hex')
+            const encryptedText = Buffer.from(textParts.join(':'), 'hex')
+            const decipher = crypto.createDecipheriv('aes-256-cbc', this.ENCRYPTION_KEY, iv)
+            let decrypted = decipher.update(encryptedText)
+            decrypted = Buffer.concat([decrypted, decipher.final()])
+            return decrypted.toString()
+        } catch (e) {
+            console.error('解密 apiKey 失敗 (可能不是有效的加密格式):', e)
+            return text
+        }
     }
 
     // 更新用戶設定
     updateUserSettings(userId: string, settings: any) {
         const user = this.users.find(user => user.id === userId)
         if (user) {
+            // 如果用戶不是 admin，則過濾掉 apiUrl 和 apiKey
+            if (user.role !== 'admin') {
+                delete settings.apiUrl
+                delete settings.apiKey
+            }
+
+            // 如果有設定 apiKey，存入前先加密
+            if (settings.apiKey !== undefined && settings.apiKey !== null) {
+                settings.apiKey = this.encrypt(settings.apiKey)
+            }
+
             user.settings = { ...user.settings, ...settings }
             this.saveUsers()
-            return user.settings
+
+            // 返回給前端時解密
+            return this.getUserSettings(userId)
         }
         return null
     }

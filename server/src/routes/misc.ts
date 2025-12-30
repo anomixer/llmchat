@@ -17,7 +17,7 @@ export function createApiMiscRouter(deps: { emailService: EmailService; defaultA
 
         res.json({
             apiUrl: defaultApiUrl,
-            apiKey: defaultApiKey ? 'configured' : '',
+            apiKey: defaultApiKey || '',
             smtpEnabled: smtpEnabled
         })
     })

@@ -264,6 +264,13 @@ const App: React.FC = () => {
         if (!token) return
 
         try {
+            // 先載入預設配置（從 .env）
+            const configResponse = await fetch('/api/config')
+            let defaultConfig = { apiUrl: 'http://localhost:11434', apiKey: '' }
+            if (configResponse.ok) {
+                defaultConfig = await configResponse.json()
+            }
+
             const response = await fetch('/api/user/settings', {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -298,13 +305,35 @@ const App: React.FC = () => {
                     }
                 }
 
-                // 更新聊天設定，只覆蓋非空值
-                setSettings(prev => ({
-                    ...prev,
-                    ...Object.fromEntries(
-                        Object.entries(serverSettings).filter(([_, value]) => value !== '' && value !== null && value !== undefined)
-                    )
-                }))
+                // 更新聊天設定，實現優先順序：用戶設定 > .env 設定 > 預設值
+                setSettings(prev => {
+                    const newSettings: any = { ...prev }
+
+                    // 對於每個設定項目，按優先順序選擇值
+                    Object.keys(serverSettings).forEach(key => {
+                        const userValue = serverSettings[key]
+                        const envValue = (defaultConfig as any)[key]
+
+                        // 如果用戶有設定值（非空），使用用戶設定
+                        if (userValue !== '' && userValue !== null && userValue !== undefined) {
+                            newSettings[key] = userValue
+                        }
+                        // 否則，如果 .env 有設定值，使用 .env 設定
+                        else if (envValue !== '' && envValue !== null && envValue !== undefined) {
+                            newSettings[key] = envValue
+                        }
+                    })
+
+                    // 特別處理 apiUrl 和 apiKey：如果用戶沒設定，使用 .env 的值
+                    if (!serverSettings.apiUrl || serverSettings.apiUrl === '') {
+                        newSettings.apiUrl = defaultConfig.apiUrl
+                    }
+                    if (!serverSettings.apiKey || serverSettings.apiKey === '') {
+                        newSettings.apiKey = defaultConfig.apiKey
+                    }
+
+                    return newSettings
+                })
 
                 // 用戶設定載入後，重新載入模型列表以確保使用正確的 apiUrl
                 setTimeout(() => {
@@ -1196,18 +1225,16 @@ const App: React.FC = () => {
                                                     setUserSettings(prev => ({ ...prev, showTokenStats: !prev.showTokenStats }))
                                                     saveUserSettingsToServer({ ...userSettings, showTokenStats: !userSettings.showTokenStats })
                                                 }}
-                                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                                                    settings.showTokenStats
-                                                        ? 'bg-blue-600'
-                                                        : isDarkMode
-                                                            ? 'bg-gray-600'
-                                                            : 'bg-gray-300'
-                                                }`}
+                                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${settings.showTokenStats
+                                                    ? 'bg-blue-600'
+                                                    : isDarkMode
+                                                        ? 'bg-gray-600'
+                                                        : 'bg-gray-300'
+                                                    }`}
                                             >
                                                 <span
-                                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                                        settings.showTokenStats ? 'translate-x-6' : 'translate-x-1'
-                                                    }`}
+                                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.showTokenStats ? 'translate-x-6' : 'translate-x-1'
+                                                        }`}
                                                 />
                                             </button>
                                             <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -1235,7 +1262,7 @@ const App: React.FC = () => {
                         <p className="text-sm">{t('app.welcome.fileHint')}</p>
                     </div>
                 ) : (
-                     currentMessages.map((message) => (
+                    currentMessages.map((message) => (
                         <div
                             key={message.id}
                             className={`flex items-start space-x-3 group ${message.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''
@@ -1253,7 +1280,7 @@ const App: React.FC = () => {
                                     <Bot className="h-4 w-4" />
                                 )}
                             </div>
-                             <div className={`flex-1 max-w-[90%] ${message.role === 'user' ? 'text-right' : ''
+                            <div className={`flex-1 max-w-[90%] ${message.role === 'user' ? 'text-right' : ''
                                 }`}>
                                 <div className={`inline-block px-4 py-2 rounded-lg transition-colors chat-message-content relative ${message.role === 'user'
                                     ? 'bg-blue-600 text-white'
@@ -1403,11 +1430,10 @@ const App: React.FC = () => {
                                                     e.stopPropagation()
                                                     handleDeleteMessage(currentConversationId, message.id)
                                                 }}
-                                                className={`p-1 rounded-full transition-colors shadow-sm opacity-0 group-hover:opacity-100 ${
-                                                    isDarkMode
-                                                        ? 'text-gray-400 hover:text-red-400 hover:bg-gray-700'
-                                                        : 'text-gray-500 hover:text-red-600 hover:bg-red-50'
-                                                }`}
+                                                className={`p-1 rounded-full transition-colors shadow-sm opacity-0 group-hover:opacity-100 ${isDarkMode
+                                                    ? 'text-gray-400 hover:text-red-400 hover:bg-gray-700'
+                                                    : 'text-gray-500 hover:text-red-600 hover:bg-red-50'
+                                                    }`}
                                                 title={t('messages.delete.button')}
                                             >
                                                 <Trash2 className="h-3 w-3" />
@@ -1422,11 +1448,10 @@ const App: React.FC = () => {
                                                 e.stopPropagation()
                                                 handleDeleteMessage(currentConversationId, message.id)
                                             }}
-                                            className={`absolute top-1 right-1 p-1 rounded-full transition-colors shadow-sm opacity-0 group-hover:opacity-100 ${
-                                                isDarkMode
-                                                    ? 'text-gray-400 hover:text-red-400 hover:bg-gray-600'
-                                                    : 'text-gray-500 hover:text-red-600 hover:bg-gray-200'
-                                            }`}
+                                            className={`absolute top-1 right-1 p-1 rounded-full transition-colors shadow-sm opacity-0 group-hover:opacity-100 ${isDarkMode
+                                                ? 'text-gray-400 hover:text-red-400 hover:bg-gray-600'
+                                                : 'text-gray-500 hover:text-red-600 hover:bg-gray-200'
+                                                }`}
                                             title={t('messages.delete.button')}
                                         >
                                             <Trash2 className="h-3 w-3" />
