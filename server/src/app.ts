@@ -46,7 +46,7 @@ export function createApp(deps: {
     app.use('/v1', createOpenAiRouter({ ollamaProvider: deps.ollamaProvider }))
 
     // 靜態文件服務 - 提供前端文件
-    const distPath = path.join(path.dirname(__dirname), 'dist')
+    const distPath = path.join(path.dirname(path.dirname(__dirname)), 'dist')
     app.use(express.static(distPath))
 
     // SPA 路由 - 所有未匹配的路由都返回 index.html
