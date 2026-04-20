@@ -45,6 +45,8 @@ Get up and chatting with large language models featuring glass-morphism effect.
 - **分檔對話儲存**: 每個用戶的對話記錄單獨存檔為 {email}.json，提供更好的數據隔離和備份便利性
 - **個人設定系統**: 用戶可保存個人化的語言、主題、AI 模型參數等設定
 - **密碼管理**: 用戶可以在設定中安全地更改密碼，包含當前密碼驗證和新密碼確認機制
+- **多 Provider 支援**: 支援 8 個主要 LLM Provider（Ollama、OpenAI、Anthropic、Groq、DeepSeek、NVIDIA、Mistral、Together），可透過 UI 一鍵切換，無需重啟服務
+- **Provider 管理**: 完整的 Provider 配置界面，支援連接測試、模型自動檢測、參數自訂
 
 ## ⌨️ 快捷鍵支援
 
@@ -199,7 +201,7 @@ llmchat/
 
 ### 環境變數設定
 
-應用程式支援通過環境變數配置 Ollama API 設定和 Vite 開發服務器設定。複製 `.env.example` 為 `.env` 並修改：
+應用程式支援通過環境變數配置 LLM Provider 設定和 Vite 開發服務器設定。複製 `.env.example` 為 `.env` 並修改：
 
 ```bash
 cp .env.example .env

@@ -6,6 +6,7 @@ import MarkdownMessage from './MarkdownMsg'
 import { Header } from './components/Header'
 import { Auth } from './components/Auth'
 import { Admin } from './components/Admin'
+import { ProviderSettings } from './components/ProviderSettings'
 import { useAuth } from './AuthContext'
 import { useChatStreaming } from './hooks/useChatStreaming'
 import { useConversations } from './hooks/useConversations'
@@ -105,6 +106,9 @@ const App: React.FC = () => {
     })
     const [availableModels, setAvailableModels] = useState<Array<{ id: string; name: string }>>([])
     const [isLoadingModels, setIsLoadingModels] = useState(true)
+    const [availableProviders, setAvailableProviders] = useState<any[]>([])
+    const [currentProvider, setCurrentProvider] = useState<any>(null)
+    const [showProviderSettings, setShowProviderSettings] = useState(false)
     const [settings, setSettings] = useState<ChatSettings>({
         model: '',
         temperature: 0.7,
@@ -260,6 +264,83 @@ const App: React.FC = () => {
             setSettings(prev => ({ ...prev, model: '' }))
         } finally {
             setIsLoadingModels(false)
+        }
+    }
+
+    // 加載可用的 Provider 列表
+    const loadAvailableProviders = async () => {
+        try {
+            const response = await fetch('/api/providers', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            if (response.ok) {
+                const data = await response.json()
+                setAvailableProviders(data.providers)
+                
+                // 獲取當前 Provider 配置
+                const currentResponse = await fetch('/api/providers/current', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                })
+                if (currentResponse.ok) {
+                    const currentData = await currentResponse.json()
+                    setCurrentProvider(currentData.current)
+                }
+            }
+        } catch (error) {
+            console.error('Error loading providers:', error)
+        }
+    }
+
+    // 保存 Provider 設置
+    const saveProviderSettings = async (provider: any) => {
+        try {
+            const response = await fetch('/api/providers/update', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(provider)
+            })
+
+            if (response.ok) {
+                const data = await response.json()
+                if (data.isConnected) {
+                    // 更新當前 Provider
+                    setCurrentProvider({
+                        type: provider.type,
+                        baseUrl: provider.baseUrl,
+                        model: provider.model,
+                        requiresApiKey: provider.apiKey ? true : false
+                    })
+                    
+                    // 更新 settings
+                    setSettings(prev => ({
+                        ...prev,
+                        apiUrl: provider.baseUrl,
+                        apiKey: provider.apiKey,
+                        model: provider.model,
+                        temperature: provider.temperature,
+                        maxTokens: provider.maxTokens
+                    }))
+                    
+                    // 重新加載模型
+                    await loadAvailableModels()
+                    
+                    return true
+                } else {
+                    throw new Error(data.message)
+                }
+            } else {
+                throw new Error('保存失敗')
+            }
+        } catch (error) {
+            console.error('保存 Provider 設置失敗:', error)
+            throw error
         }
     }
 
@@ -436,6 +517,7 @@ const App: React.FC = () => {
     useEffect(() => {
         if (user && token && !conversationsLoaded) {
             loadUserSettings()
+            loadAvailableProviders()
         } else if (!user && conversationsLoaded) {
             // 用戶登出時重置設定，包括主畫面的 settings
             const initialSettings = {
@@ -452,6 +534,8 @@ const App: React.FC = () => {
             }
             setUserSettings(initialSettings)
             setSettings(initialSettings)
+            setAvailableProviders([])
+            setCurrentProvider(null)
         }
     }, [user, token, conversationsLoaded])
 
@@ -1262,6 +1346,47 @@ const App: React.FC = () => {
                                 </div>
                             </>
                         )}
+                    </div>
+                    
+                    {/* Provider 設置按鈕 */}
+                    {!showModelOnly && availableProviders.length > 0 && (
+                        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                            <button
+                                onClick={() => setShowProviderSettings(true)}
+                                className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
+                            >
+                                <Settings className="w-4 h-4" />
+                                配置 Provider
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Provider Settings Modal */}
+            {showProviderSettings && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className={`rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto ${isDarkMode
+                        ? 'bg-gray-800 text-white'
+                        : 'bg-white text-gray-900'
+                        }`}>
+                        <div className="p-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-xl font-semibold">🔧 Provider 設置</h2>
+                                <button
+                                    onClick={() => setShowProviderSettings(false)}
+                                    className="text-gray-400 hover:text-gray-600"
+                                >
+                                    <X className="w-6 h-6" />
+                                </button>
+                            </div>
+                            <ProviderSettings
+                                currentProvider={currentProvider}
+                                availableProviders={availableProviders}
+                                onSave={saveProviderSettings}
+                                onClose={() => setShowProviderSettings(false)}
+                            />
+                        </div>
                     </div>
                 </div>
             )}
