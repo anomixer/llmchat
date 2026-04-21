@@ -254,6 +254,26 @@ const App: React.FC = () => {
     const loadAvailableModels = async () => {
         try {
             setIsLoadingModels(true)
+            
+            // ✅ 先檢查 localStorage 中是否有模型列表（從 Admin 頁面同步）
+            const cachedModels = localStorage.getItem('adminModelList')
+            if (cachedModels) {
+                const models = JSON.parse(cachedModels)
+                console.log('從 localStorage 載入模型列表:', models.length, '個模型')
+                setAvailableModels(models)
+                
+                // 自動選擇第一個模型（如果當前沒選）
+                if (models.length > 0) {
+                    const isCurrentModelValid = models.some((m) => m.id === settings.model)
+                    if (!settings.model || !isCurrentModelValid) {
+                        console.log(`模型 "${settings.model}" 不在列表中，自動切換至：${models[0].id}`)
+                        setSettings(prev => ({ ...prev, model: models[0].id }))
+                    }
+                } else {
+                    setSettings(prev => ({ ...prev, model: '' }))
+                }
+                return
+            }
             // 優先使用 localStorage 中的設定（從 Admin 頁面同步）
             const adminSettings = localStorage.getItem('adminProviderSettings')
             let apiUrl = 'http://127.0.0.1:11434'
@@ -559,8 +579,24 @@ const App: React.FC = () => {
             }
         }
         
+        // ✅ 監聽自定義事件（來自 Admin 頁面）
+        const handleModelListUpdated = (e: CustomEvent) => {
+            console.log('模型列表已更新，收到事件:', e.detail.models.length, '個模型')
+            setAvailableModels(e.detail.models)
+            
+            // 自動選擇第一個模型（如果當前沒選）
+            if (e.detail.models.length > 0 && (!settings.model || !e.detail.models.some((m: any) => m.id === settings.model))) {
+                setSettings(prev => ({ ...prev, model: e.detail.models[0].id }))
+            }
+        }
+        
         window.addEventListener('storage', handleStorageChange)
-        return () => window.removeEventListener('storage', handleStorageChange)
+        window.addEventListener('modelListUpdated', handleModelListUpdated as EventListener)
+        
+        return () => {
+            window.removeEventListener('storage', handleStorageChange)
+            window.removeEventListener('modelListUpdated', handleModelListUpdated as EventListener)
+        }
     }, [])
 
     // 創建新對話

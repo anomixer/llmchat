@@ -358,6 +358,28 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                         topK: providerTopK,
                         maxTokens: providerMaxTokens
                     }))
+                    
+                    // ✅ 手動載入模型列表並同步到 localStorage
+                    // 因為同一頁面的 localStorage.setItem 不會觸發 storage event
+                    try {
+                        const modelsResponse = await fetch(`/api/models?baseUrl=${encodeURIComponent(providerBaseUrl)}&apiKey=${encodeURIComponent(providerApiKey)}`)
+                        if (modelsResponse.ok) {
+                            const modelsData = await modelsResponse.json()
+                            const models = modelsData.models.map((model: any) => ({
+                                id: model.name,
+                                name: model.name
+                            }))
+                            
+                            // 同步模型列表到 localStorage
+                            localStorage.setItem('adminModelList', JSON.stringify(models))
+                            console.log('模型列表已同步到 localStorage:', models.length, '個模型')
+                            
+                            // 觸發自定義事件通知主頁面
+                            window.dispatchEvent(new CustomEvent('modelListUpdated', { detail: { models } }))
+                        }
+                    } catch (error) {
+                        console.error('載入模型列表失敗:', error)
+                    }
                 } else {
                     setConnectionStatus('error')
                     setConnectionMessage('⚠️ 設定已保存，但連接失敗')
