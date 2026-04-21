@@ -34,12 +34,57 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
     const [providerApiKey, setProviderApiKey] = useState('')
     const [providerModel, setProviderModel] = useState('')
     const [providerTemperature, setProviderTemperature] = useState(0.7)
+    const [providerTopP, setProviderTopP] = useState(0.9)
+    const [providerTopK, setProviderTopK] = useState(40)
     const [providerMaxTokens, setProviderMaxTokens] = useState(2048)
+    const [providerVisionModel, setProviderVisionModel] = useState('')
     const [checkingConnection, setCheckingConnection] = useState(false)
     const [connectionStatus, setConnectionStatus] = useState<'idle' | 'success' | 'error'>('idle')
     const [connectionMessage, setConnectionMessage] = useState('')
     const [availableModels, setAvailableModels] = useState<any[]>([])
     const [loadingModels, setLoadingModels] = useState(false)
+
+    // Provider 預設 URL（與 aipc-agent 完全一致）
+    const PROVIDER_DEFAULTS: Record<string, string> = {
+        'OpenAI': 'https://api.openai.com/v1',
+        'Anthropic Claude': 'https://api.anthropic.com/v1',
+        'Google Gemini': 'https://generativelanguage.googleapis.com/v1beta/openai',
+        'Mistral': 'https://api.mistral.ai/v1',
+        'Groq': 'https://api.groq.com/openai/v1',
+        'xAI (Grok)': 'https://api.x.ai/v1',
+        'NVIDIA NIM': 'https://integrate.api.nvidia.com/v1',
+        'Together AI': 'https://api.together.xyz/v1',
+        'OpenRouter': 'https://openrouter.ai/api/v1',
+        'Kilo Gateway': 'https://api.kilo.ai/api/gateway/',
+        'Synthetic (Anthropic-compatible)': 'https://api.synthetic.new/anthropic',
+        'Moonshot AI (Kimi)': 'https://api.moonshot.ai/v1',
+        'Vercel AI Gateway': 'https://gateway.ai.vercel.com/v1/',
+        'Cloudflare AI Gateway': 'https://gateway.ai.cloudflare.com/v1/',
+        'Ollama Cloud': 'https://ollama.com',
+        'Ollama': 'http://127.0.0.1:11434/v1',
+        'vLLM': 'http://127.0.0.1:8000/v1',
+        'SGLang': 'http://127.0.0.1:30000/v1',
+        'LM Studio': 'http://127.0.0.1:1234/v1',
+        'Customer Provider (自訂)': 'http://127.0.0.1:11434/v1'
+    }
+
+    // 本地 Provider 列表（不需要 API Key）
+    const LOCAL_NOAUTH_PROVIDERS = ['Ollama', 'Ollama Cloud', 'vLLM', 'SGLang', 'LM Studio']
+
+    // 選擇 Provider 時自動帶出 Base URL
+    const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const providerName = e.target.value
+        setSelectedProvider(providerName)
+        
+        // 自動帶出預設 URL
+        const defaultUrl = PROVIDER_DEFAULTS[providerName] || 'http://127.0.0.1:11434/v1'
+        setProviderBaseUrl(defaultUrl)
+        
+        // 如果是本地 Provider，清空 API Key
+        if (LOCAL_NOAUTH_PROVIDERS.includes(providerName) || providerName === 'Customer Provider (自訂)') {
+            setProviderApiKey('')
+        }
+    }
 
     // 檢查用戶是否為管理員
     if (!currentUser || currentUser.role !== 'admin') {
@@ -240,7 +285,10 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                     apiKey: providerApiKey,
                     model: providerModel,
                     temperature: providerTemperature,
-                    maxTokens: providerMaxTokens
+                    topP: providerTopP,
+                    topK: providerTopK,
+                    maxTokens: providerMaxTokens,
+                    visionModel: providerVisionModel
                 })
             })
 
@@ -376,14 +424,14 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                         </h2>
 
                         {/* Provider 選擇 */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                     選擇 Provider
                                 </label>
                                 <select
                                     value={selectedProvider}
-                                    onChange={(e) => setSelectedProvider(e.target.value)}
+                                    onChange={handleProviderChange}
                                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                 >
                                     {providers.map((provider) => (
@@ -394,7 +442,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                 </select>
                             </div>
 
-                            <div>
+                            <div className="md:col-span-2">
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                     Base URL
                                 </label>
@@ -405,23 +453,28 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                     placeholder="https://api.example.com/v1"
                                 />
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    選擇 Provider 後自動帶出，可手動修改
+                                </p>
                             </div>
                         </div>
 
-                        {/* API Key 和 Model */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    API Key
-                                </label>
-                                <input
-                                    type="password"
-                                    value={providerApiKey}
-                                    onChange={(e) => setProviderApiKey(e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                                    placeholder="sk-..."
-                                />
-                            </div>
+                        {/* API Key */}
+                        <div className="mb-6">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                API Key
+                            </label>
+                            <input
+                                type="password"
+                                value={providerApiKey}
+                                onChange={(e) => setProviderApiKey(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                placeholder="API Key (可選，部分 Provider 不需要)"
+                            />
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                格式依 Provider 而定（API Key、OAuth Token 等）
+                            </p>
+                        </div>
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -433,12 +486,12 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                         value={providerModel}
                                         onChange={(e) => setProviderModel(e.target.value)}
                                         className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                                        placeholder="gpt-4, claude-3, etc."
+                                        placeholder="例如：gpt-4, claude-3, llama3"
                                     />
                                     <button
                                         onClick={fetchAvailableModels}
                                         disabled={loadingModels}
-                                        className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-900 dark:text-white rounded-md hover:bg-gray-300 dark:hover:bg-gray-500 disabled:opacity-50"
+                                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                                     >
                                         {loadingModels ? '...' : '獲取模型'}
                                     </button>
@@ -457,6 +510,98 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                     </select>
                                 )}
                             </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Vision 模型（可選）
+                                </label>
+                                <input
+                                    type="text"
+                                    value={providerVisionModel}
+                                    onChange={(e) => setProviderVisionModel(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                    placeholder="用於多模態內容，留空則自動選擇"
+                                />
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    用於讀取圖片、手寫草圖等。留空時系統會自動選擇同 Provider 的 vision 模型。
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* 生成參數 */}
+                        <div className="mb-6">
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">生成參數</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Temperature: {providerTemperature}
+                                    </label>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="2"
+                                        step="0.1"
+                                        value={providerTemperature}
+                                        onChange={(e) => setProviderTemperature(parseFloat(e.target.value))}
+                                        className="w-full"
+                                    />
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                        控制輸出隨機性：低溫=確定、邏輯；高溫=多樣、創造
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Top P: {providerTopP}
+                                    </label>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="1"
+                                        step="0.05"
+                                        value={providerTopP}
+                                        onChange={(e) => setProviderTopP(parseFloat(e.target.value))}
+                                        className="w-full"
+                                    />
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                        核心採樣機率：高=高機率；低=低機率
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Top K: {providerTopK}
+                                    </label>
+                                    <input
+                                        type="range"
+                                        min="1"
+                                        max="100"
+                                        step="1"
+                                        value={providerTopK}
+                                        onChange={(e) => setProviderTopK(parseInt(e.target.value))}
+                                        className="w-full"
+                                    />
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                        限制候選 Token 數量：高=取樣多；低=取樣少
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Max Tokens: {providerMaxTokens}
+                                    </label>
+                                    <input
+                                        type="number"
+                                        value={providerMaxTokens}
+                                        onChange={(e) => setProviderMaxTokens(parseInt(e.target.value))}
+                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                    />
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                        最大上下文長度
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
                         </div>
 
                         {/* 高級設定 */}

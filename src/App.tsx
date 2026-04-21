@@ -1363,34 +1363,6 @@ const App: React.FC = () => {
                 </div>
             )}
 
-            {/* Provider Settings Modal */}
-            {showProviderSettings && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className={`rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto ${isDarkMode
-                        ? 'bg-gray-800 text-white'
-                        : 'bg-white text-gray-900'
-                        }`}>
-                        <div className="p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-xl font-semibold">🔧 Provider 設置</h2>
-                                <button
-                                    onClick={() => setShowProviderSettings(false)}
-                                    className="text-gray-400 hover:text-gray-600"
-                                >
-                                    <X className="w-6 h-6" />
-                                </button>
-                            </div>
-                            <ProviderSettings
-                                currentProvider={currentProvider}
-                                availableProviders={availableProviders}
-                                onSave={saveProviderSettings}
-                                onClose={() => setShowProviderSettings(false)}
-                            />
-                        </div>
-                    </div>
-                </div>
-            )}
-
             {/* Messages */}
             <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4 chat-messages">
                 {currentMessages.length === 0 ? (
