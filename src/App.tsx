@@ -293,9 +293,6 @@ const App: React.FC = () => {
         }
     }
 
-        }
-    }
-
     // 監聽瀏覽器主題變化
     usePrefersColorSchemeSync({ setIsDarkMode })
 
