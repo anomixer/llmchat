@@ -6,7 +6,6 @@ import MarkdownMessage from './MarkdownMsg'
 import { Header } from './components/Header'
 import { Auth } from './components/Auth'
 import { Admin } from './components/Admin'
-import { ProviderSettings } from './components/ProviderSettings'
 import { useAuth } from './AuthContext'
 import { useChatStreaming } from './hooks/useChatStreaming'
 import { useConversations } from './hooks/useConversations'
@@ -108,7 +107,6 @@ const App: React.FC = () => {
     const [isLoadingModels, setIsLoadingModels] = useState(true)
     const [availableProviders, setAvailableProviders] = useState<any[]>([])
     const [currentProvider, setCurrentProvider] = useState<any>(null)
-    const [showProviderSettings, setShowProviderSettings] = useState(false)
     const [settings, setSettings] = useState<ChatSettings>({
         model: '',
         temperature: 0.7,
@@ -295,52 +293,6 @@ const App: React.FC = () => {
         }
     }
 
-    // 保存 Provider 設置
-    const saveProviderSettings = async (provider: any) => {
-        try {
-            const response = await fetch('/api/providers/update', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(provider)
-            })
-
-            if (response.ok) {
-                const data = await response.json()
-                if (data.isConnected) {
-                    // 更新當前 Provider
-                    setCurrentProvider({
-                        type: provider.type,
-                        baseUrl: provider.baseUrl,
-                        model: provider.model,
-                        requiresApiKey: provider.apiKey ? true : false
-                    })
-                    
-                    // 更新 settings
-                    setSettings(prev => ({
-                        ...prev,
-                        apiUrl: provider.baseUrl,
-                        apiKey: provider.apiKey,
-                        model: provider.model,
-                        temperature: provider.temperature,
-                        maxTokens: provider.maxTokens
-                    }))
-                    
-                    // 重新加載模型
-                    await loadAvailableModels()
-                    
-                    return true
-                } else {
-                    throw new Error(data.message)
-                }
-            } else {
-                throw new Error('保存失敗')
-            }
-        } catch (error) {
-            console.error('保存 Provider 設置失敗:', error)
-            throw error
         }
     }
 
@@ -1348,18 +1300,6 @@ const App: React.FC = () => {
                         )}
                     </div>
                     
-                    {/* Provider 設置按鈕 */}
-                    {!showModelOnly && availableProviders.length > 0 && (
-                        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                            <button
-                                onClick={() => setShowProviderSettings(true)}
-                                className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
-                            >
-                                <Settings className="w-4 h-4" />
-                                配置 Provider
-                            </button>
-                        </div>
-                    )}
                 </div>
             )}
 
