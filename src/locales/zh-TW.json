@@ -268,8 +268,12 @@
             "updateRole": "更新角色失敗",
             "deleteUser": "刪除用戶失敗",
             "toggleUser": "切換用戶狀態失敗",
-            "unknown": "未知錯誤"
-        }
+            "unknown": "未知錯誤",
+            "usersTab": "用戶管理",
+            "llmTab": "LLM Provider 設定"
+        },
+        "usersTab": "用戶管理",
+        "llmTab": "LLM Provider 設定"
     },
     "systemPrompt": "你是一個有用的AI助手，請用繁體中文回答用戶的問題。"
 }
