@@ -1,6 +1,5 @@
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
-import LanguageDetector from 'i18next-browser-languagedetector'
 
 import zhTW from '../locales/zh-TW.json'
 import zhCN from '../locales/zh-CN.json'
@@ -27,20 +26,24 @@ const resources = {
     'ko': { translation: injectGlobalConfig(ko) }
 }
 
+// 同步讀取上次儲存的語言偏好，讓第一次 render 就是正確語言（無閃爍）
+const getSavedLanguage = (): string => {
+    try {
+        return localStorage.getItem('llmchat_language') || 'zh-TW'
+    } catch {
+        return 'zh-TW'
+    }
+}
+
 i18n
-    .use(LanguageDetector)
     .use(initReactI18next)
     .init({
         resources,
+        lng: getSavedLanguage(),
         fallbackLng: 'zh-TW',
-        detection: {
-            order: ['localStorage', 'navigator'],
-            lookupLocalStorage: 'browserLanguage',
-            caches: ['localStorage']
-        },
         interpolation: {
             escapeValue: false
         }
     })
 
-export default i18n
+export default i18n

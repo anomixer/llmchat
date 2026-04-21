@@ -255,9 +255,12 @@ const App: React.FC = () => {
     }
 
     // 載入可用模型列表 - 支持自定義 API URL
-    const loadAvailableModels = async () => {
+    const loadAvailableModels = async (currentModelOverride?: string) => {
         try {
             setIsLoadingModels(true)
+            
+            // currentModelOverride 由 loadUserSettings 傳入，避免 React 閉包捕捉舊值
+            const effectiveModel = currentModelOverride !== undefined ? currentModelOverride : settings.model
 
             // ✅ 先檢查 localStorage 中是否有模型列表（從 Admin 頁面同步）
             const cachedModels = localStorage.getItem('adminModelList')
@@ -268,8 +271,8 @@ const App: React.FC = () => {
 
                 // 自動選擇抉擇模型（如果當前沒選）
                 if (models.length > 0) {
-                    const isCurrentModelValid = models.some((m: any) => m.id === settings.model)
-                    if (!settings.model || !isCurrentModelValid) {
+                    const isCurrentModelValid = models.some((m: any) => m.id === effectiveModel)
+                    if (!effectiveModel || !isCurrentModelValid) {
                         let fallbackModel = models[0].id
                         const adminSettingsStr = localStorage.getItem('adminProviderSettings')
                         if (adminSettingsStr) {
@@ -280,7 +283,7 @@ const App: React.FC = () => {
                                 }
                             } catch (e) { }
                         }
-                        console.log(`模型 "${settings.model}" 不在列表中，自動切換至：${fallbackModel}`)
+                        console.log(`模型 "${effectiveModel}" 不在列表中，自動切換至：${fallbackModel}`)
                         setSettings(prev => ({ ...prev, model: fallbackModel }))
                         setUserSettings(prev => ({ ...prev, model: fallbackModel }))
                     }
@@ -323,8 +326,8 @@ const App: React.FC = () => {
             // ✅ 核心修正：以抓到的模型為準
             if (models.length > 0) {
                 // 如果當前沒選模型，或者當前選的模型不在新抓到的列表中
-                const isCurrentModelValid = models.some((m: any) => m.id === settings.model)
-                if (!settings.model || !isCurrentModelValid) {
+                const isCurrentModelValid = models.some((m: any) => m.id === effectiveModel)
+                if (!effectiveModel || !isCurrentModelValid) {
                     let fallbackModel = models[0].id
                     const adminSettingsStr = localStorage.getItem('adminProviderSettings')
                     if (adminSettingsStr) {
@@ -335,9 +338,13 @@ const App: React.FC = () => {
                             }
                         } catch (e) {}
                     }
-                    console.log(`模型 "${settings.model}" 不在列表中，自動切換至: ${fallbackModel}`)
+                    console.log(`模型 "${effectiveModel}" 不在列表中，自動切換至: ${fallbackModel}`)
                     setSettings(prev => ({ ...prev, model: fallbackModel }))
                     setUserSettings(prev => ({ ...prev, model: fallbackModel }))
+                } else if (effectiveModel !== settings.model) {
+                    // 若 effectiveModel 有效且與目前 settings 狀態不一致，更新狀態
+                    setSettings(prev => ({ ...prev, model: effectiveModel }))
+                    setUserSettings(prev => ({ ...prev, model: effectiveModel }))
                 }
             } else {
                 // 如果抓不到任何模型，清空選定
@@ -432,9 +439,10 @@ const App: React.FC = () => {
                 // 1. 強制更新用戶設定狀態
                 setUserSettings(serverSettings)
 
-                // 應用語言設定
-                if (serverSettings.language && serverSettings.language !== i18n.language) {
-                    i18n.changeLanguage(serverSettings.language)
+                // 應用語言設定 - 無條件套用，以伺服器設定為準，並寫入 localStorage 快取
+                if (serverSettings.language) {
+                    await i18n.changeLanguage(serverSettings.language)
+                    try { localStorage.setItem('llmchat_language', serverSettings.language) } catch {}
                     const htmlElement = document.getElementById('html-root') as HTMLHtmlElement
                     if (htmlElement) {
                         htmlElement.lang = serverSettings.language
@@ -480,12 +488,30 @@ const App: React.FC = () => {
                         }
                     })
 
+                    // ✅ 用 localStorage adminProviderSettings 的明文 apiKey 覆蓋（確保與重選 model 行為完全一致）
+                    try {
+                        const adminSettingsStr = localStorage.getItem('adminProviderSettings')
+                        if (adminSettingsStr) {
+                            const adminLocalSettings = JSON.parse(adminSettingsStr)
+                            if (adminLocalSettings.apiKey && newSettings.apiUrl) {
+                                newSettings.apiKey = adminLocalSettings.apiKey
+                            }
+                            if (adminLocalSettings.type) {
+                                newSettings.type = adminLocalSettings.type
+                            }
+                            if (adminLocalSettings.baseUrl) {
+                                newSettings.apiUrl = adminLocalSettings.baseUrl
+                            }
+                        }
+                    } catch (e) { /* ignore */ }
+
                     return newSettings
                 })
 
-                // 3. 設定更新後，立即重新載入模型列表
+                // 3. 設定更新後，立即重新載入模型列表（傳入 serverModel 避免 React 閉包舊值問題）
+                const serverModel = serverSettings.model || ''
                 setTimeout(() => {
-                    loadAvailableModels()
+                    loadAvailableModels(serverModel)
                 }, 100)
             }
         } catch (error) {
@@ -518,6 +544,23 @@ const App: React.FC = () => {
             console.error('Error saving user settings:', error)
         }
     }
+    
+    // 統一更新並保存設定的函式，避免 React 狀態延遲問題
+    const updateAndSaveSettings = async (key: string, value: any) => {
+        // 計算出最新的設定對象
+        const nextSettings = { ...userSettings, [key]: value };
+        
+        // 1. 更新 UI 狀態
+        setUserSettings(nextSettings);
+        
+        // 2. 如果是通用聊天設定，也要同步更新 settings 狀態
+        setSettings(prev => ({ ...prev, [key]: value }));
+        
+        // 3. 只傳「變更的這一個欄位」到伺服器（避免整個 settings 包含鈕字等失效欄位導致存檔失敗）
+        await saveUserSettingsToServer({ [key]: value });
+        
+        return nextSettings;
+    };
 
     // 處理密碼更改
     const handlePasswordChange = async () => {
@@ -620,29 +663,34 @@ const App: React.FC = () => {
                 try {
                     const parsed = JSON.parse(adminSettingsStr)
                     adminModel = parsed.model || ''
+                    // 當 modelListUpdated 發生時，只同步 api 參數，不強制覆蓋使用者的 model selection 
+                    // (除非目前 userSettings 根本沒有設定 model，或是 provider 被更換了)
+                    // 在這裡我們僅合併基礎設定， model 保留邏輯留在下面
                     setSettings(prev => ({
                         ...prev,
                         apiUrl: parsed.baseUrl || prev.apiUrl,
                         apiKey: parsed.apiKey || prev.apiKey,
                         type: parsed.type || prev.type || 'ollama',
-                        model: parsed.model || prev.model
                     }))
                     setUserSettings(prev => ({
                         ...prev,
                         apiUrl: parsed.baseUrl || prev.apiUrl,
                         apiKey: parsed.apiKey || prev.apiKey,
                         type: parsed.type || prev.type || 'ollama',
-                        model: parsed.model || prev.model
                     }))
                 } catch (e) { }
             }
 
-            // 如果 Admin 有指定 model，優先使用 Admin 設定的 model；否則自動選擇第一個模型
+            // 如果 Admin 有指定 model，且當前無效，則使用 Admin 設定的 model；否則保留現有 settings.model（如果有效），或自動選擇第一個模型
             if (e.detail.models.length > 0) {
-                const isCurrentModelValid = e.detail.models.some((m: any) => m.id === adminModel || m.id === settings.model)
-                if (!adminModel && !isCurrentModelValid) {
-                    setSettings(prev => ({ ...prev, model: e.detail.models[0].id }))
-                    setUserSettings(prev => ({ ...prev, model: e.detail.models[0].id }))
+                // 檢查目前的選擇是否還有效
+                const isCurrentModelValid = settings.model && e.detail.models.some((m: any) => m.id === settings.model)
+                if (!isCurrentModelValid) {
+                    const isAdminModelValid = adminModel && e.detail.models.some((m: any) => m.id === adminModel)
+                    const fallbackModel = isAdminModelValid ? adminModel : e.detail.models[0].id
+                    
+                    setSettings(prev => ({ ...prev, model: fallbackModel }))
+                    setUserSettings(prev => ({ ...prev, model: fallbackModel }))
                 }
             }
         }
@@ -1029,9 +1077,19 @@ const App: React.FC = () => {
                             if (parsed.type) currentType = parsed.type;
                         } catch (e) { }
                     }
-                    setSettings(prev => ({ ...prev, model: modelId, apiUrl: currentApiUrl, apiKey: currentApiKey, type: currentType }))
-                    setUserSettings(prev => ({ ...prev, model: modelId, apiUrl: currentApiUrl, apiKey: currentApiKey, type: currentType }))
-                    saveUserSettingsToServer({ ...userSettings, model: modelId, apiUrl: currentApiUrl, apiKey: currentApiKey, type: currentType })
+                    
+                    const newPartialSettings = { 
+                        model: modelId, 
+                        apiUrl: currentApiUrl, 
+                        apiKey: currentApiKey, 
+                        type: currentType 
+                    }
+                    
+                    setSettings(prev => ({ ...prev, ...newPartialSettings }))
+                    setUserSettings(prev => ({ ...prev, ...newPartialSettings }))
+                    
+                    // 原子化儲存，避免將整個 userSettings (可能包含被破壞的 apiKey）覆蓋後端
+                    saveUserSettingsToServer(newPartialSettings)
                 }}
                 onLogout={logout}
                 user={user}
@@ -1097,13 +1155,16 @@ const App: React.FC = () => {
                 </div>
             )}
 
-            {/* Settings Panel */}
+            {/* Settings Dropdown */}
             {(showSettings || showModelOnly) && (
-                <div data-panel="settings" className={`border-b px-4 py-3 transition-colors max-h-96 overflow-y-auto ${isDarkMode
+                <div 
+                    data-panel="settings" 
+                    className={`absolute top-16 right-4 w-72 md:w-80 rounded-lg shadow-xl z-50 border overflow-hidden transition-all duration-200 ease-in-out ${isDarkMode
                     ? 'bg-gray-800 border-gray-700'
                     : 'bg-white border-gray-200'
                     }`}>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-4xl mx-auto">
+                    <div className="p-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
+                        <div className="space-y-6">
                         {/* 只有在完整設定模式下才顯示用戶設定 */}
                         {!showModelOnly && (
                             <>
@@ -1120,18 +1181,18 @@ const App: React.FC = () => {
                                             {t('settings.language.label')}
                                         </label>
                                         <select
-                                            value={userSettings.language}
-                                            onChange={(e) => {
+                                            value={i18n.language}
+                                            onChange={async (e) => {
                                                 const newLanguage = e.target.value
-                                                setUserSettings(prev => ({ ...prev, language: newLanguage }))
+                                                await updateAndSaveSettings('language', newLanguage)
+                                                
                                                 // 立即應用語言變更
-                                                i18n.changeLanguage(newLanguage)
+                                                await i18n.changeLanguage(newLanguage)
+                                                try { localStorage.setItem('llmchat_language', newLanguage) } catch {}
                                                 const htmlElement = document.getElementById('html-root') as HTMLHtmlElement
                                                 if (htmlElement) {
                                                     htmlElement.lang = newLanguage
                                                 }
-                                                // 保存到服務器
-                                                saveUserSettingsToServer({ ...userSettings, language: newLanguage })
                                             }}
                                             className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDarkMode
                                                 ? 'bg-gray-700 border-gray-600 text-white'
@@ -1153,9 +1214,10 @@ const App: React.FC = () => {
                                         </label>
                                         <select
                                             value={userSettings.theme}
-                                            onChange={(e) => {
+                                            onChange={async (e) => {
                                                 const newTheme = e.target.value
-                                                setUserSettings(prev => ({ ...prev, theme: newTheme }))
+                                                await updateAndSaveSettings('theme', newTheme)
+                                                
                                                 // 應用主題變更
                                                 if (newTheme === 'auto') {
                                                     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
@@ -1163,8 +1225,6 @@ const App: React.FC = () => {
                                                 } else {
                                                     setIsDarkMode(newTheme === 'dark')
                                                 }
-                                                // 保存到服務器
-                                                saveUserSettingsToServer({ ...userSettings, theme: newTheme })
                                             }}
                                             className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDarkMode
                                                 ? 'bg-gray-700 border-gray-600 text-white'
@@ -1253,9 +1313,7 @@ const App: React.FC = () => {
                                                     <button
                                                         type="button"
                                                         onClick={() => {
-                                                            setSettings(prev => ({ ...prev, showTokenStats: !prev.showTokenStats }))
-                                                            setUserSettings(prev => ({ ...prev, showTokenStats: !prev.showTokenStats }))
-                                                            saveUserSettingsToServer({ ...userSettings, showTokenStats: !userSettings.showTokenStats })
+                                                            updateAndSaveSettings('showTokenStats', !userSettings.showTokenStats)
                                                         }}
                                                         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${settings.showTokenStats
                                                             ? 'bg-blue-600'
@@ -1281,8 +1339,8 @@ const App: React.FC = () => {
 
                             </>
                         )}
+                        </div>
                     </div>
-
                 </div>
             )}
 
