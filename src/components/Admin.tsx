@@ -73,8 +73,12 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
 
     // 選擇 Provider 時自動帶出 Base URL
     const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const providerName = e.target.value
-        setSelectedProvider(providerName)
+        const providerType = e.target.value
+        setSelectedProvider(providerType)
+        
+        // 根據 type 查找對應的 name，然後獲取 Base URL
+        const provider = providers.find(p => p.type === providerType)
+        const providerName = provider?.name || ''
         
         // 自動帶出預設 URL
         const defaultUrl = PROVIDER_DEFAULTS[providerName] || 'http://127.0.0.1:11434/v1'

@@ -923,7 +923,7 @@ const App: React.FC = () => {
                     ? 'bg-gray-800 border-gray-700'
                     : 'bg-white border-gray-200'
                     }`}>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-4xl mx-auto">
                         {/* 只有在完整設定模式下才顯示用戶設定 */}
                         {!showModelOnly && (
                             <>

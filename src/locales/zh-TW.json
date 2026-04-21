@@ -225,7 +225,7 @@
         "accessDeniedMessage": "您需要管理員權限才能訪問此頁面",
         "backToChat": "返回聊天",
         "title": "用戶管理",
-        "subtitle": "管理系統中的所有用戶帳號",
+        "subtitle": "管理系統中的所有用戶與 LLM 設定",
         "stats": {
             "totalUsers": "總用戶數",
             "enabledUsers": "啟用用戶",
