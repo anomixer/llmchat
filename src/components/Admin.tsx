@@ -82,8 +82,9 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
         if (provider) {
             const providerName = provider.name
             
-            // 自動帶出預設 URL - 優先使用 provider.baseUrl
-            const defaultUrl = provider.baseUrl || PROVIDER_DEFAULTS[providerName] || 'http://127.0.0.1:11434/v1'
+            // ✅ 修復：直接使用 provider.baseUrl，不要 fallback 到 PROVIDER_DEFAULTS
+            // 因為 provider.baseUrl 已經從後端 API 正確返回
+            const defaultUrl = provider.baseUrl || 'http://127.0.0.1:11434/v1'
             setProviderBaseUrl(defaultUrl)
             
             // 如果是本地 Provider，清空 API Key
@@ -91,31 +92,30 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                 setProviderApiKey('')
             }
         } else {
-            // 如果 providers 還沒載入，使用 type 到 name 的映射
-            const typeToNameMap: Record<string, string> = {
-                'ollama': 'Ollama',
-                'ollama-cloud': 'Ollama Cloud',
-                'openai': 'OpenAI',
-                'anthropic': 'Anthropic Claude',
-                'google-gemini': 'Google Gemini',
-                'mistral': 'Mistral',
-                'groq': 'Groq',
-                'xai-grok': 'xAI (Grok)',
-                'nvidia': 'NVIDIA NIM',
-                'together': 'Together AI',
-                'openrouter': 'OpenRouter',
-                'kilo-gateway': 'Kilo Gateway',
-                'synthetic': 'Synthetic (Anthropic-compatible)',
-                'moonshot': 'Moonshot AI (Kimi)',
-                'vercel-gateway': 'Vercel AI Gateway',
-                'cloudflare-gateway': 'Cloudflare AI Gateway',
-                'vllm': 'vLLM',
-                'sglang': 'SGLang',
-                'lm-studio': 'LM Studio',
-                'custom': 'Customer Provider (自訂)'
+            // 如果 providers 還沒載入，使用硬編碼的 Base URL
+            const hardcodedUrls: Record<string, string> = {
+                'ollama': 'http://127.0.0.1:11434/v1',
+                'ollama-cloud': 'https://ollama.com',
+                'openai': 'https://api.openai.com/v1',
+                'anthropic': 'https://api.anthropic.com/v1',
+                'google-gemini': 'https://generativelanguage.googleapis.com/v1beta/openai',
+                'mistral': 'https://api.mistral.ai/v1',
+                'groq': 'https://api.groq.com/openai/v1',
+                'xai-grok': 'https://api.x.ai/v1',
+                'nvidia': 'https://integrate.api.nvidia.com/v1',
+                'together': 'https://api.together.xyz/v1',
+                'openrouter': 'https://openrouter.ai/api/v1',
+                'kilo-gateway': 'https://api.kilo.ai/api/gateway/',
+                'synthetic': 'https://api.synthetic.new/anthropic',
+                'moonshot': 'https://api.moonshot.ai/v1',
+                'vercel-gateway': 'https://gateway.ai.vercel.com/v1/',
+                'cloudflare-gateway': 'https://gateway.ai.cloudflare.com/v1/',
+                'vllm': 'http://127.0.0.1:8000/v1',
+                'sglang': 'http://127.0.0.1:30000/v1',
+                'lm-studio': 'http://127.0.0.1:1234/v1',
+                'custom': 'http://127.0.0.1:11434/v1'
             }
-            const providerName = typeToNameMap[providerType] || ''
-            const defaultUrl = PROVIDER_DEFAULTS[providerName] || 'http://127.0.0.1:11434/v1'
+            const defaultUrl = hardcodedUrls[providerType] || 'http://127.0.0.1:11434/v1'
             setProviderBaseUrl(defaultUrl)
             setProviderApiKey('')
         }
