@@ -91,8 +91,31 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                 setProviderApiKey('')
             }
         } else {
-            // 如果 providers 還沒載入，使用 PROVIDER_DEFAULTS
-            const defaultUrl = PROVIDER_DEFAULTS[e.target.value] || 'http://127.0.0.1:11434/v1'
+            // 如果 providers 還沒載入，使用 type 到 name 的映射
+            const typeToNameMap: Record<string, string> = {
+                'ollama': 'Ollama',
+                'ollama-cloud': 'Ollama Cloud',
+                'openai': 'OpenAI',
+                'anthropic': 'Anthropic Claude',
+                'google-gemini': 'Google Gemini',
+                'mistral': 'Mistral',
+                'groq': 'Groq',
+                'xai-grok': 'xAI (Grok)',
+                'nvidia': 'NVIDIA NIM',
+                'together': 'Together AI',
+                'openrouter': 'OpenRouter',
+                'kilo-gateway': 'Kilo Gateway',
+                'synthetic': 'Synthetic (Anthropic-compatible)',
+                'moonshot': 'Moonshot AI (Kimi)',
+                'vercel-gateway': 'Vercel AI Gateway',
+                'cloudflare-gateway': 'Cloudflare AI Gateway',
+                'vllm': 'vLLM',
+                'sglang': 'SGLang',
+                'lm-studio': 'LM Studio',
+                'custom': 'Customer Provider (自訂)'
+            }
+            const providerName = typeToNameMap[providerType] || ''
+            const defaultUrl = PROVIDER_DEFAULTS[providerName] || 'http://127.0.0.1:11434/v1'
             setProviderBaseUrl(defaultUrl)
             setProviderApiKey('')
         }

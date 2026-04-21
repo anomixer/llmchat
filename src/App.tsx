@@ -113,11 +113,12 @@ const App: React.FC = () => {
         if (adminSettings) {
             try {
                 const parsed = JSON.parse(adminSettings)
+                console.log('從 localStorage 讀取 Admin 設定:', parsed)
                 return {
                     model: parsed.model || '',
                     temperature: parsed.temperature || 0.7,
                     maxTokens: parsed.maxTokens || 8192,
-                    apiUrl: parsed.baseUrl || '',
+                    apiUrl: parsed.baseUrl || 'http://127.0.0.1:11434',
                     apiKey: parsed.apiKey || '',
                     topP: parsed.topP || 0.9,
                     topK: parsed.topK || 40,
@@ -128,11 +129,12 @@ const App: React.FC = () => {
             }
         }
         // 否則使用預設值
+        console.log('使用預設值')
         return {
             model: '',
             temperature: 0.7,
             maxTokens: 8192,
-            apiUrl: '',
+            apiUrl: 'http://127.0.0.1:11434',
             apiKey: '',
             topP: 0.9,
             topK: 40,
@@ -254,22 +256,22 @@ const App: React.FC = () => {
             setIsLoadingModels(true)
             // 優先使用 localStorage 中的設定（從 Admin 頁面同步）
             const adminSettings = localStorage.getItem('adminProviderSettings')
-            let apiUrl = 'http://localhost:11434'
+            let apiUrl = 'http://127.0.0.1:11434'
             let apiKey = ''
             
             if (adminSettings) {
                 const parsed = JSON.parse(adminSettings)
-                apiUrl = parsed.baseUrl || apiUrl
-                apiKey = parsed.apiKey || apiKey
+                apiUrl = parsed.baseUrl || 'http://127.0.0.1:11434'
+                apiKey = parsed.apiKey || ''
             } else {
                 // 如果沒有 localStorage 設定，使用 settings
-                apiUrl = settings.apiUrl || apiUrl
-                apiKey = settings.apiKey || apiKey
+                apiUrl = settings.apiUrl || 'http://127.0.0.1:11434'
+                apiKey = settings.apiKey || ''
             }
             
             console.log('載入模型列表 - apiUrl:', apiUrl, 'apiKey:', apiKey ? '***' : '')
             
-            const response = await fetch(`/api/models?apiUrl=${encodeURIComponent(apiUrl)}&apiKey=${encodeURIComponent(apiKey)}&t=${Date.now()}`)
+            const response = await fetch(`/api/models?baseUrl=${encodeURIComponent(apiUrl)}&apiKey=${encodeURIComponent(apiKey)}&t=${Date.now()}`)
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`)
             }
