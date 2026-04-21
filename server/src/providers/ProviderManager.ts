@@ -403,6 +403,13 @@ export abstract class BaseProvider {
         history: ChatMessage[]
         settings?: any
     }): Promise<ProviderResponse>
+
+    abstract generateResponseStream(params: {
+        message: string
+        history: ChatMessage[]
+        settings?: any
+        abortSignal?: AbortSignal
+    }): AsyncGenerator<string, void, unknown>
 }
 
 /**
@@ -474,6 +481,48 @@ export class OllamaProvider extends BaseProvider {
             }
         }
     }
+
+    async *generateResponseStream(params: {
+        message: string
+        history: ChatMessage[]
+        settings?: any
+        abortSignal?: AbortSignal
+    }): AsyncGenerator<string, void, unknown> {
+        const { message, history, settings = {}, abortSignal } = params
+        const {
+            model = this.config.model,
+            temperature = this.config.temperature || 0.7,
+            maxTokens = this.config.maxTokens || 2048
+        } = settings
+
+        const messages = [
+            ...history,
+            { role: 'user' as const, content: message }
+        ]
+
+        const requestData = {
+            model,
+            messages,
+            stream: true,
+            options: {
+                temperature: parseFloat(temperature.toString()),
+                num_predict: parseInt(maxTokens.toString()),
+                num_ctx: parseInt(maxTokens.toString()),
+                top_p: parseFloat(settings?.topP || 0.9),
+                top_k: parseInt(settings?.topK || 40)
+            }
+        }
+
+        const response = await this.client.post('/api/chat', requestData, {
+            responseType: 'stream',
+            signal: abortSignal
+        })
+
+        const stream = response.data
+        for await (const chunk of stream) {
+            yield chunk.toString()
+        }
+    }
 }
 
 /**
@@ -537,6 +586,89 @@ export class OpenAIProvider extends BaseProvider {
                 promptTokens: 0,
                 completionTokens: 0,
                 totalTokens: 0
+            }
+        }
+    }
+
+    async *generateResponseStream(params: {
+        message: string
+        history: ChatMessage[]
+        settings?: any
+        abortSignal?: AbortSignal
+    }): AsyncGenerator<string, void, unknown> {
+        const { message, history, settings = {}, abortSignal } = params
+        const {
+            model = this.config.model,
+            temperature = this.config.temperature || 0.7,
+            maxTokens = this.config.maxTokens || 2048
+        } = settings
+
+        const messages = [
+            { role: 'system', content: 'You are a helpful AI assistant.' },
+            ...history,
+            { role: 'user', content: message }
+        ]
+
+        const requestData = {
+            model,
+            messages,
+            stream: true,
+            temperature: parseFloat(temperature.toString()),
+            max_tokens: parseInt(maxTokens.toString())
+        }
+
+        const response = await this.client.post('/v1/chat/completions', requestData, {
+            responseType: 'stream',
+            signal: abortSignal
+        })
+
+        const stream = response.data
+        let buffer = ''
+        
+        for await (const chunk of stream) {
+            const chunkStr = chunk.toString()
+            buffer += chunkStr
+            
+            const lines = buffer.split('\n')
+            // 保留最後一個可能不完整的行在 buffer 中
+            buffer = lines.pop() || ''
+            
+            for (const line of lines) {
+                const trimmedLine = line.trim()
+                if (!trimmedLine) continue
+                
+                if (trimmedLine.startsWith('data: ')) {
+                    const dataStr = trimmedLine.replace('data: ', '')
+                    
+                    if (dataStr === '[DONE]') {
+                        yield JSON.stringify({ done: true }) + '\n'
+                        continue
+                    }
+                    
+                    try {
+                        const data = JSON.parse(dataStr)
+                        const content = data.choices?.[0]?.delta?.content || ''
+                        if (content) {
+                            yield JSON.stringify({ message: { content }, done: false }) + '\n'
+                        }
+                    } catch (e) {
+                        // 忽略無效的 JSON 或不完整的行
+                    }
+                }
+            }
+        }
+        
+        // 處理剩餘的 buffer（雖然在 SSE 中通常最後會是 [DONE]）
+        if (buffer.trim().startsWith('data: ')) {
+            const dataStr = buffer.trim().replace('data: ', '')
+            if (dataStr !== '[DONE]') {
+                try {
+                    const data = JSON.parse(dataStr)
+                    const content = data.choices?.[0]?.delta?.content || ''
+                    if (content) {
+                        yield JSON.stringify({ message: { content }, done: false }) + '\n'
+                    }
+                } catch (e) { }
             }
         }
     }
@@ -605,6 +737,67 @@ export class AnthropicProvider extends BaseProvider {
                 promptTokens: response.data.usage?.input_tokens || 0,
                 completionTokens: response.data.usage?.output_tokens || 0,
                 totalTokens: (response.data.usage?.input_tokens || 0) + (response.data.usage?.output_tokens || 0)
+            }
+        }
+    }
+
+    async *generateResponseStream(params: {
+        message: string
+        history: ChatMessage[]
+        settings?: any
+        abortSignal?: AbortSignal
+    }): AsyncGenerator<string, void, unknown> {
+        const { message, history, settings = {}, abortSignal } = params
+        const {
+            model = this.config.model,
+            temperature = this.config.temperature || 0.7,
+            maxTokens = this.config.maxTokens || 4096
+        } = settings
+
+        const anthropicMessages = history
+            .filter((msg: any) => msg.role !== 'system')
+            .map((msg: any) => ({
+                role: msg.role === 'assistant' ? 'assistant' : 'user',
+                content: msg.content
+            }))
+            
+        anthropicMessages.push({ role: 'user', content: message })
+
+        const requestData = {
+            model,
+            messages: anthropicMessages,
+            max_tokens: parseInt(maxTokens.toString()),
+            temperature: parseFloat(temperature.toString()),
+            system: 'You are a helpful AI assistant.',
+            stream: true
+        }
+
+        const response = await this.client.post('/v1/messages', requestData, {
+            responseType: 'stream',
+            signal: abortSignal
+        })
+
+        const stream = response.data
+        for await (const chunk of stream) {
+            const lines = chunk.toString().split('\n').filter((line: string) => line.trim())
+            for (const line of lines) {
+                if (line.startsWith('event: ')) continue
+                if (line.startsWith('data: ')) {
+                    const dataStr = line.replace('data: ', '')
+                    try {
+                        const data = JSON.parse(dataStr)
+                        if (data.type === 'content_block_delta') {
+                            const content = data.delta?.text || ''
+                            if (content) {
+                                yield JSON.stringify({ message: { content }, done: false }) + '\n'
+                            }
+                        } else if (data.type === 'message_stop') {
+                            yield JSON.stringify({ done: true }) + '\n'
+                        }
+                    } catch (e) {
+                        // ignore
+                    }
+                }
             }
         }
     }

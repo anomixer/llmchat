@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express'
 import type UserService from '../services/userService.js'
-import { OllamaProvider, type ChatSettings } from '../providers/ollamaProvider.js'
+import { ProviderFactory } from '../providers/ProviderManager.js'
+import { type ChatSettings } from '../providers/ollamaProvider.js'
 import { ChatProvider } from '../providers/chatProvider.js'
 import { getSystemPrompt, normalizeLanguage } from '../prompts.js'
 import { authenticateToken, type AuthedRequest } from '../middlewares/authenticateToken.js'
@@ -19,53 +20,60 @@ function buildChatSettings(payload: any, userService: UserService, userId: strin
         {
             name: 'payload',
             apiUrl: payload?.settings?.apiUrl,
-            apiKey: payload?.settings?.apiKey
+            apiKey: payload?.settings?.apiKey,
+            providerType: payload?.settings?.providerType || payload?.settings?.type
         },
         {
             name: 'user',
             apiUrl: (userSettings as any)?.apiUrl,
-            apiKey: (userSettings as any)?.apiKey
+            apiKey: (userSettings as any)?.apiKey,
+            providerType: (userSettings as any)?.type || (userSettings as any)?.providerType
         },
         {
             name: 'admin',
             apiUrl: (adminSettings as any)?.apiUrl,
-            apiKey: (adminSettings as any)?.apiKey
+            apiKey: (adminSettings as any)?.apiKey,
+            providerType: (adminSettings as any)?.type || (adminSettings as any)?.providerType
         },
         {
             name: 'env',
             apiUrl: defaultApiUrl,
-            apiKey: defaultApiKey
+            apiKey: defaultApiKey,
+            providerType: process.env.LLM_PROVIDER || 'ollama'
         }
     ]
 
     // 尋找第一個有定義 apiUrl 的層級
     let selectedApiUrl = 'http://localhost:11434'
     let selectedApiKey = ''
+    let selectedProviderType = 'ollama'
     let source = 'hardcoded default'
 
     for (const config of configs) {
         if (config.apiUrl && config.apiUrl.trim() !== '') {
             selectedApiUrl = config.apiUrl
             selectedApiKey = config.apiKey || '' // 就算是空的也要帶，不能去抓下一個層級的 Key
+            selectedProviderType = (config as any).providerType || (config as any).type || 'ollama'
             source = config.name
             break
         }
     }
 
-    console.log(`[ChatSettings] 使用配置來源: ${source}, URL: ${selectedApiUrl}, Key: ${selectedApiKey ? '********' : '(empty)'}`)
+    console.log(`[ChatSettings] 使用配置來源: ${source}, Type: ${selectedProviderType}, URL: ${selectedApiUrl}, Key: ${selectedApiKey ? '********' : '(empty)'}`)
 
     return {
-        model: payload?.settings?.model || userSettings?.model || 'llama2',
-        temperature: parseFloat(payload?.settings?.temperature || userSettings?.temperature || 0.7),
-        maxTokens: parseInt(payload?.settings?.maxTokens || userSettings?.maxTokens || 8192),
+        providerType: selectedProviderType,
+        model: payload?.settings?.model || (userSettings as any)?.model || 'llama2',
+        temperature: parseFloat(payload?.settings?.temperature || (userSettings as any)?.temperature || 0.7),
+        maxTokens: parseInt(payload?.settings?.maxTokens || (userSettings as any)?.maxTokens || 8192),
         systemPrompt: payload?.settings?.systemPrompt || getSystemPrompt(language),
         apiUrl: selectedApiUrl,
         apiKey: selectedApiKey,
-        topP: parseFloat(payload?.settings?.topP || userSettings?.topP || 0.9),
-        topK: parseInt(payload?.settings?.topK || userSettings?.topK || 40),
+        topP: parseFloat(payload?.settings?.topP || (userSettings as any)?.topP || 0.9),
+        topK: parseInt(payload?.settings?.topK || (userSettings as any)?.topK || 40),
         showTokenStats: payload?.settings?.showTokenStats ?? (userSettings as any)?.showTokenStats ?? true,
         language
-    }
+    } as Required<ChatSettings> & { providerType: string }
 }
 
 export function createChatRouter(deps: { userService: UserService; defaultApiUrl: string; defaultApiKey: string }) {
@@ -86,8 +94,15 @@ export function createChatRouter(deps: { userService: UserService; defaultApiUrl
 
             const chatSettings = buildChatSettings((req as any).body, userService, req.user!.userId, defaultApiUrl, defaultApiKey)
 
-            const dynamicProvider = new OllamaProvider(chatSettings.apiUrl, chatSettings.apiKey)
-            const dynamicChatProvider = new ChatProvider(dynamicProvider)
+            const dynamicProvider = ProviderFactory.createProvider(chatSettings.providerType, {
+                type: chatSettings.providerType,
+                baseUrl: chatSettings.apiUrl,
+                apiKey: chatSettings.apiKey,
+                model: chatSettings.model,
+                temperature: chatSettings.temperature,
+                maxTokens: chatSettings.maxTokens
+            })
+            const dynamicChatProvider = new ChatProvider(dynamicProvider as any)
 
             const response = await dynamicChatProvider.generateResponse({
                 message,
@@ -147,7 +162,14 @@ export function createChatRouter(deps: { userService: UserService; defaultApiUrl
             res.setHeader('Connection', 'keep-alive')
 
             const chatSettings = buildChatSettings((req as any).body, userService, req.user!.userId, defaultApiUrl, defaultApiKey)
-            const dynamicProvider = new OllamaProvider(chatSettings.apiUrl, chatSettings.apiKey)
+            const dynamicProvider = ProviderFactory.createProvider(chatSettings.providerType, {
+                type: chatSettings.providerType,
+                baseUrl: chatSettings.apiUrl,
+                apiKey: chatSettings.apiKey,
+                model: chatSettings.model,
+                temperature: chatSettings.temperature,
+                maxTokens: chatSettings.maxTokens
+            }) as any
 
             try {
                 const streamGenerator = dynamicProvider.generateResponseStream({

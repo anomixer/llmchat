@@ -22,22 +22,7 @@ export function createApiMiscRouter(deps: { emailService: EmailService; defaultA
         })
     })
 
-    // 獲取可用模型 - 支持自定義 API URL 和 API Key
-    router.get('/models', async (req: Request, res: Response) => {
-        try {
-            const apiUrl = (req.query.apiUrl as string) || defaultApiUrl || 'http://localhost:11434'
-            const apiKey = (req.query.apiKey as string) || defaultApiKey || ''
 
-            console.log(`[Models] 正在獲取模型列表, URL: ${apiUrl}, Key: ${apiKey ? '********' : '(無)'}`)
-
-            const dynamicProvider = new OllamaProvider(apiUrl, apiKey)
-            const models = await dynamicProvider.getAvailableModels()
-            res.json({ models })
-        } catch (error: any) {
-            console.error('Error fetching models:', error.message)
-            res.status(500).json({ error: '無法獲取模型列表', details: error.message })
-        }
-    })
 
     // 聊天歷史端點（可選功能）
     router.get('/history', (_req: Request, res: Response) => {

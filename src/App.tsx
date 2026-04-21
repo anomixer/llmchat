@@ -18,6 +18,7 @@ import { useAutoScroll } from './hooks/useAutoScroll'
 import { useApplyThemeClasses, usePrefersColorSchemeSync } from './hooks/useThemeEffects'
 
 interface ChatSettings {
+    type?: string
     model: string
     temperature: number
     maxTokens: number
@@ -115,6 +116,7 @@ const App: React.FC = () => {
                 const parsed = JSON.parse(adminSettings)
                 console.log('從 localStorage 讀取 Admin 設定:', parsed)
                 return {
+                    type: parsed.type || 'ollama',
                     model: parsed.model || '',
                     temperature: parsed.temperature || 0.7,
                     maxTokens: parsed.maxTokens || 8192,
@@ -131,6 +133,7 @@ const App: React.FC = () => {
         // 否則使用預設值
         console.log('使用預設值')
         return {
+            type: 'ollama',
             model: '',
             temperature: 0.7,
             maxTokens: 8192,
@@ -142,6 +145,7 @@ const App: React.FC = () => {
         }
     })
     const [userSettings, setUserSettings] = useState({
+        type: 'ollama',
         language: 'zh-TW',
         theme: 'auto',
         model: '',
@@ -254,20 +258,31 @@ const App: React.FC = () => {
     const loadAvailableModels = async () => {
         try {
             setIsLoadingModels(true)
-            
+
             // ✅ 先檢查 localStorage 中是否有模型列表（從 Admin 頁面同步）
             const cachedModels = localStorage.getItem('adminModelList')
             if (cachedModels) {
                 const models = JSON.parse(cachedModels)
                 console.log('從 localStorage 載入模型列表:', models.length, '個模型')
                 setAvailableModels(models)
-                
-                // 自動選擇第一個模型（如果當前沒選）
+
+                // 自動選擇抉擇模型（如果當前沒選）
                 if (models.length > 0) {
-                    const isCurrentModelValid = models.some((m) => m.id === settings.model)
+                    const isCurrentModelValid = models.some((m: any) => m.id === settings.model)
                     if (!settings.model || !isCurrentModelValid) {
-                        console.log(`模型 "${settings.model}" 不在列表中，自動切換至：${models[0].id}`)
-                        setSettings(prev => ({ ...prev, model: models[0].id }))
+                        let fallbackModel = models[0].id
+                        const adminSettingsStr = localStorage.getItem('adminProviderSettings')
+                        if (adminSettingsStr) {
+                            try {
+                                const parsed = JSON.parse(adminSettingsStr)
+                                if (parsed.model && models.some((m: any) => m.id === parsed.model)) {
+                                    fallbackModel = parsed.model
+                                }
+                            } catch (e) { }
+                        }
+                        console.log(`模型 "${settings.model}" 不在列表中，自動切換至：${fallbackModel}`)
+                        setSettings(prev => ({ ...prev, model: fallbackModel }))
+                        setUserSettings(prev => ({ ...prev, model: fallbackModel }))
                     }
                 } else {
                     setSettings(prev => ({ ...prev, model: '' }))
@@ -278,20 +293,22 @@ const App: React.FC = () => {
             const adminSettings = localStorage.getItem('adminProviderSettings')
             let apiUrl = 'http://127.0.0.1:11434'
             let apiKey = ''
-            
+            let providerType = 'ollama'
+
             if (adminSettings) {
                 const parsed = JSON.parse(adminSettings)
                 apiUrl = parsed.baseUrl || 'http://127.0.0.1:11434'
                 apiKey = parsed.apiKey || ''
+                providerType = parsed.type || 'ollama'
             } else {
                 // 如果沒有 localStorage 設定，使用 settings
                 apiUrl = settings.apiUrl || 'http://127.0.0.1:11434'
                 apiKey = settings.apiKey || ''
             }
-            
-            console.log('載入模型列表 - apiUrl:', apiUrl, 'apiKey:', apiKey ? '***' : '')
-            
-            const response = await fetch(`/api/models?baseUrl=${encodeURIComponent(apiUrl)}&apiKey=${encodeURIComponent(apiKey)}&t=${Date.now()}`)
+
+            console.log('載入模型列表 - type:', providerType, 'apiUrl:', apiUrl, 'apiKey:', apiKey ? '***' : '')
+
+            const response = await fetch(`/api/models?type=${encodeURIComponent(providerType)}&baseUrl=${encodeURIComponent(apiUrl)}&apiKey=${encodeURIComponent(apiKey)}&t=${Date.now()}`)
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`)
             }
@@ -308,8 +325,19 @@ const App: React.FC = () => {
                 // 如果當前沒選模型，或者當前選的模型不在新抓到的列表中
                 const isCurrentModelValid = models.some((m: any) => m.id === settings.model)
                 if (!settings.model || !isCurrentModelValid) {
-                    console.log(`模型 "${settings.model}" 不在列表中，自動切換至: ${models[0].id}`)
-                    setSettings(prev => ({ ...prev, model: models[0].id }))
+                    let fallbackModel = models[0].id
+                    const adminSettingsStr = localStorage.getItem('adminProviderSettings')
+                    if (adminSettingsStr) {
+                        try {
+                            const parsed = JSON.parse(adminSettingsStr)
+                            if (parsed.model && models.some((m: any) => m.id === parsed.model)) {
+                                fallbackModel = parsed.model
+                            }
+                        } catch (e) {}
+                    }
+                    console.log(`模型 "${settings.model}" 不在列表中，自動切換至: ${fallbackModel}`)
+                    setSettings(prev => ({ ...prev, model: fallbackModel }))
+                    setUserSettings(prev => ({ ...prev, model: fallbackModel }))
                 }
             } else {
                 // 如果抓不到任何模型，清空選定
@@ -335,7 +363,7 @@ const App: React.FC = () => {
             if (response.ok) {
                 const data = await response.json()
                 setAvailableProviders(data.providers)
-                
+
                 // 獲取當前 Provider 配置
                 const currentResponse = await fetch('/api/providers/current', {
                     headers: {
@@ -549,6 +577,7 @@ const App: React.FC = () => {
         } else if (!user && conversationsLoaded) {
             // 用戶登出時重置設定，包括主畫面的 settings
             const initialSettings = {
+                type: 'ollama',
                 language: 'zh-TW',
                 theme: 'auto',
                 model: '',
@@ -578,40 +607,49 @@ const App: React.FC = () => {
                 }, 100)
             }
         }
-        
+
         // ✅ 監聽自定義事件（來自 Admin 頁面）
         const handleModelListUpdated = (e: CustomEvent) => {
             console.log('模型列表已更新，收到事件:', e.detail.models.length, '個模型')
             setAvailableModels(e.detail.models)
-            
+
             // 從 localStorage 讀取最新設定
             const adminSettingsStr = localStorage.getItem('adminProviderSettings')
+            let adminModel = ''
             if (adminSettingsStr) {
                 try {
                     const parsed = JSON.parse(adminSettingsStr)
-                    setSettings(prev => ({ 
-                        ...prev, 
+                    adminModel = parsed.model || ''
+                    setSettings(prev => ({
+                        ...prev,
                         apiUrl: parsed.baseUrl || prev.apiUrl,
                         apiKey: parsed.apiKey || prev.apiKey,
+                        type: parsed.type || prev.type || 'ollama',
+                        model: parsed.model || prev.model
                     }))
-                    setUserSettings(prev => ({ 
-                        ...prev, 
+                    setUserSettings(prev => ({
+                        ...prev,
                         apiUrl: parsed.baseUrl || prev.apiUrl,
                         apiKey: parsed.apiKey || prev.apiKey,
+                        type: parsed.type || prev.type || 'ollama',
+                        model: parsed.model || prev.model
                     }))
-                } catch(e) {}
+                } catch (e) { }
             }
 
-            // 自動選擇第一個模型（如果當前沒選）
-            if (e.detail.models.length > 0 && (!settings.model || !e.detail.models.some((m: any) => m.id === settings.model))) {
-                setSettings(prev => ({ ...prev, model: e.detail.models[0].id }))
-                setUserSettings(prev => ({ ...prev, model: e.detail.models[0].id }))
+            // 如果 Admin 有指定 model，優先使用 Admin 設定的 model；否則自動選擇第一個模型
+            if (e.detail.models.length > 0) {
+                const isCurrentModelValid = e.detail.models.some((m: any) => m.id === adminModel || m.id === settings.model)
+                if (!adminModel && !isCurrentModelValid) {
+                    setSettings(prev => ({ ...prev, model: e.detail.models[0].id }))
+                    setUserSettings(prev => ({ ...prev, model: e.detail.models[0].id }))
+                }
             }
         }
-        
+
         window.addEventListener('storage', handleStorageChange)
         window.addEventListener('modelListUpdated', handleModelListUpdated as EventListener)
-        
+
         return () => {
             window.removeEventListener('storage', handleStorageChange)
             window.removeEventListener('modelListUpdated', handleModelListUpdated as EventListener)
@@ -982,16 +1020,18 @@ const App: React.FC = () => {
                     const adminSettingsStr = localStorage.getItem('adminProviderSettings')
                     let currentApiUrl = userSettings.apiUrl;
                     let currentApiKey = userSettings.apiKey;
+                    let currentType = userSettings.type || 'ollama';
                     if (adminSettingsStr) {
                         try {
                             const parsed = JSON.parse(adminSettingsStr)
                             if (parsed.baseUrl) currentApiUrl = parsed.baseUrl;
                             if (parsed.apiKey) currentApiKey = parsed.apiKey;
-                        } catch (e) {}
+                            if (parsed.type) currentType = parsed.type;
+                        } catch (e) { }
                     }
-                    setSettings(prev => ({ ...prev, model: modelId, apiUrl: currentApiUrl, apiKey: currentApiKey }))
-                    setUserSettings(prev => ({ ...prev, model: modelId, apiUrl: currentApiUrl, apiKey: currentApiKey }))
-                    saveUserSettingsToServer({ ...userSettings, model: modelId, apiUrl: currentApiUrl, apiKey: currentApiKey })
+                    setSettings(prev => ({ ...prev, model: modelId, apiUrl: currentApiUrl, apiKey: currentApiKey, type: currentType }))
+                    setUserSettings(prev => ({ ...prev, model: modelId, apiUrl: currentApiUrl, apiKey: currentApiKey, type: currentType }))
+                    saveUserSettingsToServer({ ...userSettings, model: modelId, apiUrl: currentApiUrl, apiKey: currentApiKey, type: currentType })
                 }}
                 onLogout={logout}
                 user={user}
@@ -1242,7 +1282,7 @@ const App: React.FC = () => {
                             </>
                         )}
                     </div>
-                    
+
                 </div>
             )}
 

@@ -268,12 +268,41 @@
             "updateRole": "更新角色失敗",
             "deleteUser": "刪除用戶失敗",
             "toggleUser": "切換用戶狀態失敗",
-            "unknown": "未知錯誤",
-            "usersTab": "用戶管理",
-            "llmTab": "LLM Provider 設定"
+            "unknown": "未知錯誤"
         },
         "usersTab": "用戶管理",
-        "llmTab": "LLM Provider 設定"
+        "llmTab": "LLM Provider 設定",
+        "llm": {
+            "config": "LLM Provider 配置",
+            "selectProvider": "選擇 Provider",
+            "baseUrl": "Base URL",
+            "baseUrlHint": "選擇 Provider 後自動帶出，可手動修改",
+            "apiKey": "API Key",
+            "apiKeyPlaceholder": "API Key (可選，部分 Provider 不需要)",
+            "apiKeyHint": "格式依 Provider 而定（API Key、OAuth Token 等）",
+            "modelName": "模型名稱",
+            "modelPlaceholder": "例如：gpt-4, claude-3, llama3",
+            "fetchModels": "獲取模型",
+            "visionModel": "Vision 模型 (可選)",
+            "visionPlaceholder": "用於多模態內容，留空則自動選擇",
+            "visionHint": "用於讀取圖片、手寫草圖等。留空時系統會自動選擇同 Provider 的 vision 模型。",
+            "generation": "生成參數",
+            "temperatureHint": "控制輸出隨機性：低溫=確定、邏輯；高溫=多樣、創造",
+            "topPHint": "核心採樣機率：高=高機率；低=低機率",
+            "topKHint": "限制候選 Token 數量：高=取樣多；低=取樣少",
+            "maxTokensHint": "最大上下文長度",
+            "testing": "測試中...",
+            "testConnection": "測試連接",
+            "saveSettings": "保存設定",
+            "testAndSave": "測試與儲存 Provider",
+            "saveSuccess": "✅ 設定已保存",
+            "saveWarning": "⚠️ 設定已保存，但連接失敗",
+            "saveError": "❌ 保存失敗",
+            "current": "當前",
+            "testSuccess": "✅ 連接成功",
+            "testFailed": "❌ 連接失敗",
+            "testError": "❌ 連接錯誤："
+        }
     },
     "systemPrompt": "你是一個有用的AI助手，請用繁體中文回答用戶的問題。"
 }

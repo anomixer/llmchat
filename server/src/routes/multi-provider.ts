@@ -1,7 +1,8 @@
 import { Router, type Request, type Response } from 'express'
 import { ProviderFactory, AVAILABLE_PROVIDERS } from '../providers/ProviderManager.js'
 
-export function createMultiProviderRouter(_deps: any) {
+export function createMultiProviderRouter(deps: any) {
+    const { userService } = deps
     const router = Router()
 
     // 獲取可用的 Provider 列表
@@ -18,16 +19,20 @@ export function createMultiProviderRouter(_deps: any) {
     // 獲取當前 Provider 配置（從環境變數）
     router.get('/providers/current', (_req: Request, res: Response) => {
         try {
+            // 優先從管理員設定中讀取
+            const adminSettings = userService ? userService.getAdminSettings() : null
+            const providerType = adminSettings?.type || process.env.LLM_PROVIDER || 'ollama'
+            
             const currentProvider = {
-                type: process.env.LLM_PROVIDER || 'ollama',
-                baseUrl: process.env.LLM_BASE_URL || 
-                    (process.env.LLM_PROVIDER === 'ollama' ? 'http://localhost:11434' : 
-                     process.env.LLM_PROVIDER === 'anthropic' ? 'https://api.anthropic.com' :
-                     process.env.LLM_PROVIDER === 'openai' ? 'https://api.openai.com' :
-                     process.env.LLM_PROVIDER === 'groq' ? 'https://api.groq.com/openai' :
-                     'https://api.openai.com'),
-                model: process.env.LLM_MODEL || 'llama2',
-                requiresApiKey: process.env.LLM_PROVIDER !== 'ollama'
+                type: providerType,
+                name: AVAILABLE_PROVIDERS.find(p => p.type === providerType)?.name || providerType,
+                baseUrl: adminSettings?.apiUrl || process.env.LLM_BASE_URL || 
+                    (providerType === 'ollama' ? 'http://localhost:11434/v1' : 'https://api.openai.com/v1'),
+                model: adminSettings?.model || process.env.LLM_MODEL || 'llama2',
+                apiKey: adminSettings?.apiKey ? '********' : (process.env.LLM_API_KEY ? '********' : ''),
+                temperature: adminSettings?.temperature || parseFloat(process.env.LLM_TEMPERATURE || '0.7'),
+                maxTokens: adminSettings?.maxTokens || parseInt(process.env.LLM_MAX_TOKENS || '4096'),
+                requiresApiKey: !['ollama', 'ollama-cloud', 'vllm', 'sglang', 'lm-studio', 'custom'].includes(providerType)
             }
             res.json({ current: currentProvider })
         } catch (error: any) {
@@ -41,13 +46,29 @@ export function createMultiProviderRouter(_deps: any) {
         try {
             const { type, baseUrl, apiKey, model, temperature, maxTokens } = req.body
             
-            // 保存配置到環境變數（僅用於當前會話）
+            // 保存配置到環境變數（作為緩存）
             process.env.LLM_PROVIDER = type
             process.env.LLM_BASE_URL = baseUrl
             process.env.LLM_API_KEY = apiKey || ''
             process.env.LLM_MODEL = model
             process.env.LLM_TEMPERATURE = temperature?.toString() || '0.7'
-            process.env.LLM_MAX_TOKENS = maxTokens?.toString() || '2048'
+            process.env.LLM_MAX_TOKENS = maxTokens?.toString() || '4096'
+
+            // ✅ 持久化到資料庫
+            if (userService) {
+                const admin = userService.users.find((u: any) => u.role === 'admin')
+                if (admin) {
+                    userService.updateUserSettings(admin.id, {
+                        type,
+                        apiUrl: baseUrl,
+                        apiKey: apiKey || '',
+                        model,
+                        temperature: parseFloat(temperature || '0.7'),
+                        maxTokens: parseInt(maxTokens || '4096')
+                    })
+                    console.log(`已將 Provider 設定 (${type}) 持久化到管理員 [${admin.email}] 的帳號中`)
+                }
+            }
 
             // 測試連接
             try {
@@ -96,10 +117,10 @@ export function createMultiProviderRouter(_deps: any) {
             const providerType = type || process.env.LLM_PROVIDER || 'ollama'
             const providerBaseUrl = baseUrl || process.env.LLM_BASE_URL || 
                 (providerType === 'ollama' ? 'http://localhost:11434' : 
-                 providerType === 'anthropic' ? 'https://api.anthropic.com' :
-                 providerType === 'openai' ? 'https://api.openai.com' :
-                 providerType === 'groq' ? 'https://api.groq.com/openai' :
-                 'https://api.openai.com')
+                 providerType === 'anthropic' ? 'https://api.anthropic.com/v1' :
+                 providerType === 'openai' ? 'https://api.openai.com/v1' :
+                 providerType === 'groq' ? 'https://api.groq.com/openai/v1' :
+                 'https://api.openai.com/v1')
             const providerApiKey = apiKey || process.env.LLM_API_KEY || ''
             const providerModel = model || process.env.LLM_MODEL || 'llama2'
 
@@ -126,10 +147,10 @@ export function createMultiProviderRouter(_deps: any) {
             const providerType = req.query.type as string || process.env.LLM_PROVIDER || 'ollama'
             const providerBaseUrl = req.query.baseUrl as string || process.env.LLM_BASE_URL || 
                 (providerType === 'ollama' ? 'http://localhost:11434' : 
-                 providerType === 'anthropic' ? 'https://api.anthropic.com' :
-                 providerType === 'openai' ? 'https://api.openai.com' :
-                 providerType === 'groq' ? 'https://api.groq.com/openai' :
-                 'https://api.openai.com')
+                 providerType === 'anthropic' ? 'https://api.anthropic.com/v1' :
+                 providerType === 'openai' ? 'https://api.openai.com/v1' :
+                 providerType === 'groq' ? 'https://api.groq.com/openai/v1' :
+                 'https://api.openai.com/v1')
             const providerApiKey = req.query.apiKey as string || process.env.LLM_API_KEY || ''
             const providerModel = req.query.model as string || process.env.LLM_MODEL || 'llama2'
 
@@ -162,10 +183,10 @@ export function createMultiProviderRouter(_deps: any) {
             const providerType = settings?.providerType || process.env.LLM_PROVIDER || 'ollama'
             const providerBaseUrl = settings?.baseUrl || process.env.LLM_BASE_URL || 
                 (providerType === 'ollama' ? 'http://localhost:11434' : 
-                 providerType === 'anthropic' ? 'https://api.anthropic.com' :
-                 providerType === 'openai' ? 'https://api.openai.com' :
-                 providerType === 'groq' ? 'https://api.groq.com/openai' :
-                 'https://api.openai.com')
+                 providerType === 'anthropic' ? 'https://api.anthropic.com/v1' :
+                 providerType === 'openai' ? 'https://api.openai.com/v1' :
+                 providerType === 'groq' ? 'https://api.groq.com/openai/v1' :
+                 'https://api.openai.com/v1')
             const providerApiKey = settings?.apiKey || process.env.LLM_API_KEY || ''
             const providerModel = settings?.model || process.env.LLM_MODEL || 'llama2'
 

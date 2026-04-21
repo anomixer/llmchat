@@ -44,7 +44,7 @@ export function createApp(deps: {
     app.use('/api', createAdminRouter({ userService: deps.userService }))
     
     // Multi-Provider API
-    app.use('/api', createMultiProviderRouter({}))
+    app.use('/api', createMultiProviderRouter({ userService: deps.userService }))
 
     // OpenAI compatible
     app.use('/v1', createOpenAiRouter({ ollamaProvider: deps.ollamaProvider }))

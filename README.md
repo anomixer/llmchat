@@ -45,8 +45,8 @@ Get up and chatting with large language models featuring glass-morphism effect.
 - **分檔對話儲存**: 每個用戶的對話記錄單獨存檔為 {email}.json，提供更好的數據隔離和備份便利性
 - **個人設定系統**: 用戶可保存個人化的語言、主題、AI 模型參數等設定
 - **密碼管理**: 用戶可以在設定中安全地更改密碼，包含當前密碼驗證和新密碼確認機制
-- **多 Provider 支援**: 支援 8 個主要 LLM Provider（Ollama、OpenAI、Anthropic、Groq、DeepSeek、NVIDIA、Mistral、Together），可透過 UI 一鍵切換，無需重啟服務
-- **Provider 管理**: 完整的 Provider 配置界面，支援連接測試、模型自動檢測、參數自訂
+- **多 Provider 支援**: 全面支援 20 組 LLM Provider (包含各大雲端 API、網關以及本地自建方案)，可透過 UI 一鍵切換，無需重啟服務
+- **Provider 管理**: 完整的 Provider 配置介面，自動帶入服務商 Base URL，支援連接測試、模型自動檢測與全域同步設定
 
 ## ⌨️ 快捷鍵支援
 
@@ -633,6 +633,16 @@ npm run preview
 
 ## 🔄 更新日誌
 
+### v260421
+
+- 🔗 **多 Provider 深度串接**: 實施了後端 `ProviderManager` 與 `ProviderFactory` 架構，正式支援 OpenAI, NVIDIA NIM, Anthropic, Google Gemini 等主流 Provider，並解決了 Provider 類型丟失導致的後台誤判問題。
+- ⚙️ **Admin 設定持久化**: 修正了原先僅暫存於環境變數的 Bug，現在所有 Provider 設定（URL、Key、Model、參數）均會完整持久化至管理員資料庫配置中，確保重啟服務後配置不丟失。
+- 🎯 **模型選擇穩定性**: 解決了管理員面板在儲存或更新設定後，模型下拉選單會因 React 狀態延遲而自動跳回第一個項目的問題，實現了模型選取狀態的鎖定與保留。
+- 🌊 **SSE 串流緩衝優化**: 針對 OpenAI 相容 API 導入了行緩衝 (Line Buffering) 機制，解決了因網路分塊 (Chunking) 導致 JSON 解析中斷的 Bug，顯著提升了 NVIDIA NIM 等第三方 API 的連線穩定性。
+- 🌐 **管理介面全方位 i18n**: 完成管理員面板（用戶管理與 LLM 設定）所有標籤、操作按鈕及連線測試狀態的完整國際化翻譯，支援五國語言。
+- 🔧 **前端配置同步**: 修正了主程式 `ChatSettings` 缺失 `type` 屬性導致的路由錯誤，確保前端能將正確的 Provider 資訊無縫傳遞至後端聊天路由。
+- ⚙️ **配置入口遷徙**: 原本位於主畫面齒輪（設定）面板中的 LLM Provider 詳細設定已正式移往「管理員設定」頁面，落實全域統一管理與分層權限控制，一般用戶現在僅能調整生成參數（溫度、Token 等）而無法更改 Provider 底層連線。
+
 ### v251230
 
 - 🔗 **Ollama API 同步優化**: 實施了 `apiUrl` 與 `apiKey` 的「成對綁定」Fallback 邏輯，確保配置的完整邏輯一致性，解決了 URL 來源與 Key 來源不匹配的問題
@@ -825,16 +835,12 @@ npm run preview
 
 LLMChat 支援多種 LLM Provider，無需重啟服務即可透過介面切換：
 
-### 支援的 Provider 列表
-1. **Ollama / Ollama Cloud**: 本地運行，免費，數據隱私保護佳
-2. **OpenAI**: 提供強大如 GPT-4 等高階模型
-3. **Anthropic Claude**: 卓越的長文本處理及優異的程式編寫能力
-4. **Groq**: 提供極速的開源大語言模型推理服務
-5. **DeepSeek**: 多語言表現突出且極具性價比
-6. **NVIDIA NIM**: 支援雲端 GPU 加速
-7. **Mistral**: 歐洲開源模型領航者
-8. **Together AI**: 聚合豐富種類開源模型的平台
-*(也支援 vLLM, SGLang, LM Studio, OpenRouter 等相容 OpenAI 協定的服務或自訂端點)*
+### 支援的 20 組 Provider 列表
+系統內建支援以下 20 種不同的服務商與開源方案，全面涵蓋主流雲端與本地部署應用場景：
+1. **主流雲端大廠 API**: OpenAI, Anthropic Claude, Google Gemini, xAI (Grok)
+2. **高CP值與開源社群 API**: Groq, Mistral, Moonshot AI (Kimi), Together AI, NVIDIA NIM
+3. **API 網關與路由平台**: OpenRouter, Kilo Gateway, Vercel AI Gateway, Cloudflare AI Gateway, Synthetic (Anthropic-compatible)
+4. **本地與自託管開源方案**: Ollama, Ollama Cloud, vLLM, SGLang, LM Studio, Customer Provider (自訂端點)
 
 ### 系統架構特點
 - **統一介面 (`ProviderFactory`)**: 透過整合各種 API 介面提供單一對話流。

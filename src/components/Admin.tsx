@@ -17,7 +17,7 @@ interface AdminProps {
 }
 
 export const Admin: React.FC<AdminProps> = ({ onBack }) => {
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
     const { user: currentUser, token } = useAuth()
     const [users, setUsers] = useState<User[]>([])
     const [loading, setLoading] = useState(true)
@@ -93,8 +93,8 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                 newApiKey = ''
             }
             
-            // 切換 Provider 時自動獲取最新模型列表
-            fetchAvailableModels(providerType, defaultUrl, newApiKey);
+            // 切換 Provider 時自動獲取最新模型列表，並清空目前選中的模型（以便自動選第一個）
+            fetchAvailableModels(providerType, defaultUrl, newApiKey, '');
         } else {
             // 如果 providers 還沒載入，使用硬編碼的 Base URL
             const hardcodedUrls: Record<string, string> = {
@@ -122,7 +122,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
             const defaultUrl = hardcodedUrls[providerType] || 'http://127.0.0.1:11434/v1'
             setProviderBaseUrl(defaultUrl)
             setProviderApiKey('')
-            fetchAvailableModels(providerType, defaultUrl, '');
+            fetchAvailableModels(providerType, defaultUrl, '', '');
         }
     }
 
@@ -268,16 +268,22 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                 setProviderModel(data.current.model)
                 // ✅ 同時從 localStorage 讀取 API Key
                 const adminSettings = localStorage.getItem('adminProviderSettings')
+                let currentApiKey = ''
                 if (adminSettings) {
                     try {
                         const parsed = JSON.parse(adminSettings)
                         if (parsed.apiKey) {
+                            currentApiKey = parsed.apiKey
                             setProviderApiKey(parsed.apiKey)
                         }
                     } catch (e) {
                         console.error('解析 adminSettings 失敗:', e)
                     }
                 }
+                
+                // ✅ 獲取當前 Provider 設定後，自動從該 Provider 拉取模型列表
+                // 並傳入 data.current.model 以避免 React state 延遲導致判斷錯誤
+                fetchAvailableModels(data.current.type, data.current.baseUrl, currentApiKey, data.current.model)
             }
         } catch (error) {
             console.error('Error fetching current provider:', error)
@@ -309,14 +315,14 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
 
             if (data.isConnected) {
                 setConnectionStatus('success')
-                setConnectionMessage('✅ 連接成功')
+                setConnectionMessage(t('admin.llm.testSuccess', '✅ 連接成功'))
             } else {
                 setConnectionStatus('error')
-                setConnectionMessage('❌ 連接失敗')
+                setConnectionMessage(t('admin.llm.testFailed', '❌ 連接失敗'))
             }
         } catch (error: any) {
             setConnectionStatus('error')
-            setConnectionMessage('❌ 連接錯誤：' + error.message)
+            setConnectionMessage(t('admin.llm.testError', '❌ 連接錯誤：') + error.message)
         } finally {
             setCheckingConnection(false)
         }
@@ -350,7 +356,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                     // 重新獲取當前 Provider
                     await fetchCurrentProvider()
                     setConnectionStatus('success')
-                    setConnectionMessage('✅ 設定已保存')
+                    setConnectionMessage(t('admin.llm.saveSuccess', '✅ 設定已保存'))
                     
                     // ✅ 同步到 localStorage，讓主畫面也能讀取
                     localStorage.setItem('adminProviderSettings', JSON.stringify({
@@ -367,17 +373,17 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                     // ✅ 手動載入模型列表並同步到 localStorage
                     // 因為同一頁面的 localStorage.setItem 不會觸發 storage event
                     try {
-                        const modelsResponse = await fetch(`/api/models?baseUrl=${encodeURIComponent(providerBaseUrl)}&apiKey=${encodeURIComponent(providerApiKey)}`)
+                        const modelsResponse = await fetch(`/api/models?type=${encodeURIComponent(selectedProvider)}&baseUrl=${encodeURIComponent(providerBaseUrl)}&apiKey=${encodeURIComponent(providerApiKey)}`)
                         if (modelsResponse.ok) {
                             const modelsData = await modelsResponse.json()
-                            const models = modelsData.models.map((model: any) => ({
+                            const models = (modelsData.models || []).map((model: any) => ({
                                 id: model.name,
                                 name: model.name
                             }))
                             
                             // 同步模型列表到 localStorage
                             localStorage.setItem('adminModelList', JSON.stringify(models))
-                            console.log('模型列表已同步到 localStorage:', models.length, '個模型')
+                            console.log('Model list synced to localStorage:', models.length, 'models')
                             
                             // 觸發自定義事件通知主頁面
                             window.dispatchEvent(new CustomEvent('modelListUpdated', { detail: { models } }))
@@ -387,32 +393,53 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                     }
                 } else {
                     setConnectionStatus('error')
-                    setConnectionMessage('⚠️ 設定已保存，但連接失敗')
+                    setConnectionMessage(t('admin.llm.saveWarning', '⚠️ 設定已保存，但連接失敗'))
                 }
             }
         } catch (error) {
-            console.error('保存 Provider 設定失敗:', error)
+            console.error('Failed to save provider configuration:', error)
             setConnectionStatus('error')
-            setConnectionMessage('❌ 保存失敗')
+            setConnectionMessage(t('admin.llm.saveError', '❌ 保存失敗'))
         }
     }
 
     // 獲取可用模型列表
-    const fetchAvailableModels = async (overrideType?: string, overrideUrl?: string, overrideKey?: string) => {
+    const fetchAvailableModels = async (typeOverride?: string, baseUrlOverride?: string, apiKeyOverride?: string, modelOverride?: string) => {
+        const type = typeOverride !== undefined ? typeOverride : selectedProvider;
+        const baseUrl = baseUrlOverride !== undefined ? baseUrlOverride : providerBaseUrl;
+        const apiKey = apiKeyOverride !== undefined ? apiKeyOverride : providerApiKey;
+        const targetModel = modelOverride !== undefined ? modelOverride : providerModel;
+
+        if (!baseUrl) return;
+        
         try {
             setLoadingModels(true)
-            const type = overrideType !== undefined ? overrideType : selectedProvider
-            const baseUrl = overrideUrl !== undefined ? overrideUrl : providerBaseUrl
-            const apiKey = overrideKey !== undefined ? overrideKey : providerApiKey
-            
-            const response = await fetch(`/api/models?type=${type}&baseUrl=${encodeURIComponent(baseUrl)}&apiKey=${encodeURIComponent(apiKey)}`,
+            const response = await fetch(`/api/models?type=${encodeURIComponent(type)}&baseUrl=${encodeURIComponent(baseUrl)}&apiKey=${encodeURIComponent(apiKey)}`,
                 {
                     headers: { 'Authorization': `Bearer ${token}` }
                 }
             )
             if (response.ok) {
                 const data = await response.json()
-                setAvailableModels(data.models || [])
+                const models = data.models || []
+                setAvailableModels(models)
+                
+                // ✅ 改良邏輯：如果當前已經有選中的模型，且它還在清單中，就保留它
+                const currentStillValid = models.some((m: any) => m.name === targetModel)
+                
+                if (models.length > 0) {
+                    if (!targetModel || !currentStillValid) {
+                        // 只有在目前沒選，或是原本選的已經失效時，才自動選第一個
+                        setProviderModel(models[0].name)
+                        console.log('Auto-selected first model due to invalidity:', models[0].name)
+                    } else {
+                        console.log('Preserving current model selection:', targetModel)
+                        setProviderModel(targetModel)
+                    }
+                } else if (!targetModel) {
+                    // 若抓不到且目前也是空的，就乾脆清空讓用戶手打
+                    setProviderModel('')
+                }
             }
         } catch (error) {
             console.error('獲取模型列表失敗:', error)
@@ -490,7 +517,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                 }`}
                             >
                                 <Users className="h-4 w-4" />
-                                <span>用戶管理</span>
+                                <span>{t('admin.usersTab')}</span>
                             </button>
                             <button
                                 onClick={() => setActiveTab('llm')}
@@ -501,7 +528,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                 }`}
                             >
                                 <Cpu className="h-4 w-4" />
-                                <span>LLM Provider 設定</span>
+                                <span>{t('admin.llmTab')}</span>
                             </button>
                         </nav>
                     </div>
@@ -512,14 +539,14 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                     <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-8">
                         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
                             <Cpu className="h-6 w-6 text-blue-600" />
-                            <span>LLM Provider 配置</span>
+                            <span>{t('admin.llm.config', 'LLM Provider 配置')}</span>
                         </h2>
 
                         {/* Provider 選擇 */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    選擇 Provider
+                                    {t('admin.llm.selectProvider', '選擇 Provider')}
                                 </label>
                                 <select
                                     value={selectedProvider}
@@ -536,7 +563,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
 
                             <div className="md:col-span-2">
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Base URL
+                                    {t('admin.llm.baseUrl', 'Base URL')}
                                 </label>
                                 <input
                                     type="text"
@@ -546,7 +573,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                     placeholder="https://api.example.com/v1"
                                 />
                                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    選擇 Provider 後自動帶出，可手動修改
+                                    {t('admin.llm.baseUrlHint', '選擇 Provider 後自動帶出，可手動修改')}
                                 </p>
                             </div>
                         </div>
@@ -555,53 +582,58 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    API Key
+                                    {t('admin.llm.apiKey', 'API Key')}
                                 </label>
                                 <input
                                     type="password"
                                     value={providerApiKey}
                                     onChange={(e) => setProviderApiKey(e.target.value)}
                                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                                    placeholder="API Key (可選，部分 Provider 不需要)"
+                                    placeholder={t('admin.llm.apiKeyPlaceholder', 'API Key (可選，部分 Provider 不需要)')}
                                 />
                                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    格式依 Provider 而定（API Key、OAuth Token 等）
+                                    {t('admin.llm.apiKeyHint', '格式依 Provider 而定（API Key、OAuth Token 等）')}
                                 </p>
                             </div>
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    模型名稱
+                                    {t('admin.llm.modelName', '模型名稱')}
                                 </label>
                                 <div className="flex space-x-2">
-                                    <input
-                                        type="text"
-                                        value={providerModel}
-                                        onChange={(e) => setProviderModel(e.target.value)}
-                                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                                        placeholder="例如：gpt-4, claude-3, llama3"
-                                    />
+                                    {availableModels.length > 0 ? (
+                                        <select
+                                            value={providerModel}
+                                            onChange={(e) => setProviderModel(e.target.value)}
+                                            className="flex-1 min-w-0 flex-shrink truncate px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                        >
+                                            {availableModels.map((model: any) => (
+                                                <option key={model.name} value={model.name}>
+                                                    {model.name}
+                                                </option>
+                                            ))}
+                                            {/* Allow keeping custom model if it's not in the list but was fetched */}
+                                            {!availableModels.find(m => m.name === providerModel) && providerModel && (
+                                                <option value={providerModel}>{providerModel} ({t('admin.llm.current', '當前')})</option>
+                                            )}
+                                        </select>
+                                    ) : (
+                                        <input
+                                            type="text"
+                                            value={providerModel}
+                                            onChange={(e) => setProviderModel(e.target.value)}
+                                            className="flex-1 min-w-0 flex-shrink px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                            placeholder={t('admin.llm.modelPlaceholder', '例如：gpt-4, claude-3, llama3')}
+                                        />
+                                    )}
                                     <button
-                                        onClick={fetchAvailableModels}
+                                        onClick={() => fetchAvailableModels()}
                                         disabled={loadingModels}
-                                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex-shrink-0"
                                     >
-                                        {loadingModels ? '...' : '獲取模型'}
+                                        {loadingModels ? '...' : t('admin.llm.fetchModels', '獲取模型')}
                                     </button>
                                 </div>
-                                {availableModels.length > 0 && (
-                                    <select
-                                        value={providerModel}
-                                        onChange={(e) => setProviderModel(e.target.value)}
-                                        className="mt-2 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                                    >
-                                        {availableModels.map((model: any) => (
-                                            <option key={model.name} value={model.name}>
-                                                {model.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                )}
                             </div>
                         </div>
 
@@ -609,24 +641,24 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                         <div className="mb-6">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Vision 模型（可選）
+                                    {t('admin.llm.visionModel', 'Vision 模型（可選）')}
                                 </label>
                                 <input
                                     type="text"
                                     value={providerVisionModel}
                                     onChange={(e) => setProviderVisionModel(e.target.value)}
                                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                                    placeholder="用於多模態內容，留空則自動選擇"
+                                    placeholder={t('admin.llm.visionPlaceholder', '用於多模態內容，留空則自動選擇')}
                                 />
                                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    用於讀取圖片、手寫草圖等。留空時系統會自動選擇同 Provider 的 vision 模型。
+                                    {t('admin.llm.visionHint', '用於讀取圖片、手寫草圖等。留空時系統會自動選擇同 Provider 的 vision 模型。')}
                                 </p>
                             </div>
                         </div>
 
                         {/* 生成參數 */}
                         <div className="mb-6">
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">生成參數</h3>
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t('admin.llm.generation', '生成參數')}</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -642,7 +674,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                         className="w-full"
                                     />
                                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                        控制輸出隨機性：低溫=確定、邏輯；高溫=多樣、創造
+                                        {t('admin.llm.temperatureHint', '控制輸出隨機性：低溫=確定、邏輯；高溫=多樣、創造')}
                                     </p>
                                 </div>
 
@@ -660,7 +692,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                         className="w-full"
                                     />
                                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                        核心採樣機率：高=高機率；低=低機率
+                                        {t('admin.llm.topPHint', '核心採樣機率：高=高機率；低=低機率')}
                                     </p>
                                 </div>
 
@@ -678,7 +710,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                         className="w-full"
                                     />
                                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                        限制候選 Token 數量：高=取樣多；低=取樣少
+                                        {t('admin.llm.topKHint', '限制候選 Token 數量：高=取樣多；低=取樣少')}
                                     </p>
                                 </div>
 
@@ -693,7 +725,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                     />
                                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                        最大上下文長度
+                                        {t('admin.llm.maxTokensHint', '最大上下文長度')}
                                     </p>
                                 </div>
                             </div>
@@ -707,13 +739,13 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                     disabled={checkingConnection}
                                     className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                                 >
-                                    {checkingConnection ? '測試中...' : '測試連接'}
+                                    {checkingConnection ? t('admin.llm.testing', '測試中...') : t('admin.llm.testConnection', '測試連接')}
                                 </button>
                                 <button
                                     onClick={saveProviderSettings}
                                     className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
                                 >
-                                    保存設定
+                                    {t('admin.llm.saveSettings', '保存設定')}
                                 </button>
                             </div>
                             {connectionMessage && (
@@ -861,11 +893,11 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                            {new Date(user.createdAt).toLocaleDateString('zh-TW')}
+                                            {new Date(user.createdAt).toLocaleDateString(i18n.language)}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                             {user.lastLoginAt
-                                                ? new Date(user.lastLoginAt).toLocaleString('zh-TW')
+                                                ? new Date(user.lastLoginAt).toLocaleString(i18n.language)
                                                 : t('admin.neverLoggedIn')
                                             }
                                         </td>
@@ -944,9 +976,9 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                         </div>
                                     </div>
                                     <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
-                                        <div>{t('admin.table.registrationDate')}: {new Date(user.createdAt).toLocaleDateString('zh-TW')}</div>
+                                        <div>{t('admin.table.registrationDate')}: {new Date(user.createdAt).toLocaleDateString(i18n.language)}</div>
                                         <div>{t('admin.table.lastLogin')}: {user.lastLoginAt
-                                            ? new Date(user.lastLoginAt).toLocaleString('zh-TW')
+                                            ? new Date(user.lastLoginAt).toLocaleString(i18n.language)
                                             : t('admin.neverLoggedIn')
                                         }</div>
                                     </div>
