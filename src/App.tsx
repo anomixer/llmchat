@@ -538,6 +538,22 @@ const App: React.FC = () => {
         }
     }, [user, token, conversationsLoaded])
 
+    // ✅ 監聽 localStorage 變化（當 Admin 保存設定時）
+    useEffect(() => {
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === 'adminProviderSettings') {
+                console.log('Admin 設定已更新，重新載入模型...')
+                // 延遲載入，確保 localStorage 已更新
+                setTimeout(() => {
+                    loadAvailableModels()
+                }, 100)
+            }
+        }
+        
+        window.addEventListener('storage', handleStorageChange)
+        return () => window.removeEventListener('storage', handleStorageChange)
+    }, [])
+
     // 創建新對話
     const createNewConversation = () => {
         createNewConversationInternal()
