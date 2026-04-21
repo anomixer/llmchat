@@ -76,17 +76,20 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
         const providerType = e.target.value
         setSelectedProvider(providerType)
         
-        // 根據 type 查找對應的 name，然後獲取 Base URL
+        // 根據 type 查找對應的 provider
         const provider = providers.find(p => p.type === providerType)
-        const providerName = provider?.name || ''
         
-        // 自動帶出預設 URL
-        const defaultUrl = PROVIDER_DEFAULTS[providerName] || 'http://127.0.0.1:11434/v1'
-        setProviderBaseUrl(defaultUrl)
-        
-        // 如果是本地 Provider，清空 API Key
-        if (LOCAL_NOAUTH_PROVIDERS.includes(providerName) || providerName === 'Customer Provider (自訂)') {
-            setProviderApiKey('')
+        if (provider) {
+            const providerName = provider.name
+            
+            // 自動帶出預設 URL
+            const defaultUrl = PROVIDER_DEFAULTS[providerName] || provider.baseUrl || 'http://127.0.0.1:11434/v1'
+            setProviderBaseUrl(defaultUrl)
+            
+            // 如果是本地 Provider，清空 API Key
+            if (LOCAL_NOAUTH_PROVIDERS.includes(providerName) || providerName === 'Customer Provider (自訂)') {
+                setProviderApiKey('')
+            }
         }
     }
 
@@ -303,6 +306,18 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                     await fetchCurrentProvider()
                     setConnectionStatus('success')
                     setConnectionMessage('✅ 設定已保存')
+                    
+                    // ✅ 同步到 localStorage，讓主畫面也能讀取
+                    localStorage.setItem('adminProviderSettings', JSON.stringify({
+                        type: selectedProvider,
+                        baseUrl: providerBaseUrl,
+                        apiKey: providerApiKey,
+                        model: providerModel,
+                        temperature: providerTemperature,
+                        topP: providerTopP,
+                        topK: providerTopK,
+                        maxTokens: providerMaxTokens
+                    }))
                 } else {
                     setConnectionStatus('error')
                     setConnectionMessage('⚠️ 設定已保存，但連接失敗')

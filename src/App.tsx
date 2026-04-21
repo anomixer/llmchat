@@ -107,15 +107,37 @@ const App: React.FC = () => {
     const [isLoadingModels, setIsLoadingModels] = useState(true)
     const [availableProviders, setAvailableProviders] = useState<any[]>([])
     const [currentProvider, setCurrentProvider] = useState<any>(null)
-    const [settings, setSettings] = useState<ChatSettings>({
-        model: '',
-        temperature: 0.7,
-        maxTokens: 8192,
-        apiUrl: '',
-        apiKey: '',
-        topP: 0.9,
-        topK: 40,
-        showTokenStats: true
+    const [settings, setSettings] = useState<ChatSettings>(() => {
+        // 優先從 localStorage 讀取 Admin 設定
+        const adminSettings = localStorage.getItem('adminProviderSettings')
+        if (adminSettings) {
+            try {
+                const parsed = JSON.parse(adminSettings)
+                return {
+                    model: parsed.model || '',
+                    temperature: parsed.temperature || 0.7,
+                    maxTokens: parsed.maxTokens || 8192,
+                    apiUrl: parsed.baseUrl || '',
+                    apiKey: parsed.apiKey || '',
+                    topP: parsed.topP || 0.9,
+                    topK: parsed.topK || 40,
+                    showTokenStats: true
+                }
+            } catch (e) {
+                console.error('解析 adminSettings 失敗:', e)
+            }
+        }
+        // 否則使用預設值
+        return {
+            model: '',
+            temperature: 0.7,
+            maxTokens: 8192,
+            apiUrl: '',
+            apiKey: '',
+            topP: 0.9,
+            topK: 40,
+            showTokenStats: true
+        }
     })
     const [userSettings, setUserSettings] = useState({
         language: 'zh-TW',
@@ -230,8 +252,17 @@ const App: React.FC = () => {
     const loadAvailableModels = async () => {
         try {
             setIsLoadingModels(true)
-            const apiUrl = settings.apiUrl || 'http://localhost:11434'
-            const apiKey = settings.apiKey || ''
+            // 優先使用 localStorage 中的設定（從 Admin 頁面同步）
+            const adminSettings = localStorage.getItem('adminProviderSettings')
+            let apiUrl = settings.apiUrl || 'http://localhost:11434'
+            let apiKey = settings.apiKey || ''
+            
+            if (adminSettings) {
+                const parsed = JSON.parse(adminSettings)
+                apiUrl = parsed.baseUrl || apiUrl
+                apiKey = parsed.apiKey || apiKey
+            }
+            
             const response = await fetch(`/api/models?apiUrl=${encodeURIComponent(apiUrl)}&apiKey=${encodeURIComponent(apiKey)}&t=${Date.now()}`)
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`)
@@ -309,6 +340,27 @@ const App: React.FC = () => {
             let defaultConfig: any = { apiUrl: 'http://localhost:11434', apiKey: '' }
             if (configResponse.ok) {
                 defaultConfig = await configResponse.json()
+            }
+
+            // ✅ 檢查 localStorage 中是否有 Admin 設定的設定
+            const adminSettings = localStorage.getItem('adminProviderSettings')
+            if (adminSettings) {
+                try {
+                    const parsed = JSON.parse(adminSettings)
+                    // 如果 Admin 有設定，優先使用
+                    if (parsed.baseUrl) {
+                        defaultConfig.apiUrl = parsed.baseUrl
+                    }
+                    if (parsed.apiKey) {
+                        defaultConfig.apiKey = parsed.apiKey
+                    }
+                    if (parsed.model) {
+                        defaultConfig.model = parsed.model
+                    }
+                } catch (e) {
+                    console.error('解析 adminSettings 失敗:', e)
+                }
+            }
             }
 
             // 獲取用戶設定，加上時間戳避免快取
