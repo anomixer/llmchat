@@ -360,7 +360,6 @@ const App: React.FC = () => {
                 } catch (e) {
                     console.error('解析 adminSettings 失敗:', e)
                 }
-            }
 
             // 獲取用戶設定，加上時間戳避免快取
             const response = await fetch(`/api/user/settings?t=${Date.now()}`, {
