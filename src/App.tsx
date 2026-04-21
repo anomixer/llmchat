@@ -1062,6 +1062,39 @@ const App: React.FC = () => {
                                             >
                                                 {isChangingPassword ? t('auth.processing') : t('settings.password.button')}
                                             </button>
+
+                                            {/* 顯示 Token 統計 */}
+                                            <div className="mt-4">
+                                                <label className={`block text-sm font-medium mb-2 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                                                    }`}>
+                                                    {t('settings.parameters.showTokenStats')}
+                                                </label>
+                                                <div className="flex items-center space-x-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setSettings(prev => ({ ...prev, showTokenStats: !prev.showTokenStats }))
+                                                            setUserSettings(prev => ({ ...prev, showTokenStats: !prev.showTokenStats }))
+                                                            saveUserSettingsToServer({ ...userSettings, showTokenStats: !userSettings.showTokenStats })
+                                                        }}
+                                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${settings.showTokenStats
+                                                            ? 'bg-blue-600'
+                                                            : isDarkMode
+                                                                ? 'bg-gray-600'
+                                                                : 'bg-gray-200'
+                                                            }`}
+                                                    >
+                                                        <span
+                                                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.showTokenStats ? 'translate-x-6' : 'translate-x-1'
+                                                                }`}
+                                                        />
+                                                    </button>
+                                                    <span className={`text-sm transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                                                        }`}>
+                                                        {settings.showTokenStats ? t('settings.parameters.on') : t('settings.parameters.off')}
+                                                    </span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
