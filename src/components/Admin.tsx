@@ -511,7 +511,10 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                     </select>
                                 )}
                             </div>
+                        </div>
 
+                        {/* Vision 模型 */}
+                        <div className="mb-6">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                     Vision 模型（可選）
