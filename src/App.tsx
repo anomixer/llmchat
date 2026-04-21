@@ -584,9 +584,28 @@ const App: React.FC = () => {
             console.log('模型列表已更新，收到事件:', e.detail.models.length, '個模型')
             setAvailableModels(e.detail.models)
             
+            // 從 localStorage 讀取最新設定
+            const adminSettingsStr = localStorage.getItem('adminProviderSettings')
+            if (adminSettingsStr) {
+                try {
+                    const parsed = JSON.parse(adminSettingsStr)
+                    setSettings(prev => ({ 
+                        ...prev, 
+                        apiUrl: parsed.baseUrl || prev.apiUrl,
+                        apiKey: parsed.apiKey || prev.apiKey,
+                    }))
+                    setUserSettings(prev => ({ 
+                        ...prev, 
+                        apiUrl: parsed.baseUrl || prev.apiUrl,
+                        apiKey: parsed.apiKey || prev.apiKey,
+                    }))
+                } catch(e) {}
+            }
+
             // 自動選擇第一個模型（如果當前沒選）
             if (e.detail.models.length > 0 && (!settings.model || !e.detail.models.some((m: any) => m.id === settings.model))) {
                 setSettings(prev => ({ ...prev, model: e.detail.models[0].id }))
+                setUserSettings(prev => ({ ...prev, model: e.detail.models[0].id }))
             }
         }
         
@@ -960,9 +979,19 @@ const App: React.FC = () => {
                 onClearChat={clearChat}
                 onExportConversation={exportConversation}
                 onModelChange={(modelId: string) => {
-                    setSettings(prev => ({ ...prev, model: modelId }))
-                    setUserSettings(prev => ({ ...prev, model: modelId }))
-                    saveUserSettingsToServer({ ...userSettings, model: modelId })
+                    const adminSettingsStr = localStorage.getItem('adminProviderSettings')
+                    let currentApiUrl = userSettings.apiUrl;
+                    let currentApiKey = userSettings.apiKey;
+                    if (adminSettingsStr) {
+                        try {
+                            const parsed = JSON.parse(adminSettingsStr)
+                            if (parsed.baseUrl) currentApiUrl = parsed.baseUrl;
+                            if (parsed.apiKey) currentApiKey = parsed.apiKey;
+                        } catch (e) {}
+                    }
+                    setSettings(prev => ({ ...prev, model: modelId, apiUrl: currentApiUrl, apiKey: currentApiKey }))
+                    setUserSettings(prev => ({ ...prev, model: modelId, apiUrl: currentApiUrl, apiKey: currentApiKey }))
+                    saveUserSettingsToServer({ ...userSettings, model: modelId, apiUrl: currentApiUrl, apiKey: currentApiKey })
                 }}
                 onLogout={logout}
                 user={user}

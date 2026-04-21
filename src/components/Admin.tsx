@@ -82,15 +82,19 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
         if (provider) {
             const providerName = provider.name
             
-            // ✅ 修復：直接使用 provider.baseUrl，不要 fallback 到 PROVIDER_DEFAULTS
-            // 因為 provider.baseUrl 已經從後端 API 正確返回
-            const defaultUrl = provider.baseUrl || 'http://127.0.0.1:11434/v1'
+            // 優先使用 PROVIDER_DEFAULTS 做為預設，這與 aipc-agent 機制一致
+            const defaultUrl = PROVIDER_DEFAULTS[providerName] || provider.baseUrl || 'http://127.0.0.1:11434/v1'
             setProviderBaseUrl(defaultUrl)
             
+            let newApiKey = providerApiKey;
             // 如果是本地 Provider，清空 API Key
             if (LOCAL_NOAUTH_PROVIDERS.includes(providerName) || providerName === 'Customer Provider (自訂)') {
                 setProviderApiKey('')
+                newApiKey = ''
             }
+            
+            // 切換 Provider 時自動獲取最新模型列表
+            fetchAvailableModels(providerType, defaultUrl, newApiKey);
         } else {
             // 如果 providers 還沒載入，使用硬編碼的 Base URL
             const hardcodedUrls: Record<string, string> = {
@@ -118,6 +122,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
             const defaultUrl = hardcodedUrls[providerType] || 'http://127.0.0.1:11434/v1'
             setProviderBaseUrl(defaultUrl)
             setProviderApiKey('')
+            fetchAvailableModels(providerType, defaultUrl, '');
         }
     }
 
@@ -393,10 +398,14 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
     }
 
     // 獲取可用模型列表
-    const fetchAvailableModels = async () => {
+    const fetchAvailableModels = async (overrideType?: string, overrideUrl?: string, overrideKey?: string) => {
         try {
             setLoadingModels(true)
-            const response = await fetch(`/api/models?type=${selectedProvider}&baseUrl=${encodeURIComponent(providerBaseUrl)}&apiKey=${encodeURIComponent(providerApiKey)}&model=${encodeURIComponent(providerModel)}`,
+            const type = overrideType !== undefined ? overrideType : selectedProvider
+            const baseUrl = overrideUrl !== undefined ? overrideUrl : providerBaseUrl
+            const apiKey = overrideKey !== undefined ? overrideKey : providerApiKey
+            
+            const response = await fetch(`/api/models?type=${type}&baseUrl=${encodeURIComponent(baseUrl)}&apiKey=${encodeURIComponent(apiKey)}`,
                 {
                     headers: { 'Authorization': `Bearer ${token}` }
                 }

@@ -821,10 +821,31 @@ npm run preview
 - ⚙️ **Context 同步**: maxToken 設定與 Ollama context size 同步
 - 🛡️ **確認機制**: 添加刪除對話和清除內容的確認視窗
 
+## 🌟 多 Provider 支援功能 (Multi-Provider)
+
+LLMChat 支援多種 LLM Provider，無需重啟服務即可透過介面切換：
+
+### 支援的 Provider 列表
+1. **Ollama / Ollama Cloud**: 本地運行，免費，數據隱私保護佳
+2. **OpenAI**: 提供強大如 GPT-4 等高階模型
+3. **Anthropic Claude**: 卓越的長文本處理及優異的程式編寫能力
+4. **Groq**: 提供極速的開源大語言模型推理服務
+5. **DeepSeek**: 多語言表現突出且極具性價比
+6. **NVIDIA NIM**: 支援雲端 GPU 加速
+7. **Mistral**: 歐洲開源模型領航者
+8. **Together AI**: 聚合豐富種類開源模型的平台
+*(也支援 vLLM, SGLang, LM Studio, OpenRouter 等相容 OpenAI 協定的服務或自訂端點)*
+
+### 系統架構特點
+- **統一介面 (`ProviderFactory`)**: 透過整合各種 API 介面提供單一對話流。
+- **後台無縫設定**: 管理員可於 Admin 介面快速選擇 Provider，系統自動帶入 Base URL，並支援實時連線測試和一鍵抓取模型清單。
+- **設定全域同步**: 管理員的提供商配置會自動覆蓋並落實至所有一般用戶的設定，確保使用者一登入即可直接選擇相應服務最新的可用模型。
+- **環境變數備援**: 亦可透過 `.env` 檔案以 `LLM_PROVIDER`, `LLM_BASE_URL`, `LLM_API_KEY` 等參數配置預設值。
 
 ## 🚧 未來功能
 
 - [ ] UI再改良
+
 - [ ] 支援更多Provider的模型
 - [ ] 支援更完善的Chat功能，如網路搜尋
 - [ ] 支援更進階的功能，如MCP等
