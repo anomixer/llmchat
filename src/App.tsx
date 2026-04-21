@@ -254,14 +254,20 @@ const App: React.FC = () => {
             setIsLoadingModels(true)
             // 優先使用 localStorage 中的設定（從 Admin 頁面同步）
             const adminSettings = localStorage.getItem('adminProviderSettings')
-            let apiUrl = settings.apiUrl || 'http://localhost:11434'
-            let apiKey = settings.apiKey || ''
+            let apiUrl = 'http://localhost:11434'
+            let apiKey = ''
             
             if (adminSettings) {
                 const parsed = JSON.parse(adminSettings)
                 apiUrl = parsed.baseUrl || apiUrl
                 apiKey = parsed.apiKey || apiKey
+            } else {
+                // 如果沒有 localStorage 設定，使用 settings
+                apiUrl = settings.apiUrl || apiUrl
+                apiKey = settings.apiKey || apiKey
             }
+            
+            console.log('載入模型列表 - apiUrl:', apiUrl, 'apiKey:', apiKey ? '***' : '')
             
             const response = await fetch(`/api/models?apiUrl=${encodeURIComponent(apiUrl)}&apiKey=${encodeURIComponent(apiKey)}&t=${Date.now()}`)
             if (!response.ok) {

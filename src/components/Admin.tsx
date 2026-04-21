@@ -82,14 +82,19 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
         if (provider) {
             const providerName = provider.name
             
-            // 自動帶出預設 URL
-            const defaultUrl = PROVIDER_DEFAULTS[providerName] || provider.baseUrl || 'http://127.0.0.1:11434/v1'
+            // 自動帶出預設 URL - 優先使用 provider.baseUrl
+            const defaultUrl = provider.baseUrl || PROVIDER_DEFAULTS[providerName] || 'http://127.0.0.1:11434/v1'
             setProviderBaseUrl(defaultUrl)
             
             // 如果是本地 Provider，清空 API Key
             if (LOCAL_NOAUTH_PROVIDERS.includes(providerName) || providerName === 'Customer Provider (自訂)') {
                 setProviderApiKey('')
             }
+        } else {
+            // 如果 providers 還沒載入，使用 PROVIDER_DEFAULTS
+            const defaultUrl = PROVIDER_DEFAULTS[e.target.value] || 'http://127.0.0.1:11434/v1'
+            setProviderBaseUrl(defaultUrl)
+            setProviderApiKey('')
         }
     }
 
@@ -233,6 +238,18 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                 setSelectedProvider(data.current.type)
                 setProviderBaseUrl(data.current.baseUrl)
                 setProviderModel(data.current.model)
+                // ✅ 同時從 localStorage 讀取 API Key
+                const adminSettings = localStorage.getItem('adminProviderSettings')
+                if (adminSettings) {
+                    try {
+                        const parsed = JSON.parse(adminSettings)
+                        if (parsed.apiKey) {
+                            setProviderApiKey(parsed.apiKey)
+                        }
+                    } catch (e) {
+                        console.error('解析 adminSettings 失敗:', e)
+                    }
+                }
             }
         } catch (error) {
             console.error('Error fetching current provider:', error)
@@ -353,8 +370,10 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
 
     useEffect(() => {
         fetchUsers()
-        fetchProviders()
-        fetchCurrentProvider()
+        // 先載入 providers，再載入當前設定
+        fetchProviders().then(() => {
+            fetchCurrentProvider()
+        })
     }, [])
 
     // 計算分頁數據
