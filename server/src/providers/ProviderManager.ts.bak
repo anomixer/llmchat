@@ -346,7 +346,7 @@ export class ProviderFactory {
 }
 
 /**
- * 可用的 Provider 列表（與 aipc-agent 保持一致）
+ * 可用的 Provider 列表
  */
 export const AVAILABLE_PROVIDERS = [
     {
@@ -357,24 +357,17 @@ export const AVAILABLE_PROVIDERS = [
         requiresApiKey: false
     },
     {
-        name: 'Ollama Cloud',
-        type: 'ollama',
-        baseUrl: 'https://ollama.ai',
-        description: 'Ollama 雲端服務',
-        requiresApiKey: false
-    },
-    {
         name: 'OpenAI',
         type: 'openai',
         baseUrl: 'https://api.openai.com',
-        description: 'GPT-4, GPT-3.5 等模型',
+        description: 'OpenAI API',
         requiresApiKey: true
     },
     {
         name: 'Anthropic Claude',
         type: 'anthropic',
         baseUrl: 'https://api.anthropic.com',
-        description: 'Claude 系列模型',
+        description: 'Claude 模型',
         requiresApiKey: true
     },
     {
@@ -388,7 +381,7 @@ export const AVAILABLE_PROVIDERS = [
         name: 'DeepSeek',
         type: 'deepseek',
         baseUrl: 'https://api.deepseek.com',
-        description: 'DeepSeek 系列模型',
+        description: 'DeepSeek 模型',
         requiresApiKey: true
     },
     {
@@ -402,7 +395,7 @@ export const AVAILABLE_PROVIDERS = [
         name: 'Mistral',
         type: 'mistral',
         baseUrl: 'https://api.mistral.ai',
-        description: 'Mistral 系列模型',
+        description: 'Mistral 模型',
         requiresApiKey: true
     },
     {

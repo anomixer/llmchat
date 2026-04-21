@@ -10,6 +10,7 @@ import { createChatRouter } from './routes/chat.js'
 import { createUserRouter } from './routes/user.js'
 import { createAdminRouter } from './routes/admin.js'
 import { createApiMiscRouter, createOpenAiRouter } from './routes/misc.js'
+import { createMultiProviderRouter } from './routes/multi-provider.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -41,6 +42,9 @@ export function createApp(deps: {
     }))
     app.use('/api', createUserRouter({ userService: deps.userService }))
     app.use('/api', createAdminRouter({ userService: deps.userService }))
+    
+    // Multi-Provider API
+    app.use('/api', createMultiProviderRouter({}))
 
     // OpenAI compatible
     app.use('/v1', createOpenAiRouter({ ollamaProvider: deps.ollamaProvider }))

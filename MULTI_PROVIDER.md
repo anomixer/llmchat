@@ -4,18 +4,19 @@
 
 LLMChat 現在支援多個 LLM Provider，讓您可以在不同的 AI 服務之間自由切換：
 
-### 支援的 Provider
+### 支援的 Provider（與 aipc-agent 保持一致）
 
-| Provider | 類型 | API URL | API Key | 說明 |
-|:---|:---|:---|:---:|:---|
-| **Ollama** | 🏠 本地 | `http://localhost:11434` | 🔓 不需要 | 本地運行，免費，可自訂模型 |
-| **OpenAI** | ☁️ 雲端 | `https://api.openai.com` | 🔑 需要 | GPT-4, GPT-3.5 等 |
-| **Anthropic Claude** | ☁️ 雲端 | `https://api.anthropic.com` | 🔑 需要 | Claude 系列模型 |
-| **Groq** | ⚡ 高速 | `https://api.groq.com/openai` | 🔑 需要 | 極速推理引擎 |
-| **DeepSeek** | 🤖 智能 | `https://api.deepseek.com` | 🔑 需要 | DeepSeek 系列模型 |
-| **NVIDIA NIM** | 🎮 GPU | `https://integrate.api.nvidia.com` | 🔑 需要 | NVIDIA 雲端服務 |
-| **Mistral** | 🦙 開源 | `https://api.mistral.ai` | 🔑 需要 | Mistral 系列模型 |
-| **Together AI** | 🌐 平台 | `https://api.together.xyz` | 🔑 需要 | Together AI 平台 |
+| # | Provider | 類型 | API URL | API Key | 說明 |
+|:---:|:---|:---|:---|:---:|:---|
+| 1 | **Ollama** | 🏠 本地 | `http://localhost:11434` | 🔓 不需要 | 本地運行，免費 |
+| 2 | **Ollama Cloud** | ☁️ 雲端 | `https://ollama.ai` | 🔓 不需要 | Ollama 雲端服務 |
+| 3 | **OpenAI** | ☁️ 雲端 | `https://api.openai.com` | 🔑 需要 | GPT-4, GPT-3.5 |
+| 4 | **Anthropic Claude** | ☁️ 雲端 | `https://api.anthropic.com` | 🔑 需要 | Claude 系列 |
+| 5 | **Groq** | ⚡ 高速 | `https://api.groq.com/openai` | 🔑 需要 | 極速推理 |
+| 6 | **DeepSeek** | 🤖 智能 | `https://api.deepseek.com` | 🔑 需要 | DeepSeek 系列 |
+| 7 | **NVIDIA NIM** | 🎮 GPU | `https://integrate.api.nvidia.com` | 🔑 需要 | NVIDIA 雲端 |
+| 8 | **Mistral** | 🦙 開源 | `https://api.mistral.ai` | 🔑 需要 | Mistral 系列 |
+| 9 | **Together AI** | 🌐 平台 | `https://api.together.xyz` | 🔑 需要 | Together 平台 |
 
 ---
 
