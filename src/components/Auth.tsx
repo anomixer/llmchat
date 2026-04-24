@@ -27,15 +27,13 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onRegister, onResendVerific
     const [isDarkMode, setIsDarkMode] = useState(() => {
         try {
             const saved = localStorage.getItem('theme')
-            if (saved !== null) {
-                return JSON.parse(saved)
-            } else {
-                // 沒有手動設定，檢查瀏覽器偏好
-                return window.matchMedia('(prefers-color-scheme: dark)').matches
-            }
+            if (saved === 'dark') return true
+            if (saved === 'light') return false
+            // 沒有手動設定，檢查瀏覽器偏好
+            return window.matchMedia('(prefers-color-scheme: dark)').matches
         } catch (error) {
             console.error('Error loading theme from localStorage:', error)
-            return true // fallback to dark mode
+            return window.matchMedia('(prefers-color-scheme: dark)').matches
         }
     })
 
@@ -96,9 +94,9 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onRegister, onResendVerific
 
     // 切換主題函數
     const toggleTheme = () => {
-        const newTheme = !isDarkMode
-        setIsDarkMode(newTheme)
-        localStorage.setItem('theme', JSON.stringify(newTheme))
+        const newTheme = isDarkMode ? 'light' : 'dark'
+        setIsDarkMode(!isDarkMode)
+        localStorage.setItem('theme', newTheme)
     }
 
     const handleSubmit = async (e: React.FormEvent) => {

@@ -10,19 +10,9 @@ export function usePrefersColorSchemeSync(args: {
 
         const handleThemeChange = (e: MediaQueryListEvent) => {
             const savedTheme = localStorage.getItem('theme')
-            if (savedTheme === null) {
+            if (savedTheme === null || savedTheme === 'auto') {
                 setIsDarkMode(e.matches)
-                document.documentElement.classList.toggle('dark', e.matches)
             }
-        }
-
-        const savedTheme = localStorage.getItem('theme')
-        if (savedTheme === null) {
-            setIsDarkMode(mediaQuery.matches)
-            document.documentElement.classList.toggle('dark', mediaQuery.matches)
-        } else {
-            const isDark = JSON.parse(savedTheme)
-            document.documentElement.classList.toggle('dark', isDark)
         }
 
         mediaQuery.addEventListener('change', handleThemeChange)

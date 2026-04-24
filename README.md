@@ -4,15 +4,17 @@ Get up and chatting with large language models featuring glass-morphism effect.
 
 一個具有玻璃擬態設計的現代化本地大語言模型聊天應用程式，基於 React + Node.js + Ollama，提供美觀且功能完整的聊天體驗。適合各企業建構在地AI聊天應用，數據不怕外流給雲端廠商。
 
-## ⚠️ 目前已知問題 (v260421)
+## ✅ 已修復的問題 (v260425)
 
-雖然本版本進行了大量修復，但目前仍有以下已知關鍵問題待解決：
-
-1. **主題設定持久化失效**：用戶切換亮色/暗色主題後，雖然當下生效，但重新整理網頁 (Refresh) 後，設定會變回預設的「跟隨系統」。
+1. **主題設定持久化失效**：用戶切換亮色/暗色主題後，F5 重新整理會變回「跟隨系統」。
+   - 統一使用 `"dark"` / `"light"` / `"auto"` 字串格式儲存於 `localStorage`
+   - `userSettings` 的 `useState` 初始值改為 lazy initializer，直接從 `localStorage` 讀取，確保下拉選單與畫面主題即時同步
+   - `usePrefersColorSchemeSync` 只監聽系統主題變化，不再覆蓋 mount 時的初始值
 2. **初次進入模型選擇與連線錯誤**：
-   - 首次進入主畫面時，若直接點擊選單中的模型（如 A model），AI 有機率無反應。
-   - 必須先進入「管理員設定」指定好 Provider 與 Model 後才可正常對話。
-   - 即使對話成功，瀏覽器重新整理後，模型狀態雖顯示正常，但發送訊息後常會噴出連線錯誤，需手動重選一次模型。
+   - 用戶切換模型時只儲存 `model` 單一欄位，不再覆蓋 `apiUrl` / `apiKey`，避免連線參數被清空導致錯誤
+   - Admin 設定現在會正確同步至 `settings.model`，並在載入用戶設定時優先套用
+   - `loadAvailableModels` 失敗時保留已選模型而非強制清空
+3. **npm install peer dependency 衝突**：將 `@vitejs/plugin-react` 升級至 `^6.0.1`，與 `vite@8.0.9` 完全相容，無需 `--legacy-peer-deps`
 
 ## 🌟 功能特色
 
@@ -99,11 +101,6 @@ Get up and chatting with large language models featuring glass-morphism effect.
 ```bash
 npm install
 ```
-
-> **注意**: 如果遇到依賴安裝問題，請嘗試：
-> ```bash
-> npm install --legacy-peer-deps
-> ```
 
 ### 2. 啟動 Ollama
 
@@ -643,7 +640,7 @@ npm run preview
 
 ## 🔄 更新日誌
 
-### v260421
+### v260425
 
 - 🔗 **多 Provider 深度串接**: 實施了後端 `ProviderManager` 與 `ProviderFactory` 架構，正式支援 OpenAI, NVIDIA NIM, Anthropic, Google Gemini 等主流 Provider，並解決了 Provider 類型丟失導致的後台誤判問題。
 - ⚡ **原子化儲存 (Atomic Saving)**: 導入了部分欄位更新機制，切換語言、主題或模型時不再全量覆蓋資料庫，解決了 API Key 明文/密文衝突導致的存檔失敗問題。

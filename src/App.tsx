@@ -98,10 +98,12 @@ const App: React.FC = () => {
     const [isDarkMode, setIsDarkMode] = useState(() => {
         try {
             const saved = localStorage.getItem('theme')
-            return saved ? JSON.parse(saved) : false
+            if (saved === 'dark') return true
+            if (saved === 'light') return false
+            return window.matchMedia('(prefers-color-scheme: dark)').matches
         } catch (error) {
             console.error('Error loading theme from localStorage:', error)
-            return false
+            return window.matchMedia('(prefers-color-scheme: dark)').matches
         }
     })
     const [availableModels, setAvailableModels] = useState<Array<{ id: string; name: string }>>([])
@@ -144,18 +146,23 @@ const App: React.FC = () => {
             showTokenStats: true
         }
     })
-    const [userSettings, setUserSettings] = useState({
-        type: 'ollama',
-        language: 'zh-TW',
-        theme: 'auto',
-        model: '',
-        temperature: 0.7,
-        maxTokens: 8192,
-        apiUrl: '',
-        apiKey: '',
-        topP: 0.9,
-        topK: 40,
-        showTokenStats: true
+    const [userSettings, setUserSettings] = useState(() => {
+        const savedTheme = localStorage.getItem('theme')
+        return {
+            type: 'ollama',
+            language: 'zh-TW',
+            theme: (savedTheme === 'dark' || savedTheme === 'light' || savedTheme === 'auto')
+                ? savedTheme
+                : 'auto',
+            model: '',
+            temperature: 0.7,
+            maxTokens: 8192,
+            apiUrl: '',
+            apiKey: '',
+            topP: 0.9,
+            topK: 40,
+            showTokenStats: true
+        }
     })
     const [attachedFiles, setAttachedFiles] = useState<File[]>([])
     const [isFullscreen, setIsFullscreen] = useState(false)
@@ -189,12 +196,20 @@ const App: React.FC = () => {
 
     // 切換主題函數
     const toggleTheme = () => {
-        const newTheme = !isDarkMode
-        setIsDarkMode(newTheme)
-        localStorage.setItem('theme', JSON.stringify(newTheme))
+        const currentTheme = userSettings.theme
+        let newTheme: 'light' | 'dark'
+        if (currentTheme === 'auto') {
+            newTheme = isDarkMode ? 'light' : 'dark'
+        } else {
+            newTheme = currentTheme === 'light' ? 'dark' : 'light'
+        }
+        const newIsDark = newTheme === 'dark'
+        setIsDarkMode(newIsDark)
         // 更新 body 類別以應用玻璃擬態主題和Tailwind dark模式
-        document.body.classList.toggle('dark-theme', newTheme)
-        document.documentElement.classList.toggle('dark', newTheme)
+        document.body.classList.toggle('dark-theme', newIsDark)
+        document.documentElement.classList.toggle('dark', newIsDark)
+        // 統一使用 updateAndSaveSettings 更新主題，確保 userSettings、localStorage、伺服器同步
+        updateAndSaveSettings('theme', newTheme)
     }
 
     // 切換全螢幕函數
@@ -353,7 +368,7 @@ const App: React.FC = () => {
         } catch (error) {
             console.error('Error loading models:', error)
             setAvailableModels([])
-            setSettings(prev => ({ ...prev, model: '' }))
+            // 不要清空已選擇的模型，API 失敗不代表模型無效
         } finally {
             setIsLoadingModels(false)
         }
@@ -436,8 +451,14 @@ const App: React.FC = () => {
                 const data = await response.json()
                 const serverSettings: any = data.settings
 
-                // 1. 強制更新用戶設定狀態
-                setUserSettings(serverSettings)
+                // 主題：localStorage 為優先來源（使用者手動設定過），否則回退到伺服器
+                const localTheme = localStorage.getItem('theme')
+                const effectiveTheme = (localTheme === 'dark' || localTheme === 'light' || localTheme === 'auto')
+                    ? localTheme
+                    : serverSettings.theme
+
+                // 1. 強制更新用戶設定狀態（以 localStorage 主題為準）
+                setUserSettings({ ...serverSettings, theme: effectiveTheme })
 
                 // 應用語言設定 - 無條件套用，以伺服器設定為準，並寫入 localStorage 快取
                 if (serverSettings.language) {
@@ -449,13 +470,13 @@ const App: React.FC = () => {
                     }
                 }
 
-                // 應用主題設定
-                if (serverSettings.theme) {
-                    if (serverSettings.theme === 'auto') {
+                // 應用主題設定（以 effectiveTheme 為準，避免伺服器舊值覆蓋 localStorage）
+                if (effectiveTheme) {
+                    if (effectiveTheme === 'auto') {
                         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
                         setIsDarkMode(mediaQuery.matches)
                     } else {
-                        setIsDarkMode(serverSettings.theme === 'dark')
+                        setIsDarkMode(effectiveTheme === 'dark')
                     }
                 }
 
@@ -502,6 +523,9 @@ const App: React.FC = () => {
                             if (adminLocalSettings.baseUrl) {
                                 newSettings.apiUrl = adminLocalSettings.baseUrl
                             }
+                            if (adminLocalSettings.model) {
+                                newSettings.model = adminLocalSettings.model
+                            }
                         }
                     } catch (e) { /* ignore */ }
 
@@ -535,6 +559,11 @@ const App: React.FC = () => {
 
             if (response.ok) {
                 const data = await response.json()
+                // 主題以 localStorage 為優先，避免伺服器返回的舊值覆蓋本地手動設定
+                const localTheme = localStorage.getItem('theme')
+                if (localTheme && data.settings) {
+                    data.settings.theme = localTheme
+                }
                 setUserSettings(data.settings)
 
                 // 保存成功後，立即重新載入模型列表以反映可能的 API 變動
@@ -556,7 +585,16 @@ const App: React.FC = () => {
         // 2. 如果是通用聊天設定，也要同步更新 settings 狀態
         setSettings(prev => ({ ...prev, [key]: value }));
         
-        // 3. 只傳「變更的這一個欄位」到伺服器（避免整個 settings 包含鈕字等失效欄位導致存檔失敗）
+        // 3. 本地持久化：主題與語言必須同步寫入 localStorage，
+        //    因為 usePrefersColorSchemeSync / 登入畫面只讀 localStorage
+        if (key === 'theme') {
+            localStorage.setItem('theme', value);
+        }
+        if (key === 'language') {
+            try { localStorage.setItem('llmchat_language', value) } catch {}
+        }
+        
+        // 4. 只傳「變更的這一個欄位」到伺服器（避免整個 settings 包含鈕字等失效欄位導致存檔失敗）
         await saveUserSettingsToServer({ [key]: value });
         
         return nextSettings;
@@ -1065,30 +1103,13 @@ const App: React.FC = () => {
                 onClearChat={clearChat}
                 onExportConversation={exportConversation}
                 onModelChange={(modelId: string) => {
-                    const adminSettingsStr = localStorage.getItem('adminProviderSettings')
-                    let currentApiUrl = userSettings.apiUrl;
-                    let currentApiKey = userSettings.apiKey;
-                    let currentType = userSettings.type || 'ollama';
-                    if (adminSettingsStr) {
-                        try {
-                            const parsed = JSON.parse(adminSettingsStr)
-                            if (parsed.baseUrl) currentApiUrl = parsed.baseUrl;
-                            if (parsed.apiKey) currentApiKey = parsed.apiKey;
-                            if (parsed.type) currentType = parsed.type;
-                        } catch (e) { }
-                    }
-                    
-                    const newPartialSettings = { 
-                        model: modelId, 
-                        apiUrl: currentApiUrl, 
-                        apiKey: currentApiKey, 
-                        type: currentType 
-                    }
+                    // 只更新 model，不觸碰連線參數（由 Admin / defaultConfig 管理）
+                    const newPartialSettings = { model: modelId }
                     
                     setSettings(prev => ({ ...prev, ...newPartialSettings }))
                     setUserSettings(prev => ({ ...prev, ...newPartialSettings }))
                     
-                    // 原子化儲存，避免將整個 userSettings (可能包含被破壞的 apiKey）覆蓋後端
+                    // 原子化儲存，只存 model 欄位
                     saveUserSettingsToServer(newPartialSettings)
                 }}
                 onLogout={logout}
