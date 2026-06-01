@@ -13,23 +13,27 @@ export class ChatProvider {
     async generateResponse({
         message,
         history = [],
+        images = [],
         settings = {} as ChatSettings
     }: {
         message: string
         history?: Array<{ role: string; content: string }>
+        images?: string[]
         settings?: ChatSettings
     }) {
         try {
             console.log('生成回應:', {
                 message: message.substring(0, 100) + (message.length > 100 ? '...' : ''),
                 historyLength: history.length,
+                imagesCount: images.length,
                 model: settings.model
             })
 
             // 調用 Ollama 提供者生成回應
-            const response = await this.ollamaProvider.generateResponse({
+            const response = await (this.ollamaProvider as any).generateResponse({
                 message,
                 history,
+                images,
                 settings
             })
 

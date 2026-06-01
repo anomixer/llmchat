@@ -5,6 +5,8 @@ export interface StreamChatInput {
     settings: any
     history: Array<{ role: string; content: string }>
     language: string
+    images?: string[]
+    webSearch?: boolean
 }
 
 export interface StreamChatResult {
@@ -183,7 +185,9 @@ export function useChatStreaming(args: { token: string | null }) {
                     message: input.message,
                     settings: input.settings,
                     history: input.history,
-                    language: input.language
+                    language: input.language,
+                    images: input.images,
+                    webSearch: input.webSearch
                 })
             })
 

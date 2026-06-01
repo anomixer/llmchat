@@ -1,9 +1,15 @@
 import { Router, type Request, type Response } from 'express'
 import type EmailService from '../services/emailService.js'
+import type UserService from '../services/userService.js'
 import { OllamaProvider } from '../providers/ollamaProvider.js'
 
-export function createApiMiscRouter(deps: { emailService: EmailService; defaultApiUrl: string; defaultApiKey: string }) {
-    const { emailService, defaultApiUrl, defaultApiKey } = deps
+export function createApiMiscRouter(deps: {
+    userService: UserService
+    emailService: EmailService
+    defaultApiUrl: string
+    defaultApiKey: string
+}) {
+    const { userService, emailService, defaultApiUrl, defaultApiKey } = deps
     const router = Router()
 
     // 健康檢查端點
@@ -13,12 +19,15 @@ export function createApiMiscRouter(deps: { emailService: EmailService; defaultA
 
     // 獲取預設配置
     router.get('/config', async (_req: Request, res: Response) => {
-        const smtpEnabled = await emailService.testConnection()
+        const hasUsers = userService.users.length > 0
+        // 優化：避免每次請求都進行慢速的 SMTP 連線測試，只要有配置 transporter 就視為啟用；且系統無用戶時強制開啟以註冊首位管理員
+        const smtpEnabled = !!(emailService as any).transporter || !hasUsers
 
         res.json({
             apiUrl: defaultApiUrl,
             apiKey: defaultApiKey || '',
-            smtpEnabled: smtpEnabled
+            smtpEnabled: smtpEnabled,
+            hasUsers: hasUsers
         })
     })
 

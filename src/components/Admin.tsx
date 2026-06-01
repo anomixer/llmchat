@@ -16,6 +16,26 @@ interface AdminProps {
     onBack: () => void
 }
 
+const isVisionModel = (modelName: string): boolean => {
+    const name = modelName.toLowerCase();
+    return (
+        name.includes('vision') ||
+        name.includes('vl') ||
+        name.includes('llava') ||
+        name.includes('moondream') ||
+        name.includes('gpt-4o') ||
+        name.includes('gpt-4-') ||
+        name.includes('claude-3') ||
+        name.includes('gemini') ||
+        name.includes('multimodal') ||
+        name.includes('minicpm') ||
+        name.includes('qwen-vl') ||
+        name.includes('cogvlm') ||
+        name.includes('internvl') ||
+        name.includes('pixtral')
+    );
+};
+
 export const Admin: React.FC<AdminProps> = ({ onBack }) => {
     const { t, i18n } = useTranslation()
     const { user: currentUser, token } = useAuth()
@@ -43,6 +63,26 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
     const [connectionMessage, setConnectionMessage] = useState('')
     const [availableModels, setAvailableModels] = useState<any[]>([])
     const [loadingModels, setLoadingModels] = useState(false)
+
+    // LLM Provider 認證與 OAuth/IAM 狀態
+    const [providerAuthMethod, setProviderAuthMethod] = useState<'api-key' | 'google-service-account' | 'azure-entra-id' | 'aws-iam'>('api-key')
+    const [providerOauthConfig, setProviderOauthConfig] = useState({
+        googleJson: '',
+        azureTenantId: '',
+        azureClientId: '',
+        azureClientSecret: '',
+        awsAccessKey: '',
+        awsSecretKey: '',
+        awsRegion: 'us-east-1',
+        awsSessionToken: ''
+    })
+
+    const handleOauthConfigChange = (key: string, value: string) => {
+        setProviderOauthConfig(prev => ({
+            ...prev,
+            [key]: value
+        }))
+    }
 
     // Provider 預設 URL（與 aipc-agent 完全一致）
     const PROVIDER_DEFAULTS: Record<string, string> = {
@@ -266,15 +306,42 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                 setSelectedProvider(data.current.type)
                 setProviderBaseUrl(data.current.baseUrl)
                 setProviderModel(data.current.model)
-                // ✅ 同時從 localStorage 讀取 API Key
-                const adminSettings = localStorage.getItem('adminProviderSettings')
+                
                 let currentApiKey = ''
+                let currentAuthMethod = data.current.authMethod || 'api-key'
+                let currentOauthConfig = data.current.oauthConfig || {
+                    googleJson: '',
+                    azureTenantId: '',
+                    azureClientId: '',
+                    azureClientSecret: '',
+                    awsAccessKey: '',
+                    awsSecretKey: '',
+                    awsRegion: 'us-east-1',
+                    awsSessionToken: ''
+                }
+                
+                setProviderAuthMethod(currentAuthMethod)
+                setProviderOauthConfig(currentOauthConfig)
+
+                // ✅ 同時從 localStorage 讀取 API Key 與 OAuth 設定
+                const adminSettings = localStorage.getItem('adminProviderSettings')
                 if (adminSettings) {
                     try {
                         const parsed = JSON.parse(adminSettings)
                         if (parsed.apiKey) {
                             currentApiKey = parsed.apiKey
                             setProviderApiKey(parsed.apiKey)
+                        }
+                        if (parsed.authMethod) {
+                            currentAuthMethod = parsed.authMethod
+                            setProviderAuthMethod(parsed.authMethod)
+                        }
+                        if (parsed.oauthConfig) {
+                            currentOauthConfig = {
+                                ...currentOauthConfig,
+                                ...parsed.oauthConfig
+                            }
+                            setProviderOauthConfig(currentOauthConfig)
                         }
                     } catch (e) {
                         console.error('解析 adminSettings 失敗:', e)
@@ -283,7 +350,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                 
                 // ✅ 獲取當前 Provider 設定後，自動從該 Provider 拉取模型列表
                 // 並傳入 data.current.model 以避免 React state 延遲導致判斷錯誤
-                fetchAvailableModels(data.current.type, data.current.baseUrl, currentApiKey, data.current.model)
+                fetchAvailableModels(data.current.type, data.current.baseUrl, currentApiKey, data.current.model, currentAuthMethod, currentOauthConfig)
             }
         } catch (error) {
             console.error('Error fetching current provider:', error)
@@ -307,7 +374,9 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                     type: selectedProvider,
                     baseUrl: providerBaseUrl,
                     apiKey: providerApiKey,
-                    model: providerModel
+                    model: providerModel,
+                    authMethod: providerAuthMethod,
+                    oauthConfig: providerOauthConfig
                 })
             })
 
@@ -346,7 +415,9 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                     topP: providerTopP,
                     topK: providerTopK,
                     maxTokens: providerMaxTokens,
-                    visionModel: providerVisionModel
+                    visionModel: providerVisionModel,
+                    authMethod: providerAuthMethod,
+                    oauthConfig: providerOauthConfig
                 })
             })
 
@@ -367,13 +438,20 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                         temperature: providerTemperature,
                         topP: providerTopP,
                         topK: providerTopK,
-                        maxTokens: providerMaxTokens
+                        maxTokens: providerMaxTokens,
+                        authMethod: providerAuthMethod,
+                        oauthConfig: providerOauthConfig
                     }))
                     
                     // ✅ 手動載入模型列表並同步到 localStorage
                     // 因為同一頁面的 localStorage.setItem 不會觸發 storage event
                     try {
-                        const modelsResponse = await fetch(`/api/models?type=${encodeURIComponent(selectedProvider)}&baseUrl=${encodeURIComponent(providerBaseUrl)}&apiKey=${encodeURIComponent(providerApiKey)}`)
+                        const oauthConfigQuery = encodeURIComponent(JSON.stringify(providerOauthConfig))
+                        const modelsResponse = await fetch(`/api/models?type=${encodeURIComponent(selectedProvider)}&baseUrl=${encodeURIComponent(providerBaseUrl)}&apiKey=${encodeURIComponent(providerApiKey)}&authMethod=${encodeURIComponent(providerAuthMethod)}&oauthConfig=${oauthConfigQuery}`,
+                            {
+                                headers: { 'Authorization': `Bearer ${token}` }
+                            }
+                        )
                         if (modelsResponse.ok) {
                             const modelsData = await modelsResponse.json()
                             const models = (modelsData.models || []).map((model: any) => ({
@@ -404,17 +482,20 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
     }
 
     // 獲取可用模型列表
-    const fetchAvailableModels = async (typeOverride?: string, baseUrlOverride?: string, apiKeyOverride?: string, modelOverride?: string) => {
+    const fetchAvailableModels = async (typeOverride?: string, baseUrlOverride?: string, apiKeyOverride?: string, modelOverride?: string, authMethodOverride?: string, oauthConfigOverride?: any) => {
         const type = typeOverride !== undefined ? typeOverride : selectedProvider;
         const baseUrl = baseUrlOverride !== undefined ? baseUrlOverride : providerBaseUrl;
         const apiKey = apiKeyOverride !== undefined ? apiKeyOverride : providerApiKey;
         const targetModel = modelOverride !== undefined ? modelOverride : providerModel;
+        const authMethod = authMethodOverride !== undefined ? authMethodOverride : providerAuthMethod;
+        const oauthConfig = oauthConfigOverride !== undefined ? oauthConfigOverride : providerOauthConfig;
 
         if (!baseUrl) return;
         
         try {
             setLoadingModels(true)
-            const response = await fetch(`/api/models?type=${encodeURIComponent(type)}&baseUrl=${encodeURIComponent(baseUrl)}&apiKey=${encodeURIComponent(apiKey)}`,
+            const oauthConfigQuery = encodeURIComponent(JSON.stringify(oauthConfig))
+            const response = await fetch(`/api/models?type=${encodeURIComponent(type)}&baseUrl=${encodeURIComponent(baseUrl)}&apiKey=${encodeURIComponent(apiKey)}&authMethod=${encodeURIComponent(authMethod)}&oauthConfig=${oauthConfigQuery}`,
                 {
                     headers: { 'Authorization': `Bearer ${token}` }
                 }
@@ -578,83 +659,348 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                             </div>
                         </div>
 
-                        {/* API Key 和 Model */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    {t('admin.llm.apiKey', 'API Key')}
-                                </label>
-                                <input
-                                    type="password"
-                                    value={providerApiKey}
-                                    onChange={(e) => setProviderApiKey(e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                                    placeholder={t('admin.llm.apiKeyPlaceholder', 'API Key (可選，部分 Provider 不需要)')}
-                                />
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    {t('admin.llm.apiKeyHint', '格式依 Provider 而定（API Key、OAuth Token 等）')}
-                                </p>
-                            </div>
+                        {/* API 認證方法與模型/多模態配置 */}
+                        {(() => {
+                            const selectedProviderObj = providers.find(p => p.type === selectedProvider);
+                            const isLocalProvider = selectedProviderObj && LOCAL_NOAUTH_PROVIDERS.includes(selectedProviderObj.name);
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    {t('admin.llm.modelName', '模型名稱')}
-                                </label>
-                                <div className="flex space-x-2">
-                                    {availableModels.length > 0 ? (
-                                        <select
-                                            value={providerModel}
-                                            onChange={(e) => setProviderModel(e.target.value)}
-                                            className="flex-1 min-w-0 flex-shrink truncate px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                                        >
-                                            {availableModels.map((model: any) => (
-                                                <option key={model.name} value={model.name}>
-                                                    {model.name}
-                                                </option>
-                                            ))}
-                                            {/* Allow keeping custom model if it's not in the list but was fetched */}
-                                            {!availableModels.find(m => m.name === providerModel) && providerModel && (
-                                                <option value={providerModel}>{providerModel} ({t('admin.llm.current', '當前')})</option>
+                            // 1. 本地免認證 Provider 版面配置
+                            if (isLocalProvider) {
+                                return (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                {t('admin.llm.modelName', '模型名稱')}
+                                            </label>
+                                            <div className="flex space-x-2">
+                                                {availableModels.length > 0 ? (
+                                                    <select
+                                                        value={providerModel}
+                                                        onChange={(e) => setProviderModel(e.target.value)}
+                                                        className="flex-1 min-w-0 flex-shrink truncate px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                                    >
+                                                        {availableModels.map((model: any) => (
+                                                            <option key={model.name} value={model.name}>
+                                                                {model.name}
+                                                            </option>
+                                                        ))}
+                                                        {!availableModels.find(m => m.name === providerModel) && providerModel && (
+                                                            <option value={providerModel}>{providerModel} ({t('admin.llm.current', '當前')})</option>
+                                                        )}
+                                                    </select>
+                                                ) : (
+                                                    <input
+                                                        type="text"
+                                                        value={providerModel}
+                                                        onChange={(e) => setProviderModel(e.target.value)}
+                                                        className="flex-1 min-w-0 flex-shrink px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                                        placeholder={t('admin.llm.modelPlaceholder', '例如：gpt-4, claude-3, llama3')}
+                                                    />
+                                                )}
+                                                <button
+                                                    onClick={() => fetchAvailableModels()}
+                                                    disabled={loadingModels}
+                                                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex-shrink-0"
+                                                >
+                                                    {loadingModels ? '...' : t('admin.llm.fetchModels', '獲取模型')}
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                {t('admin.llm.visionModel', 'Vision 模型（可選）')}
+                                            </label>
+                                            <div className="flex space-x-2">
+                                                {availableModels.length > 0 ? (
+                                                    <select
+                                                        value={providerVisionModel}
+                                                        onChange={(e) => setProviderVisionModel(e.target.value)}
+                                                        className="flex-1 min-w-0 flex-shrink truncate px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                                    >
+                                                        <option value="">{t('admin.llm.visionPlaceholder', '用於多模態內容，留空則自動選擇')}</option>
+                                                        {availableModels
+                                                            .filter((model: any) => isVisionModel(model.name))
+                                                            .map((model: any) => (
+                                                                <option key={model.name} value={model.name}>
+                                                                    {model.name}
+                                                                </option>
+                                                            ))}
+                                                        {!availableModels.filter((m: any) => isVisionModel(m.name)).find(m => m.name === providerVisionModel) && providerVisionModel && (
+                                                            <option value={providerVisionModel}>{providerVisionModel} ({t('admin.llm.current', '當前')})</option>
+                                                        )}
+                                                    </select>
+                                                ) : (
+                                                    <input
+                                                        type="text"
+                                                        value={providerVisionModel}
+                                                        onChange={(e) => setProviderVisionModel(e.target.value)}
+                                                        className="flex-1 min-w-0 flex-shrink px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                                        placeholder={t('admin.llm.visionPlaceholder', '用於多模態內容，留空則自動選擇')}
+                                                    />
+                                                )}
+                                                <button
+                                                    onClick={() => fetchAvailableModels()}
+                                                    disabled={loadingModels}
+                                                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex-shrink-0"
+                                                >
+                                                    {loadingModels ? '...' : t('admin.llm.fetchModels', '獲取模型')}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            }
+
+                            // 2. 需要認證之雲端 Provider 版面配置
+                            return (
+                                <>
+                                    {/* 2x2 或 2x1 核心配置格線區 */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                        {/* 第一排左：認證方法 */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                {t('admin.llm.authMethod', '認證方法')}
+                                            </label>
+                                            <select
+                                                value={providerAuthMethod}
+                                                onChange={(e) => {
+                                                    const method = e.target.value as any
+                                                    setProviderAuthMethod(method)
+                                                    // 切換認證方法時自動重拉模型列表
+                                                    fetchAvailableModels(selectedProvider, providerBaseUrl, providerApiKey, providerModel, method)
+                                                }}
+                                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                            >
+                                                <option value="api-key">🔑 靜態 API 金鑰 (Static API Key)</option>
+                                                <option value="google-service-account">🌐 Google 服務帳號金鑰 (Service Account JSON)</option>
+                                                <option value="azure-entra-id">🌐 Microsoft Entra ID 客戶端憑證 (OAuth 2.0)</option>
+                                                <option value="aws-iam">☁️ AWS IAM 簽章憑證 (SigV4)</option>
+                                            </select>
+                                        </div>
+
+                                        {/* 第一排右：API Key (如果是 api-key 認證法) */}
+                                        {providerAuthMethod === 'api-key' ? (
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    {t('admin.llm.apiKey', 'API Key')}
+                                                </label>
+                                                <input
+                                                    type="password"
+                                                    value={providerApiKey}
+                                                    onChange={(e) => setProviderApiKey(e.target.value)}
+                                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                                    placeholder={t('admin.llm.apiKeyPlaceholder', 'API Key (可選，部分 Provider 不需要)')}
+                                                />
+                                            </div>
+                                        ) : (
+                                            // 非 API Key 模式時，右側留空以維持第一排的簡潔與對齊
+                                            <div className="hidden md:block"></div>
+                                        )}
+
+                                        {/* 第二排左：模型名稱 */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                {t('admin.llm.modelName', '模型名稱')}
+                                            </label>
+                                            <div className="flex space-x-2">
+                                                {availableModels.length > 0 ? (
+                                                    <select
+                                                        value={providerModel}
+                                                        onChange={(e) => setProviderModel(e.target.value)}
+                                                        className="flex-1 min-w-0 flex-shrink truncate px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                                    >
+                                                        {availableModels.map((model: any) => (
+                                                            <option key={model.name} value={model.name}>
+                                                                {model.name}
+                                                            </option>
+                                                        ))}
+                                                        {!availableModels.find(m => m.name === providerModel) && providerModel && (
+                                                            <option value={providerModel}>{providerModel} ({t('admin.llm.current', '當前')})</option>
+                                                        )}
+                                                    </select>
+                                                ) : (
+                                                    <input
+                                                        type="text"
+                                                        value={providerModel}
+                                                        onChange={(e) => setProviderModel(e.target.value)}
+                                                        className="flex-1 min-w-0 flex-shrink px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                                        placeholder={t('admin.llm.modelPlaceholder', '例如：gpt-4, claude-3, llama3')}
+                                                    />
+                                                )}
+                                                <button
+                                                    onClick={() => fetchAvailableModels()}
+                                                    disabled={loadingModels}
+                                                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex-shrink-0"
+                                                >
+                                                    {loadingModels ? '...' : t('admin.llm.fetchModels', '獲取模型')}
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* 第二排右：Vision 模型 */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                {t('admin.llm.visionModel', 'Vision 模型（可選）')}
+                                            </label>
+                                            <div className="flex space-x-2">
+                                                {availableModels.length > 0 ? (
+                                                    <select
+                                                        value={providerVisionModel}
+                                                        onChange={(e) => setProviderVisionModel(e.target.value)}
+                                                        className="flex-1 min-w-0 flex-shrink truncate px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                                    >
+                                                        <option value="">{t('admin.llm.visionPlaceholder', '用於多模態內容，留空則自動選擇')}</option>
+                                                        {availableModels
+                                                            .filter((model: any) => isVisionModel(model.name))
+                                                            .map((model: any) => (
+                                                                <option key={model.name} value={model.name}>
+                                                                    {model.name}
+                                                                </option>
+                                                            ))}
+                                                        {!availableModels.filter((m: any) => isVisionModel(m.name)).find(m => m.name === providerVisionModel) && providerVisionModel && (
+                                                            <option value={providerVisionModel}>{providerVisionModel} ({t('admin.llm.current', '當前')})</option>
+                                                        )}
+                                                    </select>
+                                                ) : (
+                                                    <input
+                                                        type="text"
+                                                        value={providerVisionModel}
+                                                        onChange={(e) => setProviderVisionModel(e.target.value)}
+                                                        className="flex-1 min-w-0 flex-shrink px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                                        placeholder={t('admin.llm.visionPlaceholder', '用於多模態內容，留空則自動選擇')}
+                                                    />
+                                                )}
+                                                <button
+                                                    onClick={() => fetchAvailableModels()}
+                                                    disabled={loadingModels}
+                                                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex-shrink-0"
+                                                >
+                                                    {loadingModels ? '...' : t('admin.llm.fetchModels', '獲取模型')}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* 3. 企業雲端動態憑證輸入區 (僅在非 API Key 認證時顯示) */}
+                                    {providerAuthMethod !== 'api-key' && (
+                                        <div className="p-5 border border-gray-150 dark:border-gray-750 bg-gray-50/50 dark:bg-gray-800/50 rounded-lg mb-6 transition-all duration-300">
+                                            {providerAuthMethod === 'google-service-account' && (
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                        GCP 服務帳號金鑰 (Service Account JSON)
+                                                    </label>
+                                                    <textarea
+                                                        rows={6}
+                                                        value={providerOauthConfig.googleJson}
+                                                        onChange={(e) => handleOauthConfigChange('googleJson', e.target.value)}
+                                                        className="w-full px-3 py-2 font-mono text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                                        placeholder={`{\n  "type": "service_account",\n  "project_id": "your-project-id",\n  "private_key_id": "...",\n  "private_key": "-----BEGIN PRIVATE KEY-----\\n...",\n  "client_email": "..."\n}`}
+                                                    />
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                        請上傳或貼上完整的 Google Cloud Service Account 金鑰 JSON。後端將進行安全加密儲存。
+                                                    </p>
+                                                </div>
                                             )}
-                                        </select>
-                                    ) : (
-                                        <input
-                                            type="text"
-                                            value={providerModel}
-                                            onChange={(e) => setProviderModel(e.target.value)}
-                                            className="flex-1 min-w-0 flex-shrink px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                                            placeholder={t('admin.llm.modelPlaceholder', '例如：gpt-4, claude-3, llama3')}
-                                        />
-                                    )}
-                                    <button
-                                        onClick={() => fetchAvailableModels()}
-                                        disabled={loadingModels}
-                                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex-shrink-0"
-                                    >
-                                        {loadingModels ? '...' : t('admin.llm.fetchModels', '獲取模型')}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
 
-                        {/* Vision 模型 */}
-                        <div className="mb-6">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    {t('admin.llm.visionModel', 'Vision 模型（可選）')}
-                                </label>
-                                <input
-                                    type="text"
-                                    value={providerVisionModel}
-                                    onChange={(e) => setProviderVisionModel(e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                                    placeholder={t('admin.llm.visionPlaceholder', '用於多模態內容，留空則自動選擇')}
-                                />
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    {t('admin.llm.visionHint', '用於讀取圖片、手寫草圖等。留空時系統會自動選擇同 Provider 的 vision 模型。')}
-                                </p>
-                            </div>
-                        </div>
+                                            {providerAuthMethod === 'azure-entra-id' && (
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                            Microsoft Entra Tenant ID (目錄識別碼)
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            value={providerOauthConfig.azureTenantId}
+                                                            onChange={(e) => handleOauthConfigChange('azureTenantId', e.target.value)}
+                                                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                                            placeholder="例如: 12345678-1234-..."
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                            Client ID (應用程式識別碼)
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            value={providerOauthConfig.azureClientId}
+                                                            onChange={(e) => handleOauthConfigChange('azureClientId', e.target.value)}
+                                                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                                            placeholder="例如: 87654321-4321-..."
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                            Client Secret (用戶端密碼)
+                                                        </label>
+                                                        <input
+                                                            type="password"
+                                                            value={providerOauthConfig.azureClientSecret}
+                                                            onChange={(e) => handleOauthConfigChange('azureClientSecret', e.target.value)}
+                                                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                                            placeholder="輸入 Azure AD 應用程式客戶端密碼"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {providerAuthMethod === 'aws-iam' && (
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                            AWS Access Key ID
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            value={providerOauthConfig.awsAccessKey}
+                                                            onChange={(e) => handleOauthConfigChange('awsAccessKey', e.target.value)}
+                                                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                                            placeholder="例如: AKIA..."
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                            AWS Secret Access Key
+                                                        </label>
+                                                        <input
+                                                            type="password"
+                                                            value={providerOauthConfig.awsSecretKey}
+                                                            onChange={(e) => handleOauthConfigChange('awsSecretKey', e.target.value)}
+                                                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                                            placeholder="輸入 AWS Secret Key"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                            AWS Region (區域)
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            value={providerOauthConfig.awsRegion}
+                                                            onChange={(e) => handleOauthConfigChange('awsRegion', e.target.value)}
+                                                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                                            placeholder="例如: us-east-1"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                            AWS Session Token (選填，使用臨時憑證時填寫)
+                                                        </label>
+                                                        <input
+                                                            type="password"
+                                                            value={providerOauthConfig.awsSessionToken}
+                                                            onChange={(e) => handleOauthConfigChange('awsSessionToken', e.target.value)}
+                                                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                                            placeholder="臨時 IAM Session Token"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </>
+                            );
+                        })()}
 
                         {/* 生成參數 */}
                         <div className="mb-6">
@@ -662,7 +1008,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Temperature: {providerTemperature}
+                                        {t('admin.llm.temperature', 'Temperature')}: {providerTemperature}
                                     </label>
                                     <input
                                         type="range"
@@ -680,7 +1026,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Top P: {providerTopP}
+                                        {t('admin.llm.topP', 'Top P')}: {providerTopP}
                                     </label>
                                     <input
                                         type="range"
@@ -698,7 +1044,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Top K: {providerTopK}
+                                        {t('admin.llm.topK', 'Top K')}: {providerTopK}
                                     </label>
                                     <input
                                         type="range"
@@ -716,13 +1062,16 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Max Tokens: {providerMaxTokens}
+                                        {t('admin.llm.contextSize', 'Context Size')}: {providerMaxTokens}
                                     </label>
                                     <input
-                                        type="number"
+                                        type="range"
+                                        min="256"
+                                        max="262144"
+                                        step="256"
                                         value={providerMaxTokens}
                                         onChange={(e) => setProviderMaxTokens(parseInt(e.target.value))}
-                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                        className="w-full"
                                     />
                                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                         {t('admin.llm.maxTokensHint', '最大上下文長度')}

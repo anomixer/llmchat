@@ -23,6 +23,13 @@ export function createMultiProviderRouter(deps: any) {
             const adminSettings = userService ? userService.getAdminSettings() : null
             const providerType = adminSettings?.type || process.env.LLM_PROVIDER || 'ollama'
             
+            const safeOauthConfig = adminSettings?.oauthConfig ? { ...adminSettings.oauthConfig } : undefined
+            if (safeOauthConfig) {
+                if (safeOauthConfig.googleJson) safeOauthConfig.googleJson = '********'
+                if (safeOauthConfig.azureClientSecret) safeOauthConfig.azureClientSecret = '********'
+                if (safeOauthConfig.awsSecretKey) safeOauthConfig.awsSecretKey = '********'
+            }
+
             const currentProvider = {
                 type: providerType,
                 name: AVAILABLE_PROVIDERS.find(p => p.type === providerType)?.name || providerType,
@@ -32,7 +39,9 @@ export function createMultiProviderRouter(deps: any) {
                 apiKey: adminSettings?.apiKey ? '********' : (process.env.LLM_API_KEY ? '********' : ''),
                 temperature: adminSettings?.temperature || parseFloat(process.env.LLM_TEMPERATURE || '0.7'),
                 maxTokens: adminSettings?.maxTokens || parseInt(process.env.LLM_MAX_TOKENS || '4096'),
-                requiresApiKey: !['ollama', 'ollama-cloud', 'vllm', 'sglang', 'lm-studio', 'custom'].includes(providerType)
+                requiresApiKey: !['ollama', 'ollama-cloud', 'vllm', 'sglang', 'lm-studio', 'custom'].includes(providerType),
+                authMethod: adminSettings?.authMethod || 'api-key',
+                oauthConfig: safeOauthConfig
             }
             res.json({ current: currentProvider })
         } catch (error: any) {
@@ -44,7 +53,7 @@ export function createMultiProviderRouter(deps: any) {
     // 更新 Provider 配置
     router.post('/providers/update', async (req: Request, res: Response) => {
         try {
-            const { type, baseUrl, apiKey, model, temperature, maxTokens } = req.body
+            const { type, baseUrl, apiKey, model, temperature, maxTokens, authMethod, oauthConfig } = req.body
             
             // 保存配置到環境變數（作為緩存）
             process.env.LLM_PROVIDER = type
@@ -58,13 +67,26 @@ export function createMultiProviderRouter(deps: any) {
             if (userService) {
                 const admin = userService.users.find((u: any) => u.role === 'admin')
                 if (admin) {
+                    // 如果傳來的是遮蔽的 '********'，則保留資料庫中原有的密鑰
+                    const existingSettings = userService.getUserSettings(admin.id)
+                    const finalApiKey = apiKey === '********' ? existingSettings?.apiKey : (apiKey || '')
+                    
+                    let finalOauthConfig = oauthConfig ? { ...oauthConfig } : undefined
+                    if (finalOauthConfig && existingSettings?.oauthConfig) {
+                        if (finalOauthConfig.googleJson === '********') finalOauthConfig.googleJson = existingSettings.oauthConfig.googleJson
+                        if (finalOauthConfig.azureClientSecret === '********') finalOauthConfig.azureClientSecret = existingSettings.oauthConfig.azureClientSecret
+                        if (finalOauthConfig.awsSecretKey === '********') finalOauthConfig.awsSecretKey = existingSettings.oauthConfig.awsSecretKey
+                    }
+
                     userService.updateUserSettings(admin.id, {
                         type,
                         apiUrl: baseUrl,
-                        apiKey: apiKey || '',
+                        apiKey: finalApiKey,
                         model,
                         temperature: parseFloat(temperature || '0.7'),
-                        maxTokens: parseInt(maxTokens || '4096')
+                        maxTokens: parseInt(maxTokens || '4096'),
+                        authMethod: authMethod || 'api-key',
+                        oauthConfig: finalOauthConfig
                     })
                     console.log(`已將 Provider 設定 (${type}) 持久化到管理員 [${admin.email}] 的帳號中`)
                 }
@@ -72,13 +94,26 @@ export function createMultiProviderRouter(deps: any) {
 
             // 測試連接
             try {
+                const admin = userService ? userService.users.find((u: any) => u.role === 'admin') : null
+                const existingSettings = admin ? userService.getUserSettings(admin.id) : null
+                
+                const finalApiKey = apiKey === '********' ? existingSettings?.apiKey : (apiKey || '')
+                let finalOauthConfig = oauthConfig ? { ...oauthConfig } : undefined
+                if (finalOauthConfig && existingSettings?.oauthConfig) {
+                    if (finalOauthConfig.googleJson === '********') finalOauthConfig.googleJson = existingSettings.oauthConfig.googleJson
+                    if (finalOauthConfig.azureClientSecret === '********') finalOauthConfig.azureClientSecret = existingSettings.oauthConfig.azureClientSecret
+                    if (finalOauthConfig.awsSecretKey === '********') finalOauthConfig.awsSecretKey = existingSettings.oauthConfig.awsSecretKey
+                }
+
                 const provider = ProviderFactory.createProvider(type, {
                     type,
                     baseUrl,
-                    apiKey,
+                    apiKey: finalApiKey,
                     model,
                     temperature,
-                    maxTokens
+                    maxTokens,
+                    authMethod: authMethod || 'api-key',
+                    oauthConfig: finalOauthConfig
                 })
                 
                 const isConnected = await provider.checkConnection()
@@ -112,7 +147,7 @@ export function createMultiProviderRouter(deps: any) {
     // 檢查 Provider 連接
     router.post('/providers/check', async (req: Request, res: Response) => {
         try {
-            const { type, baseUrl, apiKey, model } = req.body || {}
+            const { type, baseUrl, apiKey, model, authMethod, oauthConfig } = req.body || {}
             
             const providerType = type || process.env.LLM_PROVIDER || 'ollama'
             const providerBaseUrl = baseUrl || process.env.LLM_BASE_URL || 
@@ -121,8 +156,19 @@ export function createMultiProviderRouter(deps: any) {
                  providerType === 'openai' ? 'https://api.openai.com/v1' :
                  providerType === 'groq' ? 'https://api.groq.com/openai/v1' :
                  'https://api.openai.com/v1')
-            const providerApiKey = apiKey || process.env.LLM_API_KEY || ''
+            
+            const admin = userService ? userService.users.find((u: any) => u.role === 'admin') : null
+            const existingSettings = admin ? userService.getUserSettings(admin.id) : null
+            
+            const providerApiKey = apiKey === '********' ? existingSettings?.apiKey : (apiKey || process.env.LLM_API_KEY || '')
             const providerModel = model || process.env.LLM_MODEL || 'llama2'
+
+            let finalOauthConfig = oauthConfig ? { ...oauthConfig } : undefined
+            if (finalOauthConfig && existingSettings?.oauthConfig) {
+                if (finalOauthConfig.googleJson === '********') finalOauthConfig.googleJson = existingSettings.oauthConfig.googleJson
+                if (finalOauthConfig.azureClientSecret === '********') finalOauthConfig.azureClientSecret = existingSettings.oauthConfig.azureClientSecret
+                if (finalOauthConfig.awsSecretKey === '********') finalOauthConfig.awsSecretKey = existingSettings.oauthConfig.awsSecretKey
+            }
 
             const provider = ProviderFactory.createProvider(providerType, {
                 type: providerType,
@@ -130,7 +176,9 @@ export function createMultiProviderRouter(deps: any) {
                 apiKey: providerApiKey,
                 model: providerModel,
                 temperature: parseFloat(process.env.LLM_TEMPERATURE || '0.7'),
-                maxTokens: parseInt(process.env.LLM_MAX_TOKENS || '2048')
+                maxTokens: parseInt(process.env.LLM_MAX_TOKENS || '2048'),
+                authMethod: authMethod || existingSettings?.authMethod || 'api-key',
+                oauthConfig: finalOauthConfig || existingSettings?.oauthConfig
             })
             
             const isConnected = await provider.checkConnection()
@@ -144,15 +192,31 @@ export function createMultiProviderRouter(deps: any) {
     // 獲取可用模型列表
     router.get('/models', async (req: Request, res: Response) => {
         try {
-            const providerType = req.query.type as string || process.env.LLM_PROVIDER || 'ollama'
-            const providerBaseUrl = req.query.baseUrl as string || process.env.LLM_BASE_URL || 
+            const adminSettings = userService ? userService.getAdminSettings() : null
+            const providerType = req.query.type as string || adminSettings?.type || process.env.LLM_PROVIDER || 'ollama'
+            const providerBaseUrl = req.query.baseUrl as string || adminSettings?.apiUrl || process.env.LLM_BASE_URL || 
                 (providerType === 'ollama' ? 'http://localhost:11434' : 
                  providerType === 'anthropic' ? 'https://api.anthropic.com/v1' :
                  providerType === 'openai' ? 'https://api.openai.com/v1' :
                  providerType === 'groq' ? 'https://api.groq.com/openai/v1' :
                  'https://api.openai.com/v1')
-            const providerApiKey = req.query.apiKey as string || process.env.LLM_API_KEY || ''
-            const providerModel = req.query.model as string || process.env.LLM_MODEL || 'llama2'
+            
+            const providerApiKey = req.query.apiKey as string === '********' ? adminSettings?.apiKey : (req.query.apiKey as string || adminSettings?.apiKey || process.env.LLM_API_KEY || '')
+            const providerModel = req.query.model as string || adminSettings?.model || process.env.LLM_MODEL || 'llama2'
+
+            let authMethod = req.query.authMethod as string || adminSettings?.authMethod || 'api-key'
+            let oauthConfig = adminSettings?.oauthConfig
+            if (req.query.oauthConfig && req.query.oauthConfig !== 'undefined') {
+                try {
+                    const parsed = JSON.parse(req.query.oauthConfig as string)
+                    if (parsed && typeof parsed === 'object') {
+                        oauthConfig = { ...adminSettings?.oauthConfig, ...parsed }
+                        if (parsed.googleJson === '********') oauthConfig.googleJson = adminSettings?.oauthConfig?.googleJson
+                        if (parsed.azureClientSecret === '********') oauthConfig.azureClientSecret = adminSettings?.oauthConfig?.azureClientSecret
+                        if (parsed.awsSecretKey === '********') oauthConfig.awsSecretKey = adminSettings?.oauthConfig?.awsSecretKey
+                    }
+                } catch (e) {}
+            }
 
             const provider = ProviderFactory.createProvider(providerType, {
                 type: providerType,
@@ -160,7 +224,9 @@ export function createMultiProviderRouter(deps: any) {
                 apiKey: providerApiKey,
                 model: providerModel,
                 temperature: parseFloat(process.env.LLM_TEMPERATURE || '0.7'),
-                maxTokens: parseInt(process.env.LLM_MAX_TOKENS || '2048')
+                maxTokens: parseInt(process.env.LLM_MAX_TOKENS || '2048'),
+                authMethod,
+                oauthConfig
             })
             
             const models = await provider.getAvailableModels()

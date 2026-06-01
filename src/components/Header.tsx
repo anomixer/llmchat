@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Send, Bot, Settings, Trash2, Moon, Sun, Plus, MessageSquare, Download, Maximize2, Minimize2, LogOut, Users, ChevronDown } from 'lucide-react'
+import { Send, Bot, Settings, Trash2, Plus, MessageSquare, Download, Maximize2, Minimize2, LogOut, Users, ChevronDown, Moon, Sun, Monitor } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 interface User {
@@ -19,6 +19,7 @@ interface HeaderProps {
     conversations: Array<{ id: string; title: string }>
     availableModels: Array<{ id: string; name: string }>
     isLoadingModels?: boolean
+    currentTheme: 'auto' | 'light' | 'dark'
     onToggleTheme: () => void
     onToggleFullscreen: () => void
     onToggleSettings: () => void
@@ -43,6 +44,7 @@ export const Header: React.FC<HeaderProps> = ({
     conversations,
     availableModels,
     isLoadingModels = false,
+    currentTheme,
     onToggleTheme,
     onToggleFullscreen,
     onToggleSettings,
@@ -59,6 +61,15 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
     const { t } = useTranslation()
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+    // 計算下次切換的主題（用於圖示與提示）
+    const nextTheme = (() => {
+        switch (currentTheme) {
+            case 'light': return 'dark'
+            case 'dark': return 'auto'
+            case 'auto': return 'light'
+        }
+    })()
 
     // 監聽關閉手機選單事件
     useEffect(() => {
@@ -251,7 +262,7 @@ export const Header: React.FC<HeaderProps> = ({
                                 {/* 分隔線 */}
                                 <div className="border-t border-gray-200 dark:border-gray-600 my-1"></div>
 
-                                {/* Switch to light mode */}
+                                {/* Theme toggle button */}
                                 <button
                                     onClick={() => {
                                         onToggleTheme()
@@ -263,8 +274,18 @@ export const Header: React.FC<HeaderProps> = ({
                                         : 'text-gray-900 hover:bg-gray-100'
                                         }`}
                                 >
-                                    {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                                    <span>{isDarkMode ? t('header.theme.light') : t('header.theme.dark')}</span>
+                                    {nextTheme === 'light' ? (
+                                        <Sun className="h-4 w-4" />
+                                    ) : nextTheme === 'dark' ? (
+                                        <Moon className="h-4 w-4" />
+                                    ) : (
+                                        <Monitor className="h-4 w-4" />
+                                    )}
+                                    <span>
+                                        {nextTheme === 'light' ? t('header.theme.light') :
+                                         nextTheme === 'dark' ? t('header.theme.dark') :
+                                         t('settings.theme.auto')}
+                                    </span>
                                 </button>
 
                                 {/* 全螢幕切換 */}
@@ -442,16 +463,26 @@ export const Header: React.FC<HeaderProps> = ({
                     >
                         <Trash2 className="h-5 w-5" />
                     </button>
-                    {/* 主題切換按鈕 */}
+                    {/* 主題切換按鈕 - 循環: light -> dark -> auto -> light */}
                     <button
                         onClick={onToggleTheme}
                         className={`p-2 rounded-lg transition-colors ${isDarkMode
                             ? 'text-yellow-400 hover:bg-gray-700'
                             : 'text-gray-500 hover:bg-gray-100'
                             }`}
-                        title={isDarkMode ? t('header.theme.light') : t('header.theme.dark')}
+                        title={
+                            nextTheme === 'light' ? t('header.theme.light') :
+                            nextTheme === 'dark' ? t('header.theme.dark') :
+                            t('settings.theme.auto')
+                        }
                     >
-                        {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                        {nextTheme === 'light' ? (
+                            <Sun className="h-5 w-5" />
+                        ) : nextTheme === 'dark' ? (
+                            <Moon className="h-5 w-5" />
+                        ) : (
+                            <Monitor className="h-5 w-5" />
+                        )}
                     </button>
                     {/* 全螢幕切換按鈕 */}
                     <button

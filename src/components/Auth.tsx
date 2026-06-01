@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { LogIn, UserPlus, Eye, EyeOff, Moon, Sun } from 'lucide-react'
+import { LogIn, UserPlus, Eye, EyeOff, Moon, Sun, Monitor } from 'lucide-react'
 import { LanguageSelector } from './LanguageSelector'
 
 interface AuthProps {
     onLogin: (email: string, password: string) => Promise<void>
-    onRegister: (email: string, password: string, language: string) => Promise<{ verificationUrl: string; emailSent: boolean; alreadyExists?: boolean }>
+    onRegister: (email: string, password: string, language: string) => Promise<{ verificationUrl: string; emailSent: boolean; alreadyExists?: boolean; user?: any }>
     onResendVerification: (email: string, language: string) => Promise<{ verificationUrl: string; emailSent: boolean }>
     isLoading: boolean
     error: string | null
@@ -19,7 +19,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onRegister, onResendVerific
     const [confirmPassword, setConfirmPassword] = useState('')
     const [showPassword, setShowPassword] = useState(false)
     const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-    const [registrationSuccess, setRegistrationSuccess] = useState<{ email: string; verificationUrl: string; emailSent: boolean } | null>(null)
+    const [registrationSuccess, setRegistrationSuccess] = useState<{ email: string; verificationUrl: string; emailSent: boolean; role?: string } | null>(null)
     const [resendSuccess, setResendSuccess] = useState<{ email: string; verificationUrl: string; emailSent: boolean } | null>(null)
     const [showRegistrationMessage, setShowRegistrationMessage] = useState(false)
     const [isDuplicateRegistration, setIsDuplicateRegistration] = useState(false)
@@ -34,6 +34,16 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onRegister, onResendVerific
         } catch (error) {
             console.error('Error loading theme from localStorage:', error)
             return window.matchMedia('(prefers-color-scheme: dark)').matches
+        }
+    })
+    // 主題選單值：auto / light / dark，從 localStorage 初始化
+    const [themeValue, setThemeValue] = useState<'auto' | 'light' | 'dark'>(() => {
+        try {
+            const saved = localStorage.getItem('theme')
+            if (saved === 'dark' || saved === 'light') return saved
+            return 'auto'
+        } catch {
+            return 'auto'
         }
     })
 
@@ -56,13 +66,34 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onRegister, onResendVerific
         loadConfig()
     }, [])
 
-	// 檢測lang
+	// 檢測lang (優先 URL param，否則使用 localStorage，並在 URL param 使用後清除)
     useEffect(() => {
         const params = new URLSearchParams(window.location.search)
         const langParam = params.get('lang')
 
         if (langParam && ['zh-TW', 'zh-CN', 'en', 'ja', 'ko'].includes(langParam)) {
             i18n.changeLanguage(langParam)
+            try { localStorage.setItem('llmchat_language', langParam) } catch {}
+            // 更新 HTML lang 屬性
+            const htmlElement = document.getElementById('html-root') as HTMLHtmlElement
+            if (htmlElement) {
+                htmlElement.lang = langParam
+            }
+            // 清除 URL 參數，避免刷新後再次覆蓋
+            const newUrl = window.location.pathname + window.location.hash
+            window.history.replaceState({}, '', newUrl)
+        } else {
+            // ✅ 優先從 localStorage 讀取使用者選擇的語言
+            try {
+                const savedLang = localStorage.getItem('llmchat_language')
+                if (savedLang && ['zh-TW', 'zh-CN', 'en', 'ja', 'ko'].includes(savedLang)) {
+                    i18n.changeLanguage(savedLang)
+                    const htmlElement = document.getElementById('html-root') as HTMLHtmlElement
+                    if (htmlElement) {
+                        htmlElement.lang = savedLang
+                    }
+                }
+            } catch (e) {}
         }
     }, [])
 
@@ -77,9 +108,9 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onRegister, onResendVerific
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
 
         const handleThemeChange = (e: MediaQueryListEvent) => {
-            // 只有在用戶沒有手動設定主題時才跟隨瀏覽器
             const savedTheme = localStorage.getItem('theme')
-            if (savedTheme === null) { // 沒有手動設定過
+            // 若没有手動設定過 (null) 或設定為 auto，則跟隨系統
+            if (!savedTheme || savedTheme === 'auto') {
                 setIsDarkMode(e.matches)
             }
         }
@@ -90,14 +121,29 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onRegister, onResendVerific
         return () => {
             mediaQuery.removeEventListener('change', handleThemeChange)
         }
-    }, [])
+    }, [setIsDarkMode])
 
-    // 切換主題函數
-    const toggleTheme = () => {
-        const newTheme = isDarkMode ? 'light' : 'dark'
-        setIsDarkMode(!isDarkMode)
-        localStorage.setItem('theme', newTheme)
+    // 循環切換主題: light -> dark -> auto -> light
+    const cycleTheme = () => {
+        const order: Array<'light'|'dark'|'auto'> = ['light', 'dark', 'auto']
+        const currentIndex = order.indexOf(themeValue)
+        const next = order[(currentIndex + 1) % 3]
+        setThemeValue(next)
+        try { localStorage.setItem('theme', next) } catch {}
+        if (next === 'auto') {
+            const m = window.matchMedia('(prefers-color-scheme: dark)')
+            setIsDarkMode(m.matches)
+        } else {
+            setIsDarkMode(next === 'dark')
+        }
     }
+
+    // 計算下次切換的主題（用於圖示與提示）
+    const nextThemeForDisplay = (() => {
+        const order: Array<'light'|'dark'|'auto'> = ['light', 'dark', 'auto']
+        const currentIndex = order.indexOf(themeValue)
+        return order[(currentIndex + 1) % 3]
+    })()
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -134,19 +180,17 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onRegister, onResendVerific
                     }, 5000)
                 } else {
                     // 成功註冊
-                    console.log('Setting showRegistrationMessage to true')
                     setIsDuplicateRegistration(false)
-                    setShowRegistrationMessage(true)
+                    setRegistrationSuccess({
+                        email: email.trim(),
+                        verificationUrl: result.verificationUrl,
+                        emailSent: result.emailSent || false,
+                        role: result.user?.role
+                    })
                     // 清空表單
                     setEmail('')
                     setPassword('')
                     setConfirmPassword('')
-
-                    // 5秒後自動返回登入畫面
-                    setTimeout(() => {
-                        setShowRegistrationMessage(false)
-                        setIsLogin(true)
-                    }, 5000)
                 }
             }
         } catch (error) {
@@ -177,11 +221,21 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onRegister, onResendVerific
             {/* 語言選擇器和主題切換 - 右上角 */}
             <div className="absolute top-4 right-4 z-10 flex items-center space-x-3">
                 <button
-                    onClick={toggleTheme}
-                    className="p-2 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-700 transition-colors"
-                    title={isDarkMode ? t('header.theme.light') : t('header.theme.dark')}
+                    onClick={cycleTheme}
+                    className={`p-2 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-700 transition-colors`}
+                    title={
+                        nextThemeForDisplay === 'light' ? t('header.theme.light') :
+                        nextThemeForDisplay === 'dark' ? t('header.theme.dark') :
+                        t('settings.theme.auto')
+                    }
                 >
-                    {isDarkMode ? <Sun className="h-5 w-5 text-yellow-500" /> : <Moon className="h-5 w-5 text-gray-600 dark:text-gray-300" />}
+                    {nextThemeForDisplay === 'light' ? (
+                        <Sun className="h-5 w-5 text-yellow-500" />
+                    ) : nextThemeForDisplay === 'dark' ? (
+                        <Moon className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+                    ) : (
+                        <Monitor className="h-5 w-5 text-yellow-500" strokeWidth={2.5} />
+                    )}
                 </button>
                 <LanguageSelector isDarkMode={isDarkMode} />
             </div>
@@ -263,35 +317,43 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onRegister, onResendVerific
                             <h3 className="text-lg font-semibold text-green-800 dark:text-green-200 mb-2">
                                 {t('auth.registrationSuccess')}
                             </h3>
-                            <p className="text-sm text-green-700 dark:text-green-300 mb-4">
-                                {registrationSuccess.emailSent
-                                    ? `${t('auth.verificationEmailSent')} ${registrationSuccess.email}`
-                                    : `${t('auth.verificationLinkGenerated')} ${registrationSuccess.email}`
-                                }
-                            </p>
-                            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-4">
-                                <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">{t('auth.verificationLink')}</p>
-                                <div className="flex items-center space-x-2">
-                                    <input
-                                        type="text"
-                                        value={registrationSuccess.verificationUrl}
-                                        readOnly
-                                        className="flex-1 text-xs font-mono bg-white dark:bg-gray-700 p-2 rounded border text-gray-900 dark:text-white"
-                                    />
-                                    <button
-                                        onClick={() => {
-                                            navigator.clipboard.writeText(registrationSuccess.verificationUrl)
-                                            alert(t('auth.linkCopied'))
-                                        }}
-                                        className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
-                                    >
-                                        {t('auth.copyLink')}
-                                    </button>
-                                </div>
-                            </div>
-                            <p className="text-xs text-green-600 dark:text-green-400 mb-4">
-                                {t('auth.verificationInstructions')}
-                            </p>
+                            {registrationSuccess.role === 'admin' ? (
+                                <p className="text-sm text-green-700 dark:text-green-300 mb-4 font-medium p-4 bg-green-100/50 dark:bg-green-900/30 rounded-xl border border-green-200 dark:border-green-800">
+                                    🎉 您是系統首位註冊者，已自動升格為管理員，且免驗證自動啟用！請直接點擊下方按鈕登入您的帳號。
+                                </p>
+                            ) : (
+                                <>
+                                    <p className="text-sm text-green-700 dark:text-green-300 mb-4">
+                                        {registrationSuccess.emailSent
+                                            ? `${t('auth.verificationEmailSent')} ${registrationSuccess.email}`
+                                            : `${t('auth.verificationLinkGenerated')} ${registrationSuccess.email}`
+                                        }
+                                    </p>
+                                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-4">
+                                        <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">{t('auth.verificationLink')}</p>
+                                        <div className="flex items-center space-x-2">
+                                            <input
+                                                type="text"
+                                                value={registrationSuccess.verificationUrl}
+                                                readOnly
+                                                className="flex-1 text-xs font-mono bg-white dark:bg-gray-700 p-2 rounded border text-gray-900 dark:text-white"
+                                            />
+                                            <button
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(registrationSuccess.verificationUrl)
+                                                    alert(t('auth.linkCopied'))
+                                                }}
+                                                className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+                                            >
+                                                {t('auth.copyLink')}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-green-600 dark:text-green-400 mb-4">
+                                        {t('auth.verificationInstructions')}
+                                    </p>
+                                </>
+                            )}
                             <button
                                 onClick={() => {
                                     setRegistrationSuccess(null)
@@ -355,7 +417,8 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onRegister, onResendVerific
                 )}
 
                 {/* 認證表單 */}
-                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 border border-gray-200 dark:border-gray-700">
+                {!registrationSuccess && !resendSuccess && (
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 border border-gray-200 dark:border-gray-700">
                     {/* 切換登入/註冊 - 只有在SMTP啟用時才顯示註冊選項 */}
                     {smtpEnabled ? (
                         <div className="flex rounded-lg bg-gray-100 dark:bg-gray-700 p-1 mb-6">
@@ -533,7 +596,8 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onRegister, onResendVerific
                             </p>
                         </div>
                     )}
-                </div>
+                    </div>
+                )}
             </div>
         </div>
     )

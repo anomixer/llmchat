@@ -14,7 +14,7 @@ interface AuthContextType {
     isLoading: boolean
     error: string | null
     login: (email: string, password: string) => Promise<void>
-    register: (email: string, password: string, language: string) => Promise<{ verificationUrl: string; emailSent: boolean; alreadyExists?: boolean }>
+    register: (email: string, password: string, language: string) => Promise<{ verificationUrl: string; emailSent: boolean; alreadyExists?: boolean; user?: any }>
     resendVerification: (email: string, language: string) => Promise<{ verificationUrl: string; emailSent: boolean }>
     logout: () => Promise<void>
     verifyAuth: (token?: string) => Promise<void>
@@ -121,7 +121,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             return {
                 verificationUrl: data.verificationUrl,
                 emailSent: data.emailSent || false,
-                alreadyExists: false
+                alreadyExists: false,
+                user: data.user
             }
         } catch (error) {
             setError(error instanceof Error ? error.message : '註冊失敗')

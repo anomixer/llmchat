@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { flushSync } from 'react-dom'
-import { Send, Bot, User, Settings, Trash2, Moon, Sun, Plus, MessageSquare, Paperclip, X, Mic, MicOff, Volume2, VolumeX, Download, Square, Maximize2, Minimize2, LogOut } from 'lucide-react'
+import { Send, Bot, User, Settings, Trash2, Moon, Sun, Plus, MessageSquare, Paperclip, X, Mic, MicOff, Volume2, VolumeX, Download, Square, Maximize2, Minimize2, LogOut, Globe } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import MarkdownMessage from './MarkdownMsg'
 import { Header } from './components/Header'
@@ -165,6 +165,7 @@ const App: React.FC = () => {
         }
     })
     const [attachedFiles, setAttachedFiles] = useState<File[]>([])
+    const [webSearchEnabled, setWebSearchEnabled] = useState(true)
     const [isFullscreen, setIsFullscreen] = useState(false)
     const isMobileView = useMobileView(768)
     // 密碼更改相關狀態
@@ -194,22 +195,14 @@ const App: React.FC = () => {
         streamingMessage
     })
 
-    // 切換主題函數
-    const toggleTheme = () => {
-        const currentTheme = userSettings.theme
-        let newTheme: 'light' | 'dark'
-        if (currentTheme === 'auto') {
-            newTheme = isDarkMode ? 'light' : 'dark'
-        } else {
-            newTheme = currentTheme === 'light' ? 'dark' : 'light'
-        }
-        const newIsDark = newTheme === 'dark'
+     // 主題切換循環: light -> dark -> auto -> light
+     const toggleTheme = () => {
+        const order: Array<'light'|'dark'|'auto'> = ['light', 'dark', 'auto']
+        const current = userSettings.theme as 'light' | 'dark' | 'auto'
+        const next = order[(order.indexOf(current) + 1) % 3]
+        const newIsDark = next === 'dark' ? true : next === 'auto' ? window.matchMedia('(prefers-color-scheme: dark)').matches : false
         setIsDarkMode(newIsDark)
-        // 更新 body 類別以應用玻璃擬態主題和Tailwind dark模式
-        document.body.classList.toggle('dark-theme', newIsDark)
-        document.documentElement.classList.toggle('dark', newIsDark)
-        // 統一使用 updateAndSaveSettings 更新主題，確保 userSettings、localStorage、伺服器同步
-        updateAndSaveSettings('theme', newTheme)
+        updateAndSaveSettings('theme', next)
     }
 
     // 切換全螢幕函數
@@ -520,12 +513,14 @@ const App: React.FC = () => {
                             if (adminLocalSettings.type) {
                                 newSettings.type = adminLocalSettings.type
                             }
-                            if (adminLocalSettings.baseUrl) {
-                                newSettings.apiUrl = adminLocalSettings.baseUrl
-                            }
-                            if (adminLocalSettings.model) {
-                                newSettings.model = adminLocalSettings.model
-                            }
+                if (adminLocalSettings.baseUrl) {
+                    newSettings.apiUrl = adminLocalSettings.baseUrl
+                }
+                // ✅ 不再覆蓋 model，讓使用者自行選擇的 model 優先於 Admin 預設值
+                // 只有當使用者完全沒有設定 model 時，才使用 Admin 預設值
+                if (adminLocalSettings.model && !newSettings.model) {
+                    newSettings.model = adminLocalSettings.model
+                }
                         }
                     } catch (e) { /* ignore */ }
 
@@ -677,6 +672,27 @@ const App: React.FC = () => {
         }
     }, [user, token, conversationsLoaded])
 
+    // ✅ 強制修復：頁面刷新後永遠從 localStorage 讀取最新設定覆蓋 server 設定
+    useEffect(() => {
+        try {
+            const adminSettings = localStorage.getItem('adminProviderSettings')
+            if (adminSettings) {
+                const parsed = JSON.parse(adminSettings)
+                setSettings(prev => ({
+                    ...prev,
+                    type: parsed.type || prev.type,
+                    model: parsed.model || prev.model,
+                    apiUrl: parsed.baseUrl || prev.apiUrl,
+                    apiKey: parsed.apiKey || prev.apiKey,
+                    temperature: parsed.temperature || prev.temperature,
+                    maxTokens: parsed.maxTokens || prev.maxTokens,
+                    topP: parsed.topP || prev.topP,
+                    topK: parsed.topK || prev.topK
+                }))
+            }
+        } catch (e) {}
+    }, [])
+
     // ✅ 監聽 localStorage 變化（當 Admin 保存設定時）
     useEffect(() => {
         const handleStorageChange = (e: StorageEvent) => {
@@ -817,6 +833,11 @@ const App: React.FC = () => {
             if (file.type === 'application/pdf') {
                 // PDF檔案無法在前端直接讀取內容
                 resolve(`[PDF檔案: ${file.name}]\n${t('input.files.pdfNote')}`)
+            } else if (file.type.startsWith('image/')) {
+                const reader = new FileReader()
+                reader.onload = () => resolve(reader.result as string)
+                reader.onerror = () => reject(reader.error)
+                reader.readAsDataURL(file)
             } else {
                 const reader = new FileReader()
                 reader.onload = () => resolve(reader.result as string)
@@ -886,10 +907,15 @@ const App: React.FC = () => {
 
         // 讀取檔案內容並構建隱藏內容
         let hiddenContent = messageContent
+        const images: string[] = []
         if (attachedFiles.length > 0) {
             try {
                 const fileContents = await Promise.all(attachedFiles.map(async file => {
                     const content = await readFileContent(file)
+                    if (file.type.startsWith('image/')) {
+                        images.push(content)
+                        return `--- Image: ${file.name} (Base64) ---`
+                    }
                     return `--- File: ${file.name} ---\n${content}\n--- End of File ---`
                 }))
                 hiddenContent = messageContent + '\n\n' + fileContents.join('\n\n')
@@ -928,14 +954,38 @@ const App: React.FC = () => {
             const baseConversation = conversations.find(c => c.id === conversationId)
             const historyMessages = [...(baseConversation?.messages || []), userMessage]
 
+            // ✅ 最終防禦：發送前永遠直接從 localStorage 讀取最新設定，完全跳過 React state 閉包陷阱
+            let finalSettings = settings;
+            const hasImage = images.length > 0;
+            try {
+                const adminSettings = localStorage.getItem('adminProviderSettings');
+                if (adminSettings) {
+                    const parsed = JSON.parse(adminSettings);
+                    // 核心多模態邏輯：若有圖片且配置了 Vision 模型，則動態切換為 Vision 模型，避免文字模型因二進位字串解析出錯
+                    const selectedModel = (hasImage && parsed.visionModel) 
+                        ? parsed.visionModel 
+                        : (parsed.model || settings.model);
+
+                    finalSettings = {
+                        ...settings,
+                        type: parsed.type || settings.type,
+                        model: selectedModel,
+                        apiUrl: parsed.baseUrl || settings.apiUrl,
+                        apiKey: parsed.apiKey || settings.apiKey
+                    };
+                }
+            } catch (e) {}
+
             const result = await streamChat({
                 message: userMessage.hiddenContent || userMessage.content,
-                settings,
+                settings: finalSettings,
                 history: historyMessages.map(msg => ({
                     role: msg.role,
                     content: msg.hiddenContent || msg.content
                 })),
-                language: i18n.language
+                images: images.length > 0 ? images : undefined,
+                language: i18n.language,
+                webSearch: webSearchEnabled
             })
 
             const assistantMessage: Message = {
@@ -1091,6 +1141,7 @@ const App: React.FC = () => {
                 conversations={conversations}
                 availableModels={availableModels}
                 isLoadingModels={isLoadingModels}
+                currentTheme={(userSettings.theme as 'auto' | 'light' | 'dark')}
                 onToggleTheme={toggleTheme}
                 onToggleFullscreen={toggleFullscreen}
                 onToggleSettings={() => setShowSettings(!showSettings)}
@@ -1104,13 +1155,29 @@ const App: React.FC = () => {
                 onExportConversation={exportConversation}
                 onModelChange={(modelId: string) => {
                     // 只更新 model，不觸碰連線參數（由 Admin / defaultConfig 管理）
-                    const newPartialSettings = { model: modelId }
+                    const newPartialSettings = { model: modelId };
                     
-                    setSettings(prev => ({ ...prev, ...newPartialSettings }))
-                    setUserSettings(prev => ({ ...prev, ...newPartialSettings }))
+                    setSettings(prev => ({ ...prev, ...newPartialSettings }));
+                    setUserSettings(prev => ({ ...prev, ...newPartialSettings }));
+                    
+                    // ✅ 同步更新 localStorage adminProviderSettings，確保刷新頁面後設定不會遺失
+                    try {
+                        const existing = localStorage.getItem('adminProviderSettings');
+                        if (existing) {
+                            const parsed = JSON.parse(existing);
+                            parsed.model = modelId;
+                            localStorage.setItem('adminProviderSettings', JSON.stringify(parsed));
+                            
+                            // ✅ 額外同步 type 參數，確保傳送給後端的 settings 永遠包含正確的 provider 類型
+                            if (parsed.type) {
+                                setSettings(prev => ({ ...prev, type: parsed.type }));
+                                setUserSettings(prev => ({ ...prev, type: parsed.type }));
+                            }
+                        }
+                    } catch (e) {}
                     
                     // 原子化儲存，只存 model 欄位
-                    saveUserSettingsToServer(newPartialSettings)
+                    saveUserSettingsToServer(newPartialSettings);
                 }}
                 onLogout={logout}
                 user={user}
@@ -1574,13 +1641,11 @@ const App: React.FC = () => {
                                     )}
 
                                     {/* Token 統計 - AI 消息才顯示，根據設定控制 */}
-                                    {message.role === 'assistant' && (message.tokenCount !== undefined || isStreaming) && settings.showTokenStats && (
+                                    {message.role === 'assistant' && message.tokenCount !== undefined && settings.showTokenStats && (
                                         <div className={`mt-2 text-xs font-mono transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                                            {(isStreaming || message.tokenCount !== undefined) && (
-                                                <span className="inline-block px-2 py-1 rounded-sm bg-gray-100 dark:bg-gray-700">
-                                                    {message.tokenCount || tokenCount} tokens | {(message.tokensPerSecond || tokensPerSecond).toFixed(2)} tokens/s
-                                                </span>
-                                            )}
+                                            <span className="inline-block px-2 py-1 rounded-sm bg-gray-100 dark:bg-gray-700">
+                                                {message.tokenCount} tokens | {(message.tokensPerSecond || 0).toFixed(2)} tokens/s
+                                            </span>
                                         </div>
                                     )}
                                 </div>
@@ -1666,6 +1731,15 @@ const App: React.FC = () => {
                                         )}
                                     </div>
                                 )}
+
+                                {/* Token 統計 - 串流中即時顯示 */}
+                                {settings.showTokenStats && (
+                                    <div className={`mt-2 text-xs font-mono transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                        <span className="inline-block px-2 py-1 rounded-sm bg-gray-100 dark:bg-gray-700">
+                                            {tokenCount} tokens | {tokensPerSecond.toFixed(2)} tokens/s
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -1749,6 +1823,20 @@ const App: React.FC = () => {
                         disabled={isLoading}
                     >
                         {isRecording ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+                    </button>
+                    {/* 網路搜尋開關按鈕 */}
+                    <button
+                        onClick={() => setWebSearchEnabled(!webSearchEnabled)}
+                        className={`p-3 rounded-lg transition-all duration-200 ${webSearchEnabled
+                            ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20 scale-105'
+                            : isDarkMode
+                                ? 'text-gray-400 hover:text-blue-400 hover:bg-gray-700'
+                                : 'text-gray-500 hover:text-blue-600 hover:bg-gray-100'
+                            }`}
+                        title={webSearchEnabled ? '網路搜尋已啟用' : '啟用網路搜尋'}
+                        disabled={isLoading}
+                    >
+                        <Globe className={`h-5 w-5 ${webSearchEnabled ? 'animate-pulse' : ''}`} />
                     </button>
                     {/* 檔案上傳按鈕 */}
                     <button

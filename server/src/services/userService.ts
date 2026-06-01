@@ -18,6 +18,17 @@ export interface UserSettings {
     topP: number
     topK: number
     showTokenStats: boolean
+    authMethod?: 'api-key' | 'google-service-account' | 'azure-entra-id' | 'aws-iam'
+    oauthConfig?: {
+        googleJson?: string
+        azureTenantId?: string
+        azureClientId?: string
+        azureClientSecret?: string
+        awsAccessKey?: string
+        awsSecretKey?: string
+        awsRegion?: string
+        awsSessionToken?: string
+    }
 }
 
 export interface UserRecord {
@@ -140,10 +151,10 @@ class UserService {
             email,
             password: hashedPassword,
             role,
-            enable: false, // 新用戶需要驗證 Email 後才能啟用
-            emailVerified: false, // 新註冊用戶需要驗證 Email
-            emailVerificationToken: crypto.randomBytes(32).toString('hex'), // 驗證令牌
-            emailVerificationTokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24小時後過期
+            enable: isFirstUser ? true : false, // 首位用戶自動啟用，其他用戶需要驗證 Email 後才能啟用
+            emailVerified: isFirstUser ? true : false, // 首位用戶自動驗證，其他註冊用戶需要驗證 Email
+            emailVerificationToken: isFirstUser ? null : crypto.randomBytes(32).toString('hex'), // 驗證令牌，管理員不需要
+            emailVerificationTokenExpiry: isFirstUser ? null : new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 過期時間，管理員不需要
             createdAt: new Date().toISOString(),
             lastLoginAt: null,
             settings: {
@@ -309,10 +320,17 @@ class UserService {
         const user = this.users.find(user => user.id === userId)
         if (!user) return null
 
-        // 為了不影響 memory 中的原始資料，我們返回一個副本並解密其中的 apiKey
+        // 為了不影響 memory 中的原始資料，我們返回一個副本並解密其中的 apiKey 與 oauthConfig 敏感欄位
         const settings = { ...user.settings }
         if (settings.apiKey) {
             settings.apiKey = this.decrypt(settings.apiKey)
+        }
+        if (settings.oauthConfig && typeof settings.oauthConfig === 'object') {
+            const conf = { ...settings.oauthConfig }
+            if (conf.googleJson) conf.googleJson = this.decrypt(conf.googleJson)
+            if (conf.azureClientSecret) conf.azureClientSecret = this.decrypt(conf.azureClientSecret)
+            if (conf.awsSecretKey) conf.awsSecretKey = this.decrypt(conf.awsSecretKey)
+            settings.oauthConfig = conf
         }
         return settings
     }
@@ -356,15 +374,26 @@ class UserService {
     updateUserSettings(userId: string, settings: any) {
         const user = this.users.find(user => user.id === userId)
         if (user) {
-            // 如果用戶不是 admin，則過濾掉 apiUrl 和 apiKey
+            // 如果用戶不是 admin，則過濾掉敏感配置
             if (user.role !== 'admin') {
                 delete settings.apiUrl
                 delete settings.apiKey
+                delete settings.authMethod
+                delete settings.oauthConfig
             }
 
             // 如果有設定 apiKey，存入前先加密
             if (settings.apiKey !== undefined && settings.apiKey !== null) {
                 settings.apiKey = this.encrypt(settings.apiKey)
+            }
+
+            // 如果有設定 oauthConfig 的敏感欄位，存入前先加密
+            if (settings.oauthConfig && typeof settings.oauthConfig === 'object') {
+                const conf = { ...settings.oauthConfig }
+                if (conf.googleJson) conf.googleJson = this.encrypt(conf.googleJson)
+                if (conf.azureClientSecret) conf.azureClientSecret = this.encrypt(conf.azureClientSecret)
+                if (conf.awsSecretKey) conf.awsSecretKey = this.encrypt(conf.awsSecretKey)
+                settings.oauthConfig = conf
             }
 
             user.settings = { ...user.settings, ...settings }
@@ -496,6 +525,9 @@ class UserService {
 
     // 驗證 Email
     verifyEmail(token: string) {
+        if (!token || token === 'null') {
+            throw new Error('無效或過期的驗證鏈接')
+        }
         const user = this.users.find(user => user.emailVerificationToken === token)
         if (!user) {
             throw new Error('無效或過期的驗證鏈接')

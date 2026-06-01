@@ -35,12 +35,16 @@ export function createAuthRouter(deps: { userService: UserService; emailService:
             const verificationUrl = `${frontendUrl}/api/auth/verify-email/${user.emailVerificationToken}?lang=${userLanguage}`
 
             let emailSent = false
-            try {
-                await emailService.sendVerificationEmail(email, verificationUrl, user.email.split('@')[0], userLanguage)
-                emailSent = true
-                console.log('Verification email sent to:', email)
-            } catch (emailError) {
-                console.error('Failed to send verification email:', emailError)
+            if (user.emailVerificationToken && (emailService as any).transporter) {
+                try {
+                    await emailService.sendVerificationEmail(email, verificationUrl, user.email.split('@')[0], userLanguage)
+                    emailSent = true
+                    console.log('Verification email sent to:', email)
+                } catch (emailError) {
+                    console.error('Failed to send verification email:', emailError)
+                }
+            } else {
+                console.log('Skipped verification email (user automatically verified or SMTP not configured).')
             }
 
             res.json({

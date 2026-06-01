@@ -1,7 +1,9 @@
 import React from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+// @ts-ignore
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+// @ts-ignore
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { Copy, Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -14,6 +16,47 @@ interface MarkdownMessageProps {
 const MarkdownMessage: React.FC<MarkdownMessageProps> = React.memo(({ content, isDarkMode, isUser = false }) => {
     const { t } = useTranslation()
     const [copiedBlocks, setCopiedBlocks] = React.useState<Set<string>>(new Set())
+
+    const cleanedContent = React.useMemo(() => {
+        if (!content) return ''
+        
+        let txt = content
+        
+        // 1. 自動過濾剝皮 AI 產生的 LaTeX $\text{...}$ 或是 \text{...} 標記
+        txt = txt.replace(/\$?\\text\{([\s\S]*?)\}\$?/g, '$1')
+        
+        // 2. 替換常見的 LaTeX 數學/箭頭符號為漂亮的 Unicode 符號，提升閱讀美感
+        const latexMap: Record<string, string> = {
+            '\\$\\s*\\\\rightarrow\\s*\\$': '→',
+            '\\\\rightarrow': '→',
+            '\\$\\s*\\\\to\\s*\\$': '→',
+            '\\\\to': '→',
+            '\\$\\s*\\\\leftarrow\\s*\\$': '←',
+            '\\\\leftarrow': '←',
+            '\\$\\s*\\\\times\\s*\\$': '×',
+            '\\\\times': '×',
+            '\\$\\s*\\\\approx\\s*\\$': '≈',
+            '\\\\approx': '≈',
+            '\\$\\s*\\\\le\\s*\\$': '≤',
+            '\\\\le': '≤',
+            '\\$\\s*\\\\leq\\s*\\$': '≤',
+            '\\\\leq': '≤',
+            '\\$\\s*\\\\ge\\s*\\$': '≥',
+            '\\\\ge': '≥',
+            '\\$\\s*\\\\geq\\s*\\$': '≥',
+            '\\\\geq': '≥',
+            '\\$\\s*\\\\ne\\s*\\$': '≠',
+            '\\\\ne': '≠',
+            '\\$\\s*\\\\neq\\s*\\$': '≠',
+            '\\\\neq': '≠'
+        }
+
+        for (const [pattern, replacement] of Object.entries(latexMap)) {
+            txt = txt.replace(new RegExp(pattern, 'g'), replacement)
+        }
+        
+        return txt;
+    }, [content])
 
     const getTextColor = () => {
         if (isDarkMode) return 'text-gray-100'
@@ -235,7 +278,7 @@ const MarkdownMessage: React.FC<MarkdownMessageProps> = React.memo(({ content, i
                 ),
             }}
         >
-            {content}
+            {cleanedContent}
         </ReactMarkdown>
     )
 })

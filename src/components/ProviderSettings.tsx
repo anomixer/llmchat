@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Check, AlertCircle, Loader2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 interface Provider {
     name: string
@@ -34,6 +35,7 @@ export const ProviderSettings: React.FC<ProviderSettingsProps> = ({
     onSave,
     onClose
 }) => {
+    const { t } = useTranslation()
     const [selectedProvider, setSelectedProvider] = useState(
         availableProviders.find(p => p.type === currentProvider.type) || availableProviders[0]
     )
@@ -87,7 +89,7 @@ export const ProviderSettings: React.FC<ProviderSettingsProps> = ({
             }
         } catch (error) {
             setConnectionStatus('error')
-            setConnectionMessage('❌ 連接錯誤：' + error.message)
+            setConnectionMessage('❌ 連接錯誤：' + (error as any).message)
         } finally {
             setIsChecking(false)
         }
@@ -107,7 +109,7 @@ export const ProviderSettings: React.FC<ProviderSettingsProps> = ({
             onClose()
         } catch (error) {
             console.error('保存失敗:', error)
-            alert('保存失敗：' + error.message)
+            alert('保存失敗：' + (error as any).message)
         }
     }
 
@@ -122,8 +124,8 @@ export const ProviderSettings: React.FC<ProviderSettingsProps> = ({
                     value={selectedProvider?.type || ''}
                     onChange={(e) => {
                         const provider = availableProviders.find(p => p.type === e.target.value)
-                        setSelectedProvider(provider)
                         if (provider) {
+                            setSelectedProvider(provider)
                             setBaseUrl(provider.baseUrl)
                         }
                     }}
@@ -183,7 +185,7 @@ export const ProviderSettings: React.FC<ProviderSettingsProps> = ({
 
             {/* Temperature */}
             <div>
-                <label className="block text-sm font-medium mb-2">Temperature: {temperature}</label>
+                <label className="block text-sm font-medium mb-2">{t('admin.llm.temperature', 'Temperature')}: {temperature}</label>
                 <input
                     type="range"
                     min="0"
@@ -195,9 +197,9 @@ export const ProviderSettings: React.FC<ProviderSettingsProps> = ({
                 />
             </div>
 
-            {/* Max Tokens */}
+            {/* Context Size */}
             <div>
-                <label className="block text-sm font-medium mb-2">Max Tokens: {maxTokens}</label>
+                <label className="block text-sm font-medium mb-2">{t('admin.llm.contextSize', 'Context Size')}: {maxTokens}</label>
                 <input
                     type="range"
                     min="256"

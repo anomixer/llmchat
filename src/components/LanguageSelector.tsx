@@ -24,6 +24,10 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({ isDarkMode }
         if (htmlElement) {
             htmlElement.lang = languageCode
         }
+        // ✅ 儲存到 localStorage，確保刷新頁面後保留
+        try {
+            localStorage.setItem('llmchat_language', languageCode)
+        } catch (e) {}
     }
 
     return (

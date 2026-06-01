@@ -1,4 +1,6 @@
+import packageJson from '../package.json'
+
 export const APP_CONFIG = {
     title: 'LLMChat',
-    version: 'v260421'
+    version: `v${packageJson.version}`
 } as const

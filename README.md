@@ -4,18 +4,6 @@ Get up and chatting with large language models featuring glass-morphism effect.
 
 一個具有玻璃擬態設計的現代化本地大語言模型聊天應用程式，基於 React + Node.js + Ollama，提供美觀且功能完整的聊天體驗。適合各企業建構在地AI聊天應用，數據不怕外流給雲端廠商。
 
-## ✅ 已修復的問題 (v260425)
-
-1. **主題設定持久化失效**：用戶切換亮色/暗色主題後，F5 重新整理會變回「跟隨系統」。
-   - 統一使用 `"dark"` / `"light"` / `"auto"` 字串格式儲存於 `localStorage`
-   - `userSettings` 的 `useState` 初始值改為 lazy initializer，直接從 `localStorage` 讀取，確保下拉選單與畫面主題即時同步
-   - `usePrefersColorSchemeSync` 只監聽系統主題變化，不再覆蓋 mount 時的初始值
-2. **初次進入模型選擇與連線錯誤**：
-   - 用戶切換模型時只儲存 `model` 單一欄位，不再覆蓋 `apiUrl` / `apiKey`，避免連線參數被清空導致錯誤
-   - Admin 設定現在會正確同步至 `settings.model`，並在載入用戶設定時優先套用
-   - `loadAvailableModels` 失敗時保留已選模型而非強制清空
-3. **npm install peer dependency 衝突**：將 `@vitejs/plugin-react` 升級至 `^6.0.1`，與 `vite@8.0.9` 完全相容，無需 `--legacy-peer-deps`
-
 ## 🌟 功能特色
 
 - **玻璃擬態設計**: 現代化的玻璃擬態視覺效果，搭配主題適應的漸層背景（亮色模式藍色，暗色模式紫色），提供沉浸式聊天體驗
@@ -76,7 +64,7 @@ Get up and chatting with large language models featuring glass-morphism effect.
 ### 前端
 - **React 18** - 使用 Hooks 和現代 React 功能
 - **TypeScript** - 提供型別安全
-- **Tailwind CSS** - 快速樣式開發
+- **Vanilla CSS** - 玻璃擬態與主題樣式
 - **Vite** - 快速建構工具
 - **Lucide React** - 現代化圖示庫
 - **React i18next** - 完整的國際化支援，提供多語言切換功能
@@ -143,8 +131,8 @@ npm run client
 ### 5. 開啟瀏覽器
 
 應用程式將自動在瀏覽器中開啟，或手動訪問：
-- 前端：http://localhost:3000
-- 後端 API：http://localhost:3001
+- 前端（開發模式）：http://localhost:3000
+- 後端 API / 生產版本：http://localhost:3001
 
 ## 📁 專案結構
 
@@ -214,64 +202,104 @@ llmchat/
 cp .env.example .env
 ```
 
-支援的環境變數：
+ 支援的環境變數：
 
-- **OLLAMA_API_URL**: Ollama 服務的 API URL（預設: http://localhost:11434）
-- **OLLAMA_API_KEY**: API 金鑰（如果需要驗證，預設: 空）
-- **VITE_ALLOWED_HOSTS**: Vite 開發服務器允許的主機列表（用逗號分隔，預設: localhost,127.0.0.1）
-- **FRONTEND_URL**: 前端應用地址（用於生成Email驗證鏈接和成功頁面鏈接，預設: http://localhost:3000）
-- **SMTP_HOST**: SMTP 服務器地址（用於發送驗證郵件，如果未設定，用戶將無法註冊新帳號）
-- **SMTP_PORT**: SMTP 服務器端口（預設: 587）
-- **SMTP_USER**: SMTP 用戶名
-- **SMTP_PASS**: SMTP 密碼
-- **FROM_EMAIL**: 發件人郵箱地址
-- **FROM_NAME**: 發件人顯示名稱
+ ### LLM Provider 設定（新格式，推薦）
+ - **LLM_PROVIDER**: Provider 類型（預設: `ollama`），支援：`ollama`, `openai`, `anthropic`, `groq`, `deepseek`, `nvidia`, `mistral`, `together`
+ - **LLM_BASE_URL**: Provider API 基礎 URL（各 Provider 預設值不同，例如 Ollama 為 `http://localhost:11434`，OpenAI 為 `https://api.openai.com`）
+ - **LLM_API_KEY**: API 金鑰（如適用，預設: 空）
+ - **LLM_MODEL**: 預設模型名稱（例如：`llama2`, `gpt-4o`, `claude-3-opus`）
+ - **LLM_TEMPERATURE**: 生成溫度 0-2（預設: 0.7，越高越有創造性）
+ - **LLM_MAX_TOKENS**: 最大 Token 數（預設: 2048）
 
-範例 `.env` 檔案（開發環境）：
-```env
-OLLAMA_API_URL=http://localhost:11434
-OLLAMA_API_KEY=your_api_key_here
-VITE_ALLOWED_HOSTS=llmchat.example.com,your-domain.com
-FRONTEND_URL=http://localhost:3000
-```
+ ### 舊版 Ollama 設定（保留以兼容）
+ - **OLLAMA_API_URL**: Ollama 服務的 API URL（預設: http://localhost:11434）⚠️ 與 `LLM_BASE_URL` 效果相同，但新系統優先使用 `LLM_` 系列參數
+ - **OLLAMA_API_KEY**: API 金鑰（如果需要驗證，預設: 空）⚠️ 與 `LLM_API_KEY` 效果相同
 
-範例 `.env` 檔案（生產環境）：
-```env
-OLLAMA_API_URL=http://localhost:11434
-OLLAMA_API_KEY=your_api_key_here
-VITE_ALLOWED_HOSTS=llmchat.example.com,your-domain.com
-FRONTEND_URL=https://llmchat.example.com
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-app-password
-FROM_EMAIL=your-email@gmail.com
-FROM_NAME=LLMChat
-```
+ ### Vite 與前端設定
+ - **VITE_ALLOWED_HOSTS**: Vite 開發服務器允許的主機列表（用逗號分隔，預設: localhost,127.0.0.1）
+ - **FRONTEND_URL**: 前端應用地址（用於生成 Email 驗證鏈接，預設: http://localhost:3000；生產環境請設為正式域名，例如 `https://llmchat.example.com`）
 
-> **注意**: 環境變數會自動載入，前端設定面板會預填這些值，但用戶仍可修改並保存到本地儲存。VITE_ALLOWED_HOSTS 用於配置 Vite 開發服務器允許訪問的主機，解決跨域訪問問題。FRONTEND_URL 用於生成正確的 Email 驗證鏈接，確保在生產環境中用戶能正確點擊驗證鏈接（前端會通過代理將請求轉發到後端）。SMTP 設定決定是否啟用用戶註冊功能，如果 SMTP_USER 和 SMTP_PASS 未正確設定，用戶將無法看到註冊選項。
+ ### SMTP 郵件設定
+ - **SMTP_HOST**: SMTP 服務器地址（例如：`smtp.gmail.com`）
+ - **SMTP_PORT**: SMTP 服務器端口（預設: 587）
+ - **SMTP_USER**: SMTP 用戶名（郵箱地址）
+ - **SMTP_PASS**: SMTP 密碼/應用程式專用密碼
+ - **FROM_EMAIL**: 發件人郵箱地址
+ - **FROM_NAME**: 發件人顯示名稱（預設: `LLMChat`）
 
-### 前端設定
+ 範例 `.env` 檔案（開發環境 - 使用 Ollama）：
+ ```env
+ # LLM Provider 設定
+ LLM_PROVIDER=ollama
+ LLM_BASE_URL=http://localhost:11434
+ LLM_MODEL=llama2
+ LLM_TEMPERATURE=0.7
+ LLM_MAX_TOKENS=2048
+
+ # Vite 與前端
+ VITE_ALLOWED_HOSTS=llmchat.example.com,your-domain.com
+ FRONTEND_URL=http://localhost:3000
+
+ # SMTP (可選，不設定則無法註冊)
+ # SMTP_HOST=smtp.gmail.com
+ # SMTP_PORT=587
+ # SMTP_USER=your-email@gmail.com
+ # SMTP_PASS=your-app-password
+ # FROM_EMAIL=your-email@gmail.com
+ # FROM_NAME=LLMChat
+ ```
+
+ 範例 `.env` 檔案（生產環境 - 使用 OpenAI）：
+ ```env
+ # LLM Provider 設定
+ LLM_PROVIDER=openai
+ LLM_BASE_URL=https://api.openai.com
+ LLM_API_KEY=sk-your-openai-api-key
+ LLM_MODEL=gpt-4o
+ LLM_TEMPERATURE=0.7
+ LLM_MAX_TOKENS=4096
+
+ # Vite 與前端
+ VITE_ALLOWED_HOSTS=llmchat.example.com
+ FRONTEND_URL=https://llmchat.example.com
+
+ # SMTP 郵件設定
+ SMTP_HOST=smtp.gmail.com
+ SMTP_PORT=587
+ SMTP_USER=your-email@gmail.com
+ SMTP_PASS=your-app-password
+ FROM_EMAIL=your-email@gmail.com
+ FROM_NAME=LLMChat
+ ```
+
+ ### 重要提示
+ - **配置繼承**: 用戶在設定面板中選擇的 Provider/API Key/Model 會儲存到個人配置，優先級高於環境變數。環境變數僅作為預設值。
+ - **舊版參數**: `OLLAMA_API_URL` 和 `OLLAMA_API_KEY` 仍受支援，但建議改用 `LLM_BASE_URL` 和 `LLM_API_KEY` 以統一管理。
+ - **SMTP 必填**: 若 `SMTP_USER` 和 `SMTP_PASS` 未設定，註冊功能將自動停用（登入頁面不顯示註冊選項）。
+ - **環境變數自動載入**: 前端設定面板會預填這些值，但用戶仍可修改並儲存。VITE_ALLOWED_HOSTS 用於配置 Vite 開發服務器允許訪問的主機，解決跨域訪問問題。FRONTEND_URL 用於生成正確的 Email 驗證鏈接（前端會透過代理將 /api/* 請求轉發到後端）。
+
+ ### 前端設定
 
 在 `src/App.tsx` 中，您可以調整：
 
-- **LLM模型**: `llama3:8b`, `codellama:7b`, `mistral:7b`, `gemma3:4b`
-- **預設溫度**: 0.7 (0.0-2.0，低溫=確定、邏輯、一致；高溫=多樣、創造、驚喜)
-- **最大 Context 數**: 8192 (範圍: 4096-262144)
-- **Top P**: 0.9 (0.0-1.0，高=高機率；低=低機率)
-- **Top K**: 40 (1-100，高=取樣多；低=取樣少)
-- **UI 佈局**: 左右設定面板各佔50%
-- **系統提示**: 自定義 AI 行為
-- **串流模式**: 自定啟用，提供實時回應體驗
+ - **LLM 模型**: 透過環境變數 `LLM_MODEL` 設定預設模型（如 `llama2`、`gpt-4o`、`claude-3-opus`），實際可用模型由當前 Provider 動態決定
+ - **預設溫度**: 0.7 (0.0-2.0，低溫=確定、邏輯、一致；高溫=多樣、創造、驚喜)
+ - **最大 Token 數**: 8192 (範圍: 1-262144，讀取 `LLM_MAX_TOKENS` 環境變數)
+ - **Top P**: 0.9 (0.0-1.0，高=高機率；低=低機率)
+ - **Top K**: 40 (1-100，高=取樣多；低=取樣少)
+ - **UI 佈局**: 左右設定面板各佔50%
+ - **系統提示**: 自定義 AI 行為
+ - **串流模式**: 預設啟用，提供實時回應體驗
 
 ### 後端設定
 
 在 `server/src/start.ts` 中，您可以調整：
 
-- **服務端埠口**: 預設 3001
-- **CORS 設定**: 跨域訪問控制
-- **請求超時**: 30秒
-- **環境變數**: 支援 OLLAMA_API_URL 和 OLLAMA_API_KEY
+ - **服務端埠口**: 預設 3001
+ - **CORS 設定**: 跨域訪問控制
+ - **請求超時**: 30秒
+ - **環境變數**: 支援 LLM_PROVIDER、LLM_BASE_URL、LLM_API_KEY、LLM_MODEL、LLM_TEMPERATURE、LLM_MAX_TOKENS（同時保留 OLLAMA_API_URL/OLLAMA_API_KEY 以向後兼容）
 
 在 `server/src/providers/ollamaProvider.ts` 中，您可以調整：
 
@@ -640,6 +668,25 @@ npm run preview
 
 ## 🔄 更新日誌
 
+### v260601
+
+- ☁️ **雲端安全認證整合**: 管理員設定頁面新增雲端平台認證方式選擇。支援 Google Vertex AI、AWS Bedrock、Azure OpenAI 三大雲端平台，讓管理員改用雲端平台的身份驗證機制（如服務帳號、IAM 角色）取代直接填寫靜態 API Key，提升金鑰安全性，適合企業部署情境。
+- 🔑 **首位管理員免驗證自動啟用**: 當資料庫無用戶時，首位註冊用戶將自動設為已驗證且已啟用的 `admin` 管理員角色，無須經由 Email 驗證，並在前端展示專屬的歡迎與引導登入畫面，完美避開因本地未配置 SMTP 服務而產生的註冊死鎖與驗證報錯。
+- ⚙️ **SMTP 動態啟用註冊**: 優化後端 SMTP 配置檢測，避免每次請求都進行慢速的 SMTP 連線測試造成介面延遲，並在系統尚無用戶時，即使無 SMTP 設定也強制顯示註冊按鈕，確保能順利建立管理員。
+- 📊 **錯誤訊息與 Token 統計解耦**: 修復了 AI 消息出錯（例如伺服器斷線）時，卡片誤算並在下方顯示 global Token 統計值的 Bug，同時將串流期間的動態 Token 統計功能正確地融合於正在生成的消息框內。
+- 🚀 **全新 `npm start` 支援**: 在 `package.json` 中加入了專屬的 `"start"` 腳本（`npm start`），並引入自動開啟瀏覽器至 `http://localhost:3001` 的功能，提供比 `npm run dev` 更簡便的獨立本機運行體驗。
+- 👁️ **Vision 模型選單優化**: 為管理員設定頁面的「Vision 模型 (可選)」輸入欄位右側新增「獲取模型」按鈕，且在已獲取模型列表時會自動呈現下拉選單（自動過濾純文字模型，僅保留支援多模態的 Vision 模型，如包含 `vision`, `vl`, `llava`, `gemini`, `claude`, `gpt-4o` 等關鍵字之模型），讓多模態 Vision 模型配置與主模型一樣方便且不易配置出錯。
+- 🎚️ **Context Size 支援拉霸控制**: 將管理員面板與 Provider 設置中的「Context Size (最大 Context 數 / maxTokens)」參數輸入框全面調整為直覺的拉霸滑桿（支援 `256` 到 `262144` 範圍，步長 `256`），讓上下文長度的設定與 `Temperature`, `Top P` 等生成參數的操作體驗完全統一。
+- 🗂️ **LLM Provider 配置面板 2x2 精確對齊**: 將 LLM 提供商設定欄位重構為符合直覺且精準對齊的 2x2 格線排版。第一排配置「認證方法」與「API Key」（非 API Key 認證模式時右側自動留空以精確對齊），第二排則配置「模型名稱 (文字 Model)」與「Vision 模型 (Vision Model)」，使視覺邏輯極致對稱美觀。
+- 🌐 **生成參數標籤全語系國際化**: 針對 `Temperature`、`Top P`、`Top K` 與新更名的 `Context Size` 核心參數，全面移除原本寫死在 TSX 中的英文，並重構為配合 5 國語言配置檔（繁中、簡中、英文、日文、韓文）自動切換翻譯標籤，提供全面且完美的在地化操作體驗。
+- 🖼️ **全端 Vision 多模態動態解析與切換**: 徹底重構附加檔案中的圖片處理邏輯。前端將圖片讀取改為標準的 Base64 Data URL 並排除將二進位字串直接內嵌在文字 context 中（解決了文字模型強行解析時思考過程冒出大批亂碼的 Bug）；當偵測到附加圖片時，系統會自動且動態地切換為配置的 `visionModel`。後端針對不同 Provider（Ollama 的 `images` 陣列、OpenAI 規格的 `content` 陣列、Anthropic 規格的 `image` blocks）全面轉化為相應的多模態 Payload 發送，並**同步放寬 Express 的 JSON 請求 limit 限制至 `50mb`**（解決了上傳大於 100kb 的圖片時因 Express 預設 body 限制而爆出 413 Payload Too Large 錯誤），完美支援實時的多模態視覺解析。
+- 🏷️ **單一版本源 (Single Source of Truth) 重構**: 統一將 `package.json` 的 `"version"` 作為專案唯一真實版本源。前端 `src/constants.ts` 重構為動態 import 讀取 `package.json`，免除日後更新版本號時需手動更改多個檔案的繁複流程。
+- 🌐 **智慧多路並行股價解析引擎 (Parallel Multi-Stock Quotes Engine)**: 將原有的單點爬蟲重構為多協程並行架構。支援同時並行抓取與對比多檔美股（如 `nvidia vs amd`）或台股，智慧排除 pure currency tags（如 `USD`），完美解析目前股價、漲跌幅、漲跌狀況與更新時間。
+- 🧹 **5 國語言無感智慧意圖過濾器 (5-Language Query Preprocessor)**: 全面重構關鍵字過濾層，完美支援繁體中文、簡體中文、英文、日文、韓文五國語言。針對天氣預報、新聞速報、匯率走勢、大宗物價、軟體最新版本、店家行程推薦、航班機票比價、訂房飯店比價等多重意圖進行無感識別與 2026 年度實時關鍵字重寫，確保檢索資料取得絕對的高時效性。
+- 🌍 **網路搜尋 (地球開關) 預設開啟 & 前端編譯排障**: 將輸入框旁的地球預設狀態調為開啟，並徹底排查與修正了 React 歷史遺留的所有型別與第三方定義檔編譯報錯，使生產打包 `npx vite build` 順利恢復成功，保障了靜態檔案部署順暢。
+
+---
+
 ### v260425
 
 - 🔗 **多 Provider 深度串接**: 實施了後端 `ProviderManager` 與 `ProviderFactory` 架構，正式支援 OpenAI, NVIDIA NIM, Anthropic, Google Gemini 等主流 Provider，並解決了 Provider 類型丟失導致的後台誤判問題。
@@ -651,6 +698,23 @@ npm run preview
 - 🌐 **管理介面全方位 i18n**: 完成管理員面板所有標籤、操作按鈕及連線測試狀態的完整國際化翻譯。
 - ⚙️ **配置入口遷徙**: 徹底分離用戶設定與 Provider 底層連線，用戶僅能調整生成參數，避免誤觸系統級 API 配置。
 - 🚢 **手動建構發布**: 由於系統權限限制，本版本已手動執行 `npm run build` 以確保 `dist/` 目錄包含最新的 React 邏輯。
+
+## ✅ 已修復的問題 (v260425)
+
+1. **主題設定持久化失效**：用戶切換亮色/暗色主題後，F5 重新整理會變回「跟隨系統」。
+    - 統一使用 `"dark"` / `"light"` / `"auto"` 字串格式儲存於 `localStorage`
+    - `userSettings` 的 `useState` 初始值改為 lazy initializer，直接從 `localStorage` 讀取，確保下拉選單與畫面主題即時同步
+    - `usePrefersColorSchemeSync` 只監聽系統主題變化，不再覆蓋 mount 時的初始值
+2. **初次進入模型選擇與連線錯誤**：
+    - 用戶切換模型時只儲存 `model` 單一欄位，不再覆蓋 `apiUrl` / `apiKey`，避免連線參數被清空導致錯誤
+    - Admin 設定現在會正確同步至 `settings.model`，並在載入用戶設定時優先套用
+    - `loadAvailableModels` 失敗時保留已選模型而非強制清空
+3. **📌 頁面刷新後聊天失效問題 (FINAL FIX)**：
+    - 🔧 修復 React 經典閉包陷阱 (Closure Trap)，發送訊息前永遠直接從 localStorage 讀取最新設定，完全跳過 React State 舊值捕捉問題
+    - 🔧 新增三層防禦機制：初始化讀取 -> 伺服器同步後覆蓋 -> 發送前最終確認
+    - 🔧 現在切換模型後無論重整幾次、關閉瀏覽器再打開，設定永遠正確保留
+    - 🔧 解決「正在生成回應...」卡住、「抱歉發生錯誤」、刷新後必須重進設定頁面等所有相關症狀
+4. **npm install peer dependency 衝突**：將 `@vitejs/plugin-react` 升級至 `^6.0.1`，與 `vite@8.0.9` 完全相容，無需 `--legacy-peer-deps`
 
 ---
 
@@ -861,11 +925,11 @@ LLMChat 支援多種 LLM Provider，無需重啟服務即可透過介面切換�
 
 ## 🚧 未來功能
 
-- [ ] UI再改良
-
-- [ ] 支援更多Provider的模型
-- [ ] 支援更完善的Chat功能，如網路搜尋
-- [ ] 支援更進階的功能，如MCP等
+- [ ] UI 持續改良
+- [ ] 支援更多 Provider 的模型
+- [ ] 忘記密碼 / 密碼重置功能
+- [ ] MCP (Model Context Protocol) 整合
+- [ ] RAG 知識庫功能
 
 ## 📝 注意事項
 

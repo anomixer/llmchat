@@ -1,4 +1,6 @@
 import axios from 'axios'
+import { tokenService } from '../services/tokenService.js'
+import { signAwsRequest } from '../services/awsSigner.js'
 
 // Provider 類型定義
 export type ProviderType = 
@@ -207,6 +209,17 @@ export interface ProviderConfig {
     maxTokens?: number
     visionModel?: string
     authConfig?: any
+    authMethod?: 'api-key' | 'google-service-account' | 'azure-entra-id' | 'aws-iam'
+    oauthConfig?: {
+        googleJson?: string
+        azureTenantId?: string
+        azureClientId?: string
+        azureClientSecret?: string
+        awsAccessKey?: string
+        awsSecretKey?: string
+        awsRegion?: string
+        awsSessionToken?: string
+    }
 }
 
 export interface ChatMessage {
@@ -394,6 +407,62 @@ export abstract class BaseProvider {
             timeout: 60000,
             headers: PROVIDER_ENDPOINTS[config.type].headers?.(config) || {}
         })
+
+        // 注入 dynamic OAuth 2.0 / Cloud IAM SigV4 攔截器
+        this.client.interceptors.request.use(async (axiosConfig: any) => {
+            const authMethod = this.config.authMethod
+            const oauthConfig = this.config.oauthConfig
+
+            if (authMethod === 'google-service-account' && oauthConfig?.googleJson) {
+                try {
+                    const token = await tokenService.getGoogleAccessToken(oauthConfig.googleJson)
+                    axiosConfig.headers['Authorization'] = `Bearer ${token}`
+                } catch (e: any) {
+                    console.error('Google OAuth interceptor error:', e.message)
+                }
+            } else if (authMethod === 'azure-entra-id' && oauthConfig) {
+                try {
+                    const token = await tokenService.getAzureAccessToken(
+                        oauthConfig.azureTenantId || '',
+                        oauthConfig.azureClientId || '',
+                        oauthConfig.azureClientSecret || ''
+                    )
+                    axiosConfig.headers['Authorization'] = `Bearer ${token}`
+                } catch (e: any) {
+                    console.error('Azure AD OAuth interceptor error:', e.message)
+                }
+            } else if (authMethod === 'aws-iam' && oauthConfig) {
+                try {
+                    // 獲取完整的 URL，結合 baseURL 與 axiosConfig.url
+                    const fullUrl = (axiosConfig.baseURL || '') + (axiosConfig.url || '')
+                    const body = axiosConfig.data ? (typeof axiosConfig.data === 'string' ? axiosConfig.data : JSON.stringify(axiosConfig.data)) : ''
+                    
+                    const signedHeaders = signAwsRequest({
+                        url: fullUrl,
+                        method: axiosConfig.method || 'POST',
+                        headers: axiosConfig.headers || {},
+                        body,
+                        credentials: {
+                            accessKeyId: oauthConfig.awsAccessKey || '',
+                            secretAccessKey: oauthConfig.awsSecretKey || '',
+                            region: oauthConfig.awsRegion || 'us-east-1',
+                            sessionToken: oauthConfig.awsSessionToken
+                        }
+                    })
+
+                    // 將簽署後的 headers 寫回
+                    for (const [key, value] of Object.entries(signedHeaders)) {
+                        axiosConfig.headers[key] = value
+                    }
+                } catch (e: any) {
+                    console.error('AWS IAM SigV4 signing interceptor error:', e.message)
+                }
+            }
+
+            return axiosConfig
+        }, (error: any) => {
+            return Promise.reject(error)
+        })
     }
 
     abstract checkConnection(): Promise<boolean>
@@ -401,12 +470,14 @@ export abstract class BaseProvider {
     abstract generateResponse(params: {
         message: string
         history: ChatMessage[]
+        images?: string[]
         settings?: any
     }): Promise<ProviderResponse>
 
     abstract generateResponseStream(params: {
         message: string
         history: ChatMessage[]
+        images?: string[]
         settings?: any
         abortSignal?: AbortSignal
     }): AsyncGenerator<string, void, unknown>
@@ -438,23 +509,33 @@ export class OllamaProvider extends BaseProvider {
             console.error('獲取模型列表失敗:', error.message)
             return []
         }
-    }
-
-    async generateResponse(params: {
+    }    async generateResponse(params: {
         message: string
         history: ChatMessage[]
+        images?: string[]
         settings?: any
     }): Promise<ProviderResponse> {
-        const { message, history, settings = {} } = params
+        const { message, history, images, settings = {} } = params
         const {
             model = this.config.model,
             temperature = this.config.temperature || 0.7,
-            maxTokens = this.config.maxTokens || 2048
+            maxTokens = this.config.maxTokens || 2048,
+            systemPrompt = settings.systemPrompt || 'You are a helpful AI assistant.'
         } = settings
 
+        const ollamaImages = images?.map(img => {
+            const match = img.match(/^data:image\/[^;]+;base64,(.+)$/)
+            return match ? match[1] : img
+        })
+
         const messages = [
+            ...(systemPrompt ? [{ role: 'system' as const, content: systemPrompt }] : []),
             ...history,
-            { role: 'user' as const, content: message }
+            { 
+                role: 'user' as const, 
+                content: message,
+                ...(ollamaImages && ollamaImages.length > 0 ? { images: ollamaImages } : {})
+            }
         ]
 
         const requestData = {
@@ -485,19 +566,31 @@ export class OllamaProvider extends BaseProvider {
     async *generateResponseStream(params: {
         message: string
         history: ChatMessage[]
+        images?: string[]
         settings?: any
         abortSignal?: AbortSignal
     }): AsyncGenerator<string, void, unknown> {
-        const { message, history, settings = {}, abortSignal } = params
+        const { message, history, images, settings = {}, abortSignal } = params
         const {
             model = this.config.model,
             temperature = this.config.temperature || 0.7,
-            maxTokens = this.config.maxTokens || 2048
+            maxTokens = this.config.maxTokens || 2048,
+            systemPrompt = settings.systemPrompt || 'You are a helpful AI assistant.'
         } = settings
 
+        const ollamaImages = images?.map(img => {
+            const match = img.match(/^data:image\/[^;]+;base64,(.+)$/)
+            return match ? match[1] : img
+        })
+
         const messages = [
+            ...(systemPrompt ? [{ role: 'system' as const, content: systemPrompt }] : []),
             ...history,
-            { role: 'user' as const, content: message }
+            { 
+                role: 'user' as const, 
+                content: message,
+                ...(ollamaImages && ollamaImages.length > 0 ? { images: ollamaImages } : {})
+            }
         ]
 
         const requestData = {
@@ -551,23 +644,37 @@ export class OpenAIProvider extends BaseProvider {
             return []
         }
     }
-
     async generateResponse(params: {
         message: string
         history: ChatMessage[]
+        images?: string[]
         settings?: any
     }): Promise<ProviderResponse> {
-        const { message, history, settings = {} } = params
+        const { message, history, images, settings = {} } = params
         const {
             model = this.config.model,
             temperature = this.config.temperature || 0.7,
-            maxTokens = this.config.maxTokens || 2048
+            maxTokens = this.config.maxTokens || 2048,
+            systemPrompt = settings.systemPrompt || 'You are a helpful AI assistant.'
         } = settings
 
+        let userContent: any = message
+        if (images && images.length > 0) {
+            userContent = [
+                { type: 'text', text: message },
+                ...images.map(img => ({
+                    type: 'image_url',
+                    image_url: {
+                        url: img
+                    }
+                }))
+            ]
+        }
+
         const messages = [
-            { role: 'system', content: 'You are a helpful AI assistant.' },
+            ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
             ...history,
-            { role: 'user', content: message }
+            { role: 'user', content: userContent }
         ]
 
         const requestData = {
@@ -593,20 +700,35 @@ export class OpenAIProvider extends BaseProvider {
     async *generateResponseStream(params: {
         message: string
         history: ChatMessage[]
+        images?: string[]
         settings?: any
         abortSignal?: AbortSignal
     }): AsyncGenerator<string, void, unknown> {
-        const { message, history, settings = {}, abortSignal } = params
+        const { message, history, images, settings = {}, abortSignal } = params
         const {
             model = this.config.model,
             temperature = this.config.temperature || 0.7,
-            maxTokens = this.config.maxTokens || 2048
+            maxTokens = this.config.maxTokens || 2048,
+            systemPrompt = settings.systemPrompt || 'You are a helpful AI assistant.'
         } = settings
 
+        let userContent: any = message
+        if (images && images.length > 0) {
+            userContent = [
+                { type: 'text', text: message },
+                ...images.map(img => ({
+                    type: 'image_url',
+                    image_url: {
+                        url: img
+                    }
+                }))
+            ]
+        }
+
         const messages = [
-            { role: 'system', content: 'You are a helpful AI assistant.' },
+            ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
             ...history,
-            { role: 'user', content: message }
+            { role: 'user', content: userContent }
         ]
 
         const requestData = {
@@ -630,7 +752,6 @@ export class OpenAIProvider extends BaseProvider {
             buffer += chunkStr
             
             const lines = buffer.split('\n')
-            // 保留最後一個可能不完整的行在 buffer 中
             buffer = lines.pop() || ''
             
             for (const line of lines) {
@@ -652,13 +773,12 @@ export class OpenAIProvider extends BaseProvider {
                             yield JSON.stringify({ message: { content }, done: false }) + '\n'
                         }
                     } catch (e) {
-                        // 忽略無效的 JSON 或不完整的行
+                        // ignore
                     }
                 }
             }
         }
         
-        // 處理剩餘的 buffer（雖然在 SSE 中通常最後會是 [DONE]）
         if (buffer.trim().startsWith('data: ')) {
             const dataStr = buffer.trim().replace('data: ', '')
             if (dataStr !== '[DONE]') {
@@ -700,17 +820,18 @@ export class AnthropicProvider extends BaseProvider {
             return []
         }
     }
-
     async generateResponse(params: {
         message: string
         history: ChatMessage[]
+        images?: string[]
         settings?: any
     }): Promise<ProviderResponse> {
-        const { message, history, settings = {} } = params
+        const { message, history, images, settings = {} } = params
         const {
             model = this.config.model,
             temperature = this.config.temperature || 0.7,
-            maxTokens = this.config.maxTokens || 4096
+            maxTokens = this.config.maxTokens || 4096,
+            systemPrompt = settings.systemPrompt || 'You are a helpful AI assistant.'
         } = settings
 
         // 轉換歷史對話格式
@@ -721,12 +842,33 @@ export class AnthropicProvider extends BaseProvider {
                 content: msg.content
             }))
 
+        let userContent: any = message
+        if (images && images.length > 0) {
+            userContent = [
+                { type: 'text', text: message },
+                ...images.map(img => {
+                    const match = img.match(/^data:(image\/[^;]+);base64,(.+)$/)
+                    const mediaType = match ? match[1] : 'image/jpeg'
+                    const base64Data = match ? match[2] : img
+                    return {
+                        type: 'image',
+                        source: {
+                            type: 'base64',
+                            media_type: mediaType,
+                            data: base64Data
+                        }
+                    }
+                })
+            ]
+        }
+        anthropicMessages.push({ role: 'user', content: userContent })
+
         const requestData = {
             model,
             messages: anthropicMessages,
             max_tokens: parseInt(maxTokens.toString()),
             temperature: parseFloat(temperature.toString()),
-            system: 'You are a helpful AI assistant.'
+            system: systemPrompt
         }
 
         const response = await this.client.post('/v1/messages', requestData)
@@ -744,14 +886,16 @@ export class AnthropicProvider extends BaseProvider {
     async *generateResponseStream(params: {
         message: string
         history: ChatMessage[]
+        images?: string[]
         settings?: any
         abortSignal?: AbortSignal
     }): AsyncGenerator<string, void, unknown> {
-        const { message, history, settings = {}, abortSignal } = params
+        const { message, history, images, settings = {}, abortSignal } = params
         const {
             model = this.config.model,
             temperature = this.config.temperature || 0.7,
-            maxTokens = this.config.maxTokens || 4096
+            maxTokens = this.config.maxTokens || 4096,
+            systemPrompt = settings.systemPrompt || 'You are a helpful AI assistant.'
         } = settings
 
         const anthropicMessages = history
@@ -761,14 +905,33 @@ export class AnthropicProvider extends BaseProvider {
                 content: msg.content
             }))
             
-        anthropicMessages.push({ role: 'user', content: message })
+        let userContent: any = message
+        if (images && images.length > 0) {
+            userContent = [
+                { type: 'text', text: message },
+                ...images.map(img => {
+                    const match = img.match(/^data:(image\/[^;]+);base64,(.+)$/)
+                    const mediaType = match ? match[1] : 'image/jpeg'
+                    const base64Data = match ? match[2] : img
+                    return {
+                        type: 'image',
+                        source: {
+                            type: 'base64',
+                            media_type: mediaType,
+                            data: base64Data
+                        }
+                    }
+                })
+            ]
+        }
+        anthropicMessages.push({ role: 'user', content: userContent })
 
         const requestData = {
             model,
             messages: anthropicMessages,
             max_tokens: parseInt(maxTokens.toString()),
             temperature: parseFloat(temperature.toString()),
-            system: 'You are a helpful AI assistant.',
+            system: systemPrompt,
             stream: true
         }
 
