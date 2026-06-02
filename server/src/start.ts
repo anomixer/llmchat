@@ -29,20 +29,23 @@ setInterval(() => {
 }, 60 * 60 * 1000) // 每小時清理一次
 
 app.listen(PORT, () => {
-    console.log(`🚀 Local LLM Chat Server 運行在 http://localhost:${PORT}`)
+    console.log(`🚀 API Server 運行在 http://localhost:${PORT}`)
+    console.log(`🌐 前端介面: http://localhost:3000`)
 
-    // 自動開啟瀏覽器至本機網址
-    const url = `http://localhost:${PORT}`
+    // 自動開啟瀏覽器至前端網址
+    const url = `http://localhost:3000`
     const startCmd = process.platform === 'darwin' ? 'open' :
                      process.platform === 'win32' ? 'start' :
                      'xdg-open'
-    exec(`${startCmd} ${url}`, { shell: process.platform === 'win32' }, (err) => {
-        if (err) {
-            console.warn('⚠️  無法自動開啟瀏覽器，請手動開啟:', err.message)
-        } else {
-            console.log('🌐 已自動開啟瀏覽器訪問本機對話網頁')
-        }
-    })
+    setTimeout(() => {
+        exec(`${startCmd} ${url}`, { shell: process.platform === 'win32' }, (err) => {
+            if (err) {
+                console.warn('⚠️  無法自動開啟瀏覽器，請手動開啟:', err.message)
+            } else {
+                console.log('🌐 已自動開啟瀏覽器')
+            }
+        })
+    }, 1500) // 等 vite preview 啟動
     console.log(`📝 API 端點:`)
     console.log(`   - GET  /api/health           - 健康檢查`)
     console.log(`   - POST /api/auth/register    - 用戶註冊`)

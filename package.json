@@ -5,7 +5,7 @@
     "type": "module",
     "scripts": {
         "dev": "concurrently \"npm run server\" \"npm run client\"",
-        "start": "node -e \"const fs=require('fs');if(!fs.existsSync('dist/index.html')){const {execSync}=require('child_process');console.log('dist/ not found, building...');execSync('npm run build',{stdio:'inherit'})}\" && tsx server/src/start.ts",
+        "start": "node -e \"const fs=require('fs');if(!fs.existsSync('dist/index.html')){const {execSync}=require('child_process');console.log('dist/ not found, building...');execSync('npm run build',{stdio:'inherit'})}\" && concurrently \"tsx server/src/start.ts\" \"vite preview\"",
         "client": "vite",
         "server": "tsx server/src/start.ts",
         "build": "vite build",

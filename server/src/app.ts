@@ -1,7 +1,5 @@
 import express, { type NextFunction, type Request, type Response } from 'express'
 import cors from 'cors'
-import path from 'path'
-import { fileURLToPath } from 'url'
 import type { OllamaProvider } from './providers/ollamaProvider.js'
 import type UserService from './services/userService.js'
 import type EmailService from './services/emailService.js'
@@ -11,9 +9,6 @@ import { createUserRouter } from './routes/user.js'
 import { createAdminRouter } from './routes/admin.js'
 import { createApiMiscRouter, createOpenAiRouter } from './routes/misc.js'
 import { createMultiProviderRouter } from './routes/multi-provider.js'
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
 
 export function createApp(deps: {
     userService: UserService
@@ -49,18 +44,6 @@ export function createApp(deps: {
 
     // OpenAI compatible
     app.use('/v1', createOpenAiRouter({ ollamaProvider: deps.ollamaProvider }))
-
-    // 靜態文件服務 - 提供前端文件
-    const distPath = path.join(path.dirname(path.dirname(__dirname)), 'dist')
-    app.use(express.static(distPath))
-
-    // SPA 路由 - 所有未匹配的路由都返回 index.html
-    app.use((req, res, next) => {
-        if (!req.path.startsWith('/api') && !req.path.startsWith('/v1')) {
-            return res.sendFile(path.join(distPath, 'index.html'))
-        }
-        next()
-    })
 
     // 全局錯誤處理
     app.use((error: any, _req: Request, res: Response, _next: NextFunction) => {
