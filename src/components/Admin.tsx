@@ -1550,7 +1550,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                 {modalError && <p className="text-sm text-red-500">{modalError}</p>}
                             </div>
                             <div className="flex justify-end space-x-3 mt-6">
-                                <button onClick={() => setShowCreateModal(false)} className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">取消</button>
+                                <button onClick={() => setShowCreateModal(false)} className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white">取消</button>
                                 <button onClick={createUser} disabled={modalLoading}
                                     className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md disabled:opacity-50">
                                     {modalLoading ? '處理中...' : '新增'}
@@ -1591,7 +1591,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                 {modalError && <p className="text-sm text-red-500">{modalError}</p>}
                             </div>
                             <div className="flex justify-end space-x-3 mt-6">
-                                <button onClick={() => setShowEditModal(false)} className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">取消</button>
+                                <button onClick={() => setShowEditModal(false)} className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white">取消</button>
                                 <button onClick={saveEditUser} disabled={modalLoading}
                                     className="px-4 py-2 text-sm bg-green-600 hover:bg-green-700 text-white rounded-md disabled:opacity-50">
                                     {modalLoading ? '儲存中...' : '儲存'}
