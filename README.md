@@ -90,37 +90,16 @@ Get up and chatting with large language models featuring glass-morphism effect.
 npm install
 ```
 
-### 2. 啟動 Ollama
-
-確保您的系統已安裝並啟動 Ollama：
-
-```bash
-# 啟動 Ollama 服務（通常自動啟動）
-ollama serve
-
-# 檢查 Ollama 狀態
-ollama list
-```
-
-### 3. 安裝模型（可選）
-
-```bash
-# 下載常用模型
-ollama pull llama3:8b
-ollama pull codellama:7b
-ollama pull mistral:7b
-ollama pull gemma3:4b
-```
-
-### 4. 啟動
+### 2. 啟動應用程式
 
 ```bash
 npm start
 ```
 
-瀏覽器會自動開啟 http://localhost:3001，完成。
+應用程式啟動後，瀏覽器會自動開啟前端介面 [http://localhost:3000](http://localhost:3000)，即可開始使用。
 
-> **開發模式**（需要同時改前後端 code 時才用）：`npm run dev`
+> **提示**：本專案預設使用本地 Ollama。請確保您的系統已安裝並啟動 Ollama，且已下載所需的模型（例如執行 `ollama pull llama3`）。
+> 如果您需要修改程式碼進行開發，請使用：`npm run dev`
 
 ## 📁 專案結構
 
@@ -658,11 +637,14 @@ npm run preview
 
 ### v260601
 
+- 👥 **管理員用戶 CRUD 管理**: 管理員現在可以直接在管理面板中新增、編輯（包含重設密碼與更改角色）以及刪除用戶，大幅提升帳戶管理的便利性。
+- 🔌 **前後端連接埠架構重構**: 統一前端運作埠口，無論是開發模式還是 `npm start` 生產模式，前端均固定在 `http://localhost:3000` 運行；後端 API 則固定在 `http://localhost:3001` 運行，避免埠口衝突與混淆。
+- 🐳 **Docker 部署支援優化**: 在 `Dockerfile` 中加入 `SERVE_STATIC=true` 開關。當在 Docker 容器內運行時，Express 伺服器會自動靜態託管編譯後的前端檔案，使得容器對外只需暴露單一的服務埠口 (如 8080)；同時優化依賴安裝以縮小映像檔體積。
 - ☁️ **雲端安全認證整合**: 管理員設定頁面新增雲端平台認證方式選擇。支援 Google Vertex AI、AWS Bedrock、Azure OpenAI 三大雲端平台，讓管理員改用雲端平台的身份驗證機制（如服務帳號、IAM 角色）取代直接填寫靜態 API Key，提升金鑰安全性，適合企業部署情境。
 - 🔑 **首位管理員免驗證自動啟用**: 當資料庫無用戶時，首位註冊用戶將自動設為已驗證且已啟用的 `admin` 管理員角色，無須經由 Email 驗證，並在前端展示專屬的歡迎與引導登入畫面，完美避開因本地未配置 SMTP 服務而產生的註冊死鎖與驗證報錯。
 - ⚙️ **SMTP 動態啟用註冊**: 優化後端 SMTP 配置檢測，避免每次請求都進行慢速的 SMTP 連線測試造成介面延遲，並在系統尚無用戶時，即使無 SMTP 設定也強制顯示註冊按鈕，確保能順利建立管理員。
 - 📊 **錯誤訊息與 Token 統計解耦**: 修復了 AI 消息出錯（例如伺服器斷線）時，卡片誤算並在下方顯示 global Token 統計值的 Bug，同時將串流期間的動態 Token 統計功能正確地融合於正在生成的消息框內。
-- 🚀 **全新 `npm start` 支援**: 在 `package.json` 中加入了專屬的 `"start"` 腳本（`npm start`），並引入自動開啟瀏覽器至 `http://localhost:3001` 的功能，提供比 `npm run dev` 更簡便的獨立本機運行體驗。
+- 🚀 **全新 `npm start` 支援**: 在 `package.json` 中加入了專屬的 `"start"` 腳本（`npm start`），並引入自動開啟瀏覽器至 `http://localhost:3000` 的功能，提供比 `npm run dev` 更簡便的獨立本機運行體驗。
 - 👁️ **Vision 模型選單優化**: 為管理員設定頁面的「Vision 模型 (可選)」輸入欄位右側新增「獲取模型」按鈕，且在已獲取模型列表時會自動呈現下拉選單（自動過濾純文字模型，僅保留支援多模態的 Vision 模型，如包含 `vision`, `vl`, `llava`, `gemini`, `claude`, `gpt-4o` 等關鍵字之模型），讓多模態 Vision 模型配置與主模型一樣方便且不易配置出錯。
 - 🎚️ **Context Size 支援拉霸控制**: 將管理員面板與 Provider 設置中的「Context Size (最大 Context 數 / maxTokens)」參數輸入框全面調整為直覺的拉霸滑桿（支援 `256` 到 `262144` 範圍，步長 `256`），讓上下文長度的設定與 `Temperature`, `Top P` 等生成參數的操作體驗完全統一。
 - 🗂️ **LLM Provider 配置面板 2x2 精確對齊**: 將 LLM 提供商設定欄位重構為符合直覺且精準對齊的 2x2 格線排版。第一排配置「認證方法」與「API Key」（非 API Key 認證模式時右側自動留空以精確對齊），第二排則配置「模型名稱 (文字 Model)」與「Vision 模型 (Vision Model)」，使視覺邏輯極致對稱美觀。
