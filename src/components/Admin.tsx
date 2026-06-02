@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Users, UserCheck, AlertTriangle, Shield, ArrowLeft, Trash2, UserPlus, Cpu, Settings, Check, X } from 'lucide-react'
+import { Users, UserCheck, AlertTriangle, Shield, ArrowLeft, Trash2, UserPlus, Cpu, Settings, Check, X, Pencil } from 'lucide-react'
 import { useAuth } from '../AuthContext'
 
 interface User {
@@ -45,6 +45,16 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
     const [currentPage, setCurrentPage] = useState(1)
     const usersPerPage = 10
     const [activeTab, setActiveTab] = useState<'users' | 'llm'>('users')
+
+    // 新增/編輯用戶 Modal 狀態
+    const [showCreateModal, setShowCreateModal] = useState(false)
+    const [showEditModal, setShowEditModal] = useState(false)
+    const [editingUser, setEditingUser] = useState<User | null>(null)
+    const [modalEmail, setModalEmail] = useState('')
+    const [modalPassword, setModalPassword] = useState('')
+    const [modalRole, setModalRole] = useState<'user' | 'admin'>('user')
+    const [modalError, setModalError] = useState<string | null>(null)
+    const [modalLoading, setModalLoading] = useState(false)
     
     // LLM Provider 設定狀態
     const [providers, setProviders] = useState<any[]>([])
@@ -254,6 +264,69 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
             await fetchUsers()
         } catch (error) {
             setError(error instanceof Error ? error.message : t('admin.error.deleteUser'))
+        }
+    }
+
+    // 新增用戶
+    const createUser = async () => {
+        if (!modalEmail || !modalPassword) {
+            setModalError('Email 和密碼為必填')
+            return
+        }
+        setModalLoading(true)
+        setModalError(null)
+        try {
+            const res = await fetch('/api/admin/users', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: modalEmail, password: modalPassword, role: modalRole })
+            })
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || '新增失敗')
+            setShowCreateModal(false)
+            setModalEmail(''); setModalPassword(''); setModalRole('user')
+            await fetchUsers()
+        } catch (e: any) {
+            setModalError(e.message)
+        } finally {
+            setModalLoading(false)
+        }
+    }
+
+    // 開啟編輯 Modal
+    const openEditModal = (user: User) => {
+        setEditingUser(user)
+        setModalEmail(user.email)
+        setModalPassword('')
+        setModalRole(user.role as 'user' | 'admin')
+        setModalError(null)
+        setShowEditModal(true)
+    }
+
+    // 儲存編輯
+    const saveEditUser = async () => {
+        if (!editingUser || !modalEmail) {
+            setModalError('Email 為必填')
+            return
+        }
+        setModalLoading(true)
+        setModalError(null)
+        try {
+            const body: any = { email: modalEmail, role: modalRole }
+            if (modalPassword) body.password = modalPassword
+            const res = await fetch(`/api/admin/users/${editingUser.id}`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            })
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || '儲存失敗')
+            setShowEditModal(false)
+            await fetchUsers()
+        } catch (e: any) {
+            setModalError(e.message)
+        } finally {
+            setModalLoading(false)
         }
     }
 
@@ -1188,10 +1261,17 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
 
                 {/* 用戶列表 */}
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-                    <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                             {t('admin.table.list')}
                         </h2>
+                        <button
+                            onClick={() => { setModalEmail(''); setModalPassword(''); setModalRole('user'); setModalError(null); setShowCreateModal(true) }}
+                            className="flex items-center space-x-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-md"
+                        >
+                            <UserPlus className="h-4 w-4" />
+                            <span>新增用戶</span>
+                        </button>
                     </div>
 
                     {/* 桌面版：表格 */}
@@ -1252,13 +1332,20 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                                             <button
+                                                onClick={() => openEditModal(user)}
+                                                className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                                                title="編輯用戶"
+                                            >
+                                                <Pencil className="h-4 w-4" />
+                                            </button>
+                                            <button
                                                 onClick={() => toggleUserEnable(user.id)}
                                                 className={`${user.enable
                                                     ? 'text-orange-600 hover:text-orange-900 dark:text-orange-400 dark:hover:text-orange-300'
                                                     : 'text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300'
                                                     }`}
                                                 title={user.enable ? t('admin.disableUser') : t('admin.enableUser')}
-                                                disabled={user.id === currentUser?.id} // 不允許禁用自己
+                                                disabled={user.id === currentUser?.id}
                                             >
                                                 {user.enable ? <AlertTriangle className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
                                             </button>
@@ -1284,7 +1371,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                                 onClick={() => deleteUser(user.id)}
                                                 className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 ml-2"
                                                 title={t('admin.deleteUser')}
-                                                disabled={user.id === currentUser?.id} // 不允許刪除自己
+                                                disabled={user.id === currentUser?.id}
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </button>
@@ -1332,6 +1419,13 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                         }</div>
                                     </div>
                                     <div className="flex items-center space-x-2 mt-3">
+                                        <button
+                                            onClick={() => openEditModal(user)}
+                                            className="p-2 rounded-md text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900"
+                                            title="編輯用戶"
+                                        >
+                                            <Pencil className="h-4 w-4" />
+                                        </button>
                                         <button
                                             onClick={() => toggleUserEnable(user.id)}
                                             className={`p-2 rounded-md ${user.enable
@@ -1422,6 +1516,89 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                     )}
                 </div>
                     </>
+                )}
+
+                {/* 新增用戶 Modal */}
+                {showCreateModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowCreateModal(false)}>
+                        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">新增用戶</h3>
+                                <button onClick={() => setShowCreateModal(false)} className="text-gray-400 hover:text-gray-600"><X className="h-5 w-5" /></button>
+                            </div>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                                    <input type="email" value={modalEmail} onChange={e => setModalEmail(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                        placeholder="user@example.com" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">密碼</label>
+                                    <input type="password" value={modalPassword} onChange={e => setModalPassword(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                        placeholder="至少 6 個字符" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">角色</label>
+                                    <select value={modalRole} onChange={e => setModalRole(e.target.value as any)}
+                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                                        <option value="user">一般用戶</option>
+                                        <option value="admin">管理員</option>
+                                    </select>
+                                </div>
+                                {modalError && <p className="text-sm text-red-500">{modalError}</p>}
+                            </div>
+                            <div className="flex justify-end space-x-3 mt-6">
+                                <button onClick={() => setShowCreateModal(false)} className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">取消</button>
+                                <button onClick={createUser} disabled={modalLoading}
+                                    className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md disabled:opacity-50">
+                                    {modalLoading ? '處理中...' : '新增'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* 編輯用戶 Modal */}
+                {showEditModal && editingUser && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowEditModal(false)}>
+                        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">編輯用戶</h3>
+                                <button onClick={() => setShowEditModal(false)} className="text-gray-400 hover:text-gray-600"><X className="h-5 w-5" /></button>
+                            </div>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                                    <input type="email" value={modalEmail} onChange={e => setModalEmail(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">新密碼（留空不更改）</label>
+                                    <input type="password" value={modalPassword} onChange={e => setModalPassword(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                        placeholder="留空則不更改密碼" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">角色</label>
+                                    <select value={modalRole} onChange={e => setModalRole(e.target.value as any)}
+                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                                        <option value="user">一般用戶</option>
+                                        <option value="admin">管理員</option>
+                                    </select>
+                                </div>
+                                {modalError && <p className="text-sm text-red-500">{modalError}</p>}
+                            </div>
+                            <div className="flex justify-end space-x-3 mt-6">
+                                <button onClick={() => setShowEditModal(false)} className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">取消</button>
+                                <button onClick={saveEditUser} disabled={modalLoading}
+                                    className="px-4 py-2 text-sm bg-green-600 hover:bg-green-700 text-white rounded-md disabled:opacity-50">
+                                    {modalLoading ? '儲存中...' : '儲存'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 )}
             </div>
         </div>

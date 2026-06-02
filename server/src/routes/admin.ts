@@ -12,7 +12,6 @@ export function createAdminRouter(deps: { userService: UserService }) {
             if (!userService.isAdmin(req.user!.userId)) {
                 return res.status(403).json({ error: '需要管理員權限' })
             }
-
             const users = userService.getAllUsers()
             res.json({ users })
         } catch (error) {
@@ -21,20 +20,51 @@ export function createAdminRouter(deps: { userService: UserService }) {
         }
     })
 
-    // 管理員 API - 更新用戶角色
+    // 管理員 API - 新增用戶（跳過 Email 驗證，直接啟用）
+    router.post('/admin/users', authenticateToken(userService), async (req: AuthedRequest, res: Response) => {
+        try {
+            if (!userService.isAdmin(req.user!.userId)) {
+                return res.status(403).json({ error: '需要管理員權限' })
+            }
+            const { email, password, role } = (req as any).body
+            if (!email || !password) {
+                return res.status(400).json({ error: 'Email 和密碼為必填' })
+            }
+            const user = await userService.adminCreateUser(email, password, role || 'user')
+            res.json({ user })
+        } catch (error: any) {
+            console.error('Admin create user error:', error)
+            res.status(400).json({ error: error.message })
+        }
+    })
+
+    // 管理員 API - 編輯用戶（email / 密碼 / 角色）
+    router.put('/admin/users/:userId', authenticateToken(userService), async (req: AuthedRequest, res: Response) => {
+        try {
+            if (!userService.isAdmin(req.user!.userId)) {
+                return res.status(403).json({ error: '需要管理員權限' })
+            }
+            const { userId } = req.params
+            const { email, password, role } = (req as any).body
+            const user = await userService.adminUpdateUser(userId, { email, password, role })
+            res.json({ user })
+        } catch (error: any) {
+            console.error('Admin update user error:', error)
+            res.status(400).json({ error: error.message })
+        }
+    })
+
+    // 管理員 API - 更新用戶角色（保留舊路由）
     router.put('/admin/users/:userId/role', authenticateToken(userService), (req: AuthedRequest, res: Response) => {
         try {
             if (!userService.isAdmin(req.user!.userId)) {
                 return res.status(403).json({ error: '需要管理員權限' })
             }
-
             const { userId } = req.params
             const { role } = (req as any).body
-
             if (!['admin', 'user'].includes(role)) {
                 return res.status(400).json({ error: '無效的角色' })
             }
-
             const user = userService.updateUserRole(userId, role)
             res.json({ user: { id: user.id, email: user.email, role: user.role } })
         } catch (error: any) {
@@ -49,7 +79,6 @@ export function createAdminRouter(deps: { userService: UserService }) {
             if (!userService.isAdmin(req.user!.userId)) {
                 return res.status(403).json({ error: '需要管理員權限' })
             }
-
             const { userId } = req.params
             const user = userService.deleteUser(userId)
             res.json({ message: '用戶已刪除', user: { id: user.id, email: user.email } })
@@ -65,16 +94,11 @@ export function createAdminRouter(deps: { userService: UserService }) {
             if (!userService.isAdmin(req.user!.userId)) {
                 return res.status(403).json({ error: '需要管理員權限' })
             }
-
             const { userId } = req.params
             const user = userService.toggleUserEnable(userId)
             res.json({
                 message: `用戶已${user.enable ? '啟用' : '禁用'}`,
-                user: {
-                    id: user.id,
-                    email: user.email,
-                    enable: user.enable
-                }
+                user: { id: user.id, email: user.email, enable: user.enable }
             })
         } catch (error: any) {
             console.error('Toggle user enable error:', error)

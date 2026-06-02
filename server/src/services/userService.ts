@@ -451,6 +451,73 @@ class UserService {
         return user
     }
 
+    // 管理員直接新增用戶（跳過 Email 驗證流程）
+    async adminCreateUser(email: string, password: string, role: 'admin' | 'user' = 'user') {
+        if (this.users.find(u => u.email === email)) {
+            throw new Error('Email 已存在')
+        }
+        if (password.length < 6) {
+            throw new Error('密碼長度至少需要 6 個字符')
+        }
+        const hashedPassword = await bcrypt.hash(password, 10)
+        const user: UserRecord = {
+            id: crypto.randomUUID(),
+            email,
+            password: hashedPassword,
+            role,
+            enable: true,
+            emailVerified: true,
+            emailVerificationToken: null,
+            emailVerificationTokenExpiry: null,
+            createdAt: new Date().toISOString(),
+            lastLoginAt: null,
+            settings: {
+                language: 'zh-TW',
+                theme: 'auto',
+                model: '',
+                temperature: 0.7,
+                maxTokens: 8192,
+                apiUrl: '',
+                apiKey: '',
+                topP: 0.9,
+                topK: 40,
+                showTokenStats: true
+            }
+        }
+        this.users.push(user)
+        this.saveUsers()
+        return { id: user.id, email: user.email, role: user.role, createdAt: user.createdAt }
+    }
+
+    // 管理員編輯用戶（改 email / 密碼 / 角色）
+    async adminUpdateUser(userId: string, updates: { email?: string; password?: string; role?: 'admin' | 'user' }) {
+        const user = this.users.find(u => u.id === userId)
+        if (!user) throw new Error('用戶不存在')
+
+        if (updates.email && updates.email !== user.email) {
+            if (this.users.find(u => u.email === updates.email)) {
+                throw new Error('Email 已被其他用戶使用')
+            }
+            user.email = updates.email
+        }
+
+        if (updates.password) {
+            if (updates.password.length < 6) throw new Error('密碼長度至少需要 6 個字符')
+            user.password = await bcrypt.hash(updates.password, 10)
+        }
+
+        if (updates.role && updates.role !== user.role) {
+            if (user.role === 'admin' && updates.role === 'user') {
+                const adminCount = this.users.filter(u => u.role === 'admin').length
+                if (adminCount <= 1) throw new Error('至少需要一個管理員')
+            }
+            user.role = updates.role
+        }
+
+        this.saveUsers()
+        return { id: user.id, email: user.email, role: user.role }
+    }
+
     // 刪除用戶（管理員功能）
     deleteUser(userId: string) {
         const userIndex = this.users.findIndex(user => user.id === userId)
