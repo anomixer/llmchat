@@ -112,27 +112,15 @@ ollama pull mistral:7b
 ollama pull gemma3:4b
 ```
 
-### 4. 啟動應用程式
+### 4. 啟動
 
 ```bash
-# 同時啟動前端和後端
-npm run dev
-
-# 或者分別啟動
-# 終端 1 - 啟動後端
-npm run server
-
-# 終端 2 - 啟動前端
-npm run client
+npm start
 ```
 
-> **後端入口**: 後端目前以 `server/src/start.ts` 作為唯一入口（`npm run server` 即執行該檔案）。
+瀏覽器會自動開啟 http://localhost:3001，完成。
 
-### 5. 開啟瀏覽器
-
-應用程式將自動在瀏覽器中開啟，或手動訪問：
-- 前端（開發模式）：http://localhost:3000
-- 後端 API / 生產版本：http://localhost:3001
+> **開發模式**（需要同時改前後端 code 時才用）：`npm run dev`
 
 ## 📁 專案結構
 
