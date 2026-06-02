@@ -4,6 +4,11 @@ Get up and chatting with large language models featuring glass-morphism effect.
 
 一個具有玻璃擬態設計的現代化本地大語言模型聊天應用程式，基於 React + Node.js + Ollama，提供美觀且功能完整的聊天體驗。適合各企業建構在地AI聊天應用，數據不怕外流給雲端廠商。
 
+<p align="center">
+  <img src="public/screenshot-1.png" width="49%" alt="LLMChat Screenshot 1" />
+  <img src="public/screenshot-2.png" width="49%" alt="LLMChat Screenshot 2" />
+</p>
+
 ## 🌟 功能特色
 
 - **玻璃擬態設計**: 現代化的玻璃擬態視覺效果，搭配主題適應的漸層背景（亮色模式藍色，暗色模式紫色），提供沉浸式聊天體驗
