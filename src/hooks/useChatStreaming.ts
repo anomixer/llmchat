@@ -109,10 +109,10 @@ export function useChatStreaming(args: { token: string | null }) {
         }
     }, [])
 
-    const requestStop = useCallback(() => {
+    const requestStop = useCallback((force = false) => {
         if (!isStreaming) return
 
-        if (!stopRequested) {
+        if (!stopRequested && !force) {
             setStopRequested(true)
             setStopConfirmText('再按一次停止生成')
 
@@ -124,7 +124,7 @@ export function useChatStreaming(args: { token: string | null }) {
             return
         }
 
-        // second click
+        // second click or force
         shouldContinueRef.current = false
         setStopRequested(false)
         setStopConfirmText('')

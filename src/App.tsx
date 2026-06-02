@@ -778,6 +778,11 @@ const App: React.FC = () => {
         const confirmed = window.confirm(t('conversation.delete.confirm', { title: conversation.title }))
         if (!confirmed) return
 
+        // 如果刪除的是當前正在對話且正在進行 AI 生成的視窗，強制中止後端生成
+        if (conversationId === currentConversationId && isStreaming) {
+            requestStop(true)
+        }
+
         removeConversation(conversationId)
     }
 
@@ -1095,6 +1100,11 @@ const App: React.FC = () => {
         if (currentConversationId) {
             const confirmed = window.confirm(t('conversation.clear.confirm'))
             if (!confirmed) return
+
+            // 如果正在 AI 生成，強制停止並中止後端
+            if (isStreaming) {
+                requestStop(true)
+            }
 
             clearConversationMessages(currentConversationId)
         }

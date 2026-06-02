@@ -205,6 +205,15 @@ ${message}`
 
             activeStreams.set(requestId, abortController)
 
+            // 當客戶端中斷連線時（例如關閉瀏覽器、手動停止），自動終止後端生成
+            req.on('close', () => {
+                if (activeStreams.has(requestId)) {
+                    console.log(`[ChatStream] 連結被客戶端中斷，終止後端模型生成: ${requestId}`)
+                    abortController.abort()
+                    activeStreams.delete(requestId)
+                }
+            })
+
             res.setHeader('X-Request-ID', requestId)
             res.setHeader('Content-Type', 'text/plain; charset=utf-8')
             res.setHeader('Cache-Control', 'no-cache')
