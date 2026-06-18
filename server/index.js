@@ -4,22 +4,27 @@ import cors from 'cors'
 import { inferenceService } from './inferenceService.js'
 import UserService from './userService.js'
 import EmailService from './emailService.js'
+import {
+    buildGoogleAuthUrl,
+    exchangeGoogleCode,
+    getGoogleStatus,
+    revokeGoogle,
+    saveChatGPTSession,
+    getChatGPTStatus,
+    revokeChatGPT,
+} from './oauthService.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
 
-// 存儲活躍的流式請求，用於停止
 const activeStreams = new Map()
 
-// 初始化用戶服務
 const userService = new UserService()
 const emailService = new EmailService()
 
-// 中間件
 app.use(cors())
 app.use(express.json())
 
-// 認證中間件
 const authenticateToken = (req, res, next) => {
     const authHeader = req.headers['authorization']
     const token = authHeader && authHeader.split(' ')[1]
@@ -37,12 +42,10 @@ const authenticateToken = (req, res, next) => {
     next()
 }
 
-// 健康檢查
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() })
 })
 
-// 獲取可用的 Provider 列表
 app.get('/api/providers', authenticateToken, (req, res) => {
     try {
         const providers = inferenceService.getAvailableProviders()
@@ -53,7 +56,6 @@ app.get('/api/providers', authenticateToken, (req, res) => {
     }
 })
 
-// 獲取當前 Provider 配置
 app.get('/api/providers/current', authenticateToken, (req, res) => {
     try {
         const current = inferenceService.getCurrentProvider()
@@ -64,25 +66,29 @@ app.get('/api/providers/current', authenticateToken, (req, res) => {
     }
 })
 
-// 更新 Provider 配置
+// 更新 Provider 配置（完整保存 authMethod / oauthConfig）
 app.post('/api/providers/update', authenticateToken, async (req, res) => {
     try {
-        const { type, baseUrl, apiKey, model, temperature, maxTokens } = req.body
-        
+        const { type, baseUrl, apiKey, model, temperature, topP, topK, maxTokens, visionModel, authMethod, oauthConfig } = req.body
+
         const success = inferenceService.updateProvider({
             type,
             baseUrl,
             apiKey,
             model,
             temperature,
-            maxTokens
+            topP,
+            topK,
+            maxTokens,
+            visionModel,
+            authMethod: authMethod || 'api-key',
+            oauthConfig: oauthConfig || {}
         })
 
         if (success) {
-            // 測試連接
             const isConnected = await inferenceService.checkConnection()
-            res.json({ 
-                success: true, 
+            res.json({
+                success: true,
                 isConnected,
                 message: isConnected ? 'Provider 設定已更新' : 'Provider 設定已更新，但連接失敗'
             })
@@ -95,9 +101,20 @@ app.post('/api/providers/update', authenticateToken, async (req, res) => {
     }
 })
 
-// 檢查 Provider 連接
+// 檢查 Provider 連接（使用傳入參數而非記憶體狀態）
 app.post('/api/providers/check', authenticateToken, async (req, res) => {
     try {
+        const { type, baseUrl, apiKey, model, authMethod, oauthConfig } = req.body
+        if (type) {
+            inferenceService.updateProvider({
+                type,
+                baseUrl,
+                apiKey,
+                model,
+                authMethod: authMethod || 'api-key',
+                oauthConfig: oauthConfig || {}
+            })
+        }
         const isConnected = await inferenceService.checkConnection()
         res.json({ isConnected })
     } catch (error) {
@@ -106,7 +123,6 @@ app.post('/api/providers/check', authenticateToken, async (req, res) => {
     }
 })
 
-// 獲取可用模型列表
 app.get('/api/models', authenticateToken, async (req, res) => {
     try {
         const models = await inferenceService.getAvailableModels()
@@ -117,34 +133,22 @@ app.get('/api/models', authenticateToken, async (req, res) => {
     }
 })
 
-// OpenAI 相容的模型端點
 app.get('/v1/models', authenticateToken, async (req, res) => {
     try {
         const models = await inferenceService.getAvailableModels()
-        
         const openaiModels = models.map(model => ({
             id: model.id,
             object: 'model',
             created: Math.floor(Date.now() / 1000),
             owned_by: inferenceService.getCurrentProvider().type
         }))
-
-        res.json({
-            object: 'list',
-            data: openaiModels
-        })
+        res.json({ object: 'list', data: openaiModels })
     } catch (error) {
         console.error('Error fetching models:', error)
-        res.status(500).json({
-            error: {
-                message: '無法獲取模型列表',
-                type: 'invalid_request_error'
-            }
-        })
+        res.status(500).json({ error: { message: '無法獲取模型列表', type: 'invalid_request_error' } })
     }
 })
 
-// 聊天端點
 app.post('/api/chat', authenticateToken, async (req, res) => {
     try {
         const { message, settings, history, conversationId } = req.body
@@ -155,29 +159,19 @@ app.post('/api/chat', authenticateToken, async (req, res) => {
         }
 
         console.log('Generating response for message:', message.substring(0, 50))
-        
         const response = await inferenceService.generateResponse({
             message,
             history: history || [],
             settings: settings || {}
         })
-
         console.log('Response generated:', response.content.substring(0, 50))
-        
-        res.json({ 
-            response: response.content,
-            usage: response.usage
-        })
+        res.json({ response: response.content, usage: response.usage })
     } catch (error) {
         console.error('Chat error:', error)
-        res.status(500).json({ 
-            error: '處理請求時發生錯誤', 
-            details: error.message 
-        })
+        res.status(500).json({ error: '處理請求時發生錯誤', details: error.message })
     }
 })
 
-// 流式聊天端點
 app.post('/api/chat/stream', authenticateToken, async (req, res) => {
     const requestId = Date.now().toString() + Math.random().toString(36).substr(2, 9)
     const abortController = new AbortController()
@@ -191,7 +185,6 @@ app.post('/api/chat/stream', authenticateToken, async (req, res) => {
 
         activeStreams.set(requestId, abortController)
         res.setHeader('X-Request-ID', requestId)
-
         res.setHeader('Content-Type', 'text/plain; charset=utf-8')
         res.setHeader('Cache-Control', 'no-cache')
         res.setHeader('Connection', 'keep-alive')
@@ -205,7 +198,6 @@ app.post('/api/chat/stream', authenticateToken, async (req, res) => {
         for await (const chunk of streamGenerator) {
             res.write(chunk.content)
         }
-
         res.end()
     } catch (error) {
         if (error.name === 'AbortError') {
@@ -224,15 +216,12 @@ app.post('/api/chat/stream', authenticateToken, async (req, res) => {
     }
 })
 
-// 停止流式請求
 app.post('/api/chat/stop', (req, res) => {
     try {
         const { requestId } = req.body
-
         if (!requestId) {
             return res.status(400).json({ error: '缺少 requestId' })
         }
-
         const abortController = activeStreams.get(requestId)
         if (abortController) {
             console.log(`停止流式請求：${requestId}`)
@@ -248,28 +237,22 @@ app.post('/api/chat/stop', (req, res) => {
     }
 })
 
-// 用戶註冊
 app.post('/api/auth/register', async (req, res) => {
     try {
         const { email, password, language } = req.body
-
         if (!email || !password) {
             return res.status(400).json({ error: 'Email 和密碼不能為空' })
         }
-
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
         if (!emailRegex.test(email)) {
             return res.status(400).json({ error: '請輸入有效的 Email 地址' })
         }
-
         if (password.length < 6) {
             return res.status(400).json({ error: '密碼至少 6 個字符' })
         }
-
         const user = await userService.register(email, password, language || 'zh-TW')
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000'
         const verificationUrl = `${frontendUrl}/api/auth/verify-email/${user.emailVerificationToken}?lang=${user.language}`
-
         let emailSent = false
         try {
             await emailService.sendVerificationEmail(email, verificationUrl, user.email.split('@')[0], user.language)
@@ -277,16 +260,10 @@ app.post('/api/auth/register', async (req, res) => {
         } catch (emailError) {
             console.error('Failed to send verification email:', emailError)
         }
-
         res.json({
-            user: {
-                id: user.id,
-                email: user.email,
-                role: user.role,
-                createdAt: user.createdAt
-            },
-            verificationUrl: verificationUrl,
-            emailSent: emailSent
+            user: { id: user.id, email: user.email, role: user.role, createdAt: user.createdAt },
+            verificationUrl,
+            emailSent
         })
     } catch (error) {
         console.error('Registration error:', error)
@@ -294,15 +271,12 @@ app.post('/api/auth/register', async (req, res) => {
     }
 })
 
-// 用戶登入
 app.post('/api/auth/login', async (req, res) => {
     try {
         const { email, password } = req.body
-
         if (!email || !password) {
             return res.status(400).json({ error: 'Email 和密碼不能為空' })
         }
-
         const result = await userService.login(email, password)
         res.json(result)
     } catch (error) {
@@ -311,7 +285,6 @@ app.post('/api/auth/login', async (req, res) => {
     }
 })
 
-// 用戶登出
 app.post('/api/auth/logout', authenticateToken, (req, res) => {
     try {
         const authHeader = req.headers['authorization']
@@ -324,48 +297,34 @@ app.post('/api/auth/logout', authenticateToken, (req, res) => {
     }
 })
 
-// 驗證會話
 app.get('/api/auth/verify', authenticateToken, (req, res) => {
     res.json({ user: req.user })
 })
 
-// Email 驗證
 app.get('/api/auth/verify-email/:token', (req, res) => {
     try {
         const { token } = req.params
         const { lang } = req.query
         const language = lang && ['zh-TW', 'zh-CN', 'en', 'ja', 'ko'].includes(lang) ? lang : 'zh-TW'
-
         const user = userService.verifyEmail(token)
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000'
-        
-        res.json({ 
-            success: true, 
-            message: '驗證成功',
-            user: { id: user.id, email: user.email }
-        })
+        res.json({ success: true, message: '驗證成功', user: { id: user.id, email: user.email } })
     } catch (error) {
         console.error('Email verification error:', error)
         res.status(400).json({ success: false, message: error.message })
     }
 })
 
-// 重新發送驗證 Email
 app.post('/api/auth/resend-verification', async (req, res) => {
     try {
         const { email, language } = req.body
-
         if (!email) {
             return res.status(400).json({ error: '請提供 Email 地址' })
         }
-
         const user = userService.users.find(u => u.email === email)
         const userLanguage = language || (user?.settings?.language) || 'zh-TW'
-
         const token = userService.resendVerificationEmail(email)
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000'
         const verificationUrl = `${frontendUrl}/api/auth/verify-email/${token}?lang=${userLanguage}`
-
         let emailSent = false
         try {
             await emailService.sendVerificationEmail(email, verificationUrl, email.split('@')[0], userLanguage)
@@ -373,11 +332,10 @@ app.post('/api/auth/resend-verification', async (req, res) => {
         } catch (emailError) {
             console.error('Failed to resend verification email:', emailError)
         }
-
         res.json({
             message: emailSent ? '驗證郵件已重新發送' : '驗證鏈接已重新生成',
-            verificationUrl: verificationUrl,
-            emailSent: emailSent
+            verificationUrl,
+            emailSent
         })
     } catch (error) {
         console.error('Resend verification error:', error)
@@ -385,7 +343,6 @@ app.post('/api/auth/resend-verification', async (req, res) => {
     }
 })
 
-// 獲取用戶的對話列表
 app.get('/api/conversations', authenticateToken, (req, res) => {
     try {
         const conversations = userService.getUserConversations(req.user.userId)
@@ -396,7 +353,6 @@ app.get('/api/conversations', authenticateToken, (req, res) => {
     }
 })
 
-// 保存用戶的對話
 app.post('/api/conversations', authenticateToken, (req, res) => {
     try {
         const { conversations } = req.body
@@ -408,7 +364,6 @@ app.post('/api/conversations', authenticateToken, (req, res) => {
     }
 })
 
-// 獲取用戶設定
 app.get('/api/user/settings', authenticateToken, (req, res) => {
     try {
         const settings = userService.getUserSettings(req.user.userId)
@@ -422,7 +377,6 @@ app.get('/api/user/settings', authenticateToken, (req, res) => {
     }
 })
 
-// 更新用戶設定
 app.post('/api/user/settings', authenticateToken, (req, res) => {
     try {
         const { settings } = req.body
@@ -437,7 +391,23 @@ app.post('/api/user/settings', authenticateToken, (req, res) => {
     }
 })
 
-// 管理員 API
+app.post('/api/user/change-password', authenticateToken, async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ error: '請提供目前密碼和新密碼' })
+        }
+        if (newPassword.length < 6) {
+            return res.status(400).json({ error: '新密碼至少 6 個字符' })
+        }
+        await userService.changePassword(req.user.userId, currentPassword, newPassword)
+        res.json({ success: true, message: '密碼已更新' })
+    } catch (error) {
+        console.error('Change password error:', error)
+        res.status(400).json({ error: error.message })
+    }
+})
+
 app.get('/api/admin/users', authenticateToken, (req, res) => {
     try {
         if (!userService.isAdmin(req.user.userId)) {
@@ -451,7 +421,91 @@ app.get('/api/admin/users', authenticateToken, (req, res) => {
     }
 })
 
-// 全局錯誤處理
+// ─── Google OAuth2 Routes ──────────────────────────────────────────────────────
+
+app.get('/api/oauth/google/start', authenticateToken, (req, res) => {
+    try {
+        const url = buildGoogleAuthUrl(req.user.userId)
+        res.json({ url })
+    } catch (error) {
+        console.error('Google OAuth start error:', error)
+        res.status(500).json({ error: error.message })
+    }
+})
+
+app.get('/api/oauth/google/callback', async (req, res) => {
+    const { code, state: userId, error: oauthError } = req.query
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000'
+
+    if (oauthError || !code || !userId) {
+        return res.redirect(`${frontendUrl}/?oauth=google&status=error&reason=${encodeURIComponent(oauthError || 'missing_code')}`)
+    }
+
+    try {
+        const { email } = await exchangeGoogleCode({ code, userId })
+        res.redirect(`${frontendUrl}/?oauth=google&status=success&email=${encodeURIComponent(email)}`)
+    } catch (error) {
+        console.error('Google OAuth callback error:', error)
+        res.redirect(`${frontendUrl}/?oauth=google&status=error&reason=${encodeURIComponent(error.message)}`)
+    }
+})
+
+app.get('/api/oauth/google/status', authenticateToken, (req, res) => {
+    try {
+        const status = getGoogleStatus(req.user.userId)
+        res.json(status)
+    } catch (error) {
+        console.error('Google OAuth status error:', error)
+        res.status(500).json({ error: error.message })
+    }
+})
+
+app.post('/api/oauth/google/revoke', authenticateToken, async (req, res) => {
+    try {
+        await revokeGoogle(req.user.userId)
+        res.json({ success: true, message: 'Google 授權已撤銷' })
+    } catch (error) {
+        console.error('Google OAuth revoke error:', error)
+        res.status(500).json({ error: error.message })
+    }
+})
+
+// ─── ChatGPT Session Token Routes ─────────────────────────────────────────────
+
+app.post('/api/oauth/chatgpt/session', authenticateToken, async (req, res) => {
+    try {
+        const { sessionToken } = req.body
+        if (!sessionToken) {
+            return res.status(400).json({ error: '請提供 sessionToken' })
+        }
+        const { email } = await saveChatGPTSession({ userId: req.user.userId, sessionToken })
+        res.json({ success: true, email })
+    } catch (error) {
+        console.error('ChatGPT session save error:', error)
+        res.status(400).json({ error: error.message })
+    }
+})
+
+app.get('/api/oauth/chatgpt/status', authenticateToken, (req, res) => {
+    try {
+        const status = getChatGPTStatus(req.user.userId)
+        res.json(status)
+    } catch (error) {
+        console.error('ChatGPT status error:', error)
+        res.status(500).json({ error: error.message })
+    }
+})
+
+app.post('/api/oauth/chatgpt/revoke', authenticateToken, (req, res) => {
+    try {
+        revokeChatGPT(req.user.userId)
+        res.json({ success: true, message: 'ChatGPT 連線已清除' })
+    } catch (error) {
+        console.error('ChatGPT revoke error:', error)
+        res.status(500).json({ error: error.message })
+    }
+})
+
 app.use((error, req, res, next) => {
     console.error('Global error:', error)
     res.status(500).json({
@@ -460,12 +514,10 @@ app.use((error, req, res, next) => {
     })
 })
 
-// 定期清理過期的會話
 setInterval(() => {
     userService.cleanupExpiredSessions()
 }, 60 * 60 * 1000)
 
-// 啟動服務器
 app.listen(PORT, async () => {
     console.log(`🚀 Multi-Provider LLM Chat Server 運行在 http://localhost:${PORT}`)
     console.log(`📋 可用的 Provider:`)
@@ -477,20 +529,7 @@ app.listen(PORT, async () => {
     console.log(`   - Provider: ${current.type}`)
     console.log(`   - Model: ${current.model}`)
     console.log(`   - URL: ${current.baseUrl}`)
-    console.log(`   - API Key: ${current.requiresApiKey ? '🔑 已設定' : '🔓 不需要'}`)
-
-    console.log(`\n📝 API 端點:`)
-    console.log(`   - GET  /api/health           - 健康檢查`)
-    console.log(`   - GET  /api/providers        - 獲取 Provider 列表`)
-    console.log(`   - GET  /api/providers/current - 獲取當前 Provider`)
-    console.log(`   - POST /api/providers/update - 更新 Provider`)
-    console.log(`   - POST /api/providers/check  - 檢查連接`)
-    console.log(`   - GET  /api/models           - 獲取模型列表`)
-    console.log(`   - POST /api/chat             - 聊天`)
-    console.log(`   - POST /api/chat/stream      - 流式聊天`)
-    console.log(`   - POST /api/chat/stop        - 停止流式請求`)
-
-    // 測試連接
+    console.log(`   - Auth: ${current.authMethod}`)
     await inferenceService.checkConnection()
 })
 

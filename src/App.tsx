@@ -6,6 +6,7 @@ import MarkdownMessage from './MarkdownMsg'
 import { Header } from './components/Header'
 import { Auth } from './components/Auth'
 import { Admin } from './components/Admin'
+
 import { useAuth } from './AuthContext'
 import { useChatStreaming } from './hooks/useChatStreaming'
 import { useConversations } from './hooks/useConversations'
@@ -453,16 +454,34 @@ const App: React.FC = () => {
                 // 1. 強制更新用戶設定狀態（以 localStorage 主題為準）
                 setUserSettings({ ...serverSettings, theme: effectiveTheme })
 
-                // 應用語言設定 - 無條件套用，以伺服器設定為準，並寫入 localStorage 快取
-                if (serverSettings.language) {
-                    await i18n.changeLanguage(serverSettings.language)
-                    try { localStorage.setItem('llmchat_language', serverSettings.language) } catch {}
-                    const htmlElement = document.getElementById('html-root') as HTMLHtmlElement
-                    if (htmlElement) {
-                        htmlElement.lang = serverSettings.language
-                    }
+                // 處理語言設定：檢查是否有登入畫面的新選擇
+                const loginLangChanged = sessionStorage.getItem('login_language_changed')
+                const localLang = localStorage.getItem('llmchat_language')
+                let finalLanguage = serverSettings.language
+
+                if (loginLangChanged === 'true' && localLang && localLang !== serverSettings.language) {
+                    finalLanguage = localLang
+                    serverSettings.language = localLang
+                    fetch('/api/user/settings', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ settings: { language: localLang } }),
+                    }).catch(err => console.error('Error saving language:', err))
+                    sessionStorage.removeItem('login_language_changed')
                 }
 
+                // 應用語言設定
+                if (finalLanguage) {
+                    await i18n.changeLanguage(finalLanguage)
+                    try { localStorage.setItem('llmchat_language', finalLanguage) } catch {}
+                    const htmlElement = document.getElementById('html-root') as HTMLHtmlElement
+                    if (htmlElement) {
+                        htmlElement.lang = finalLanguage
+                    }
+                }
                 // 應用主題設定（以 effectiveTheme 為準，避免伺服器舊值覆蓋 localStorage）
                 if (effectiveTheme) {
                     if (effectiveTheme === 'auto') {
@@ -1142,6 +1161,9 @@ const App: React.FC = () => {
 
     return (
         <div className={`flex flex-col h-full transition-colors ${isFullscreen ? 'fullscreen-app' : ''} ${isMobileView && !isFullscreen ? 'pt-16' : ''}`}>
+            {/* OAuth 授權結果 Toast 通知 */}
+
+
             <Header
                 isDarkMode={isDarkMode}
                 isFullscreen={isFullscreen}

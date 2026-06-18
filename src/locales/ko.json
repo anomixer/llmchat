@@ -1,309 +1,337 @@
 {
-    "app": {
-        "loading": "로딩 중...",
-        "welcome": {
-            "title": "AI와 대화를 시작하세요!",
-            "subtitle": "질문을 입력하거나 말하세요. 최선을 다해 답변하겠습니다.",
-            "fileHint": "파일을 업로드할 수도 있습니다. 분석과 요약을 도와드리겠습니다."
-        }
+  "app": {
+    "loading": "로딩 중...",
+    "welcome": {
+      "title": "AI와 대화를 시작하세요!",
+      "subtitle": "질문을 입력하거나 말하세요. 최선을 다해 답변하겠습니다.",
+      "fileHint": "파일을 업로드할 수도 있습니다. 분석과 요약을 도와드리겠습니다."
+    }
+  },
+  "conversation": {
+    "defaultTitle": "대화",
+    "list": "대화 목록",
+    "empty": "대화가 없습니다",
+    "messages": "개의 메시지 ·",
+    "delete": {
+      "confirm": "대화 \"{{title}}\"을(를) 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.",
+      "button": "대화 삭제"
     },
-    "conversation": {
-        "defaultTitle": "대화",
-        "list": "대화 목록",
-        "empty": "대화가 없습니다",
-        "messages": "개의 메시지 ·",
-        "delete": {
-            "confirm": "대화 \"{{title}}\"을(를) 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.",
-            "button": "대화 삭제"
-        },
-        "clear": {
-            "confirm": "현재 대화의 모든 내용을 지우시겠습니까? 이 작업은 취소할 수 없습니다.",
-            "button": "대화 지우기 (Ctrl + K)"
-        },
-        "new": "새 대화 (Ctrl + I)",
-        "export": {
-            "button": "대화 내보내기",
-            "json": "JSON으로 내보내기",
-            "markdown": "Markdown으로 내보내기"
-        }
+    "clear": {
+      "confirm": "현재 대화의 모든 내용을 지우시겠습니까? 이 작업은 취소할 수 없습니다.",
+      "button": "대화 지우기 (Ctrl + K)"
     },
-    "buttons": {
-        "send": "메시지 보내기",
-        "stop": "생성 중지",
-        "stopConfirm": "한 번 더 눌러 생성 중지 →",
-        "stopAction": "중지"
+    "new": "새 대화 (Ctrl + I)",
+    "export": {
+      "button": "대화 내보내기",
+      "json": "JSON으로 내보내기",
+      "markdown": "Markdown으로 내보내기"
+    }
+  },
+  "buttons": {
+    "send": "메시지 보내기",
+    "stop": "생성 중지",
+    "stopConfirm": "한 번 더 눌러 생성 중지 →",
+    "stopAction": "중지"
+  },
+  "header": {
+    "model": {
+      "none": "모델이 선택되지 않음",
+      "openSettings": "클릭하여 설정 열기",
+      "closeSettings": "클릭하여 설정 닫기"
     },
-    "header": {
-        "model": {
-            "none": "모델이 선택되지 않음",
-            "openSettings": "클릭하여 설정 열기",
-            "closeSettings": "클릭하여 설정 닫기"
-        },
-        "conversations": {
-            "button": "대화 목록 (Ctrl + B)",
-            "panel": "대화 목록"
-        },
-        "settings": {
-            "button": "설정 (Ctrl + , )"
-        },
-        "theme": {
-            "light": "밝은 모드로 전환",
-            "dark": "어두운 모드로 전환"
-        },
-        "fullscreen": {
-            "enter": "전체 화면으로",
-            "exit": "전체 화면 종료"
-        },
-        "github": "GitHub에서 보기",
-        "menu": "메뉴",
-        "adminBadge": "관리자",
-        "adminButton": "사용자 관리"
+    "conversations": {
+      "button": "대화 목록 (Ctrl + B)",
+      "panel": "대화 목록"
     },
     "settings": {
-        "panels": {
-            "user": "사용자 설정",
-            "llm": "LLM 구성",
-            "generation": "생성 매개변수"
-        },
-        "language": {
-            "label": "언어 설정"
-        },
-        "theme": {
-            "label": "테마 설정",
-            "auto": "시스템 따라가기",
-            "light": "밝은 모드",
-            "dark": "어두운 모드"
-        },
-        "password": {
-            "label": "비밀번호 변경",
-            "current": "현재 비밀번호",
-            "currentPlaceholder": "현재 비밀번호 입력",
-            "new": "새 비밀번호",
-            "newPlaceholder": "새 비밀번호 입력 (최소 6자)",
-            "button": "비밀번호 변경",
-            "success": "비밀번호가 성공적으로 변경되었습니다",
-            "error": "비밀번호 변경 실패",
-            "weak": "비밀번호는 최소 6자 이상이어야 합니다",
-            "incorrect": "현재 비밀번호가 올바르지 않습니다"
-        },
-        "api": {
-            "url": "API URL (Ollama/OpenAI API 주소)",
-            "key": "API 키 (인증이 필요한 API 서비스용)",
-            "keyPlaceholder": "API 키 입력 (선택사항)"
-        },
-        "model": {
-            "label": "모델 (사용할 AI 모델 선택)",
-            "loading": "(로딩 중...)",
-            "none": "(모델을 찾을 수 없음)",
-            "placeholder": "로딩 중...",
-            "noModels": "사용 가능한 모델이 없습니다"
-        },
-        "parameters": {
-            "temperature": "온도: {{value}} (출력 무작위성 제어 0-2: 낮음=결정론적, 논리적, 일관성; 높음=다양성, 창의성, 놀라움)",
-            "topP": "Top P: {{value}} (코어 샘플링 확률 제어 0-1: 높음=높은 확률; 낮음=낮은 확률)",
-            "topK": "Top K: {{value}} (후보 토큰 수 제한 1-100: 높음=샘플링 많음; 낮음=샘플링 적음)",
-            "maxTokens": "최대 컨텍스트: {{value}} (응답의 최대 컨텍스트 길이 설정 4096-262144)",
-            "showTokenStats": "토큰 통계 표시",
-            "on": "켜기",
-            "off": "끄기"
-        },
-        "adminOnly": "관리자",
-        "adminOnlyMessage": "관리자만이 다음 API 설정을 구성할 수 있습니다"
+      "button": "설정 (Ctrl + , )"
     },
-    "messages": {
-        "user": "사용자",
-        "assistant": "어시스턴트",
-        "thinking": "생각 과정",
-        "files": "첨부 파일",
-        "interrupted": "(사용자가 중단)",
-        "error": "죄송합니다. 오류가 발생했습니다. 백엔드 서비스가 정상적으로 실행되고 있는지 확인해주세요.",
-        "delete": {
-            "confirm": "이 메시지를 삭제하시겠습니까?",
-            "button": "메시지 삭제"
-        },
-        "generating": "응답 생성 중...",
-        "copy": {
-            "buttonTitle": "코드 복사",
-            "success": "코드가 클립보드에 복사되었습니다",
-            "failed": "복사 실패, 수동으로 코드 선택 후 복사하세요"
-        },
-        "voice": {
-            "play": "클릭하여 음성 재생",
-            "stop": "클릭하여 재생 중지",
-            "playing": "음성 재생 중",
-            "queued": "재생 대기열에 추가됨",
-            "next": "다음에 재생",
-            "unsupported": "브라우저가 음성 합성을 지원하지 않습니다",
-            "queue": "대기열",
-            "queueItems": "대기열: {{count}} 항목",
-            "playingStatus": "재생 중",
-            "skip": "건너뛰기",
-            "skipTitle": "현재 음성 건너뛰기",
-            "clear": "지우기",
-            "clearTitle": "음성 대기열 지우기",
-            "removeFromQueue": "클릭하여 대기열에서 제거",
-            "otherTabPlaying": "다른 탭에서 재생 중"
-        }
+    "theme": {
+      "light": "밝은 모드로 전환",
+      "dark": "어두운 모드로 전환"
     },
-    "input": {
-        "placeholder": "메시지를 입력하세요... (Shift+Enter로 줄바꿈)",
-        "voice": {
-            "start": "음성 입력",
-            "stop": "음성 입력 중지",
-            "unsupported": "브라우저가 음성 인식을 지원하지 않습니다"
-        },
-        "files": {
-            "button": "파일 첨부 (이미지, 텍스트, PDF, JSON 지원, 최대 50MB)",
-            "sizeError": "파일 {{name}}이(가) 너무 큽니다. 50MB 미만의 파일을 선택하세요",
-            "typeError": "파일 유형 {{type}}은(는) 지원되지 않습니다"
-        }
+    "fullscreen": {
+      "enter": "전체 화면으로",
+      "exit": "전체 화면 종료"
     },
-    "auth": {
-        "welcome": "LLMChat에 오신 것을 환영합니다",
-        "login": "로그인",
-        "register": "등록",
-        "email": "이메일",
-        "emailPlaceholder": "이메일 주소를 입력하세요",
-        "password": "비밀번호",
-        "passwordPlaceholder": "비밀번호를 입력하세요",
-        "confirmPassword": "비밀번호 확인",
-        "confirmPasswordPlaceholder": "비밀번호를 다시 입력하세요",
-        "passwordMismatch": "비밀번호가 일치하지 않습니다",
-        "processing": "처리 중...",
-        "noAccount": "계정이 없으신가요?",
-        "hasAccount": "이미 계정이 있으신가요?",
-        "logout": "로그아웃",
-        "registrationSuccess": "등록해 주셔서 감사합니다!",
-        "verificationEmailSent": "확인 이메일을 보냈습니다:",
-        "verificationLinkGenerated": "확인 링크가 생성되었습니다. 다음 링크를 브라우저에서 열어주세요:",
-        "verificationSent": "확인 링크를 보냈습니다:",
-        "verificationLink": "확인 링크:",
-        "verificationInstructions": "이메일을 확인하여 활성화 편지를 받으세요.",
-        "copyLink": "복사",
-        "linkCopied": "확인 링크가 클립보드에 복사되었습니다",
-        "backToLogin": "로그인으로 돌아가기",
-        "resendVerification": "확인 이메일 재전송",
-        "resendVerificationSuccess": "확인 이메일을 다시 보냈습니다!",
-        "duplicateRegistration": "이 이메일은 이미 등록되어 있습니다",
-        "duplicateRegistrationMessage": "다른 이메일로 등록하거나 직접 로그인하세요",
-        "backToLoginButton": "로그인으로 돌아가기",
-        "registrationDisabled": "등록이 비활성화되었습니다",
-        "registrationDisabledMessage": "시스템 관리자가 아직 이메일 서비스를 구성하지 않았습니다. 확인 이메일을 보낼 수 없습니다. 계정 등록에 대해서는 관리자에게 문의하세요.",
-        "emailVerificationRequired": "먼저 이메일 주소를 확인하세요"
-    },
-    "email": {
-        "verification": {
-            "subject": "LLMChat - 이메일 주소 확인",
-            "greeting": "안녕하세요",
-            "greetingWithName": "{{name}} 님",
-            "title": "LLMChat에 오신 것을 환영합니다!",
-            "description": "LLMChat 계정에 등록해 주셔서 감사합니다. 계정 보안을 위해 아래 버튼을 클릭하여 이메일 주소를 확인하세요:",
-            "buttonText": "이메일 주소 확인",
-            "alternativeText": "또는 다음 링크를 복사하여 브라우저에서 열 수 있습니다:",
-            "warningTitle": "중요 알림:",
-            "warningMessage": "이 확인 링크는 24시간 후에 만료됩니다. 링크가 만료되면 다시 등록하세요.",
-            "successMessage": "확인 후 로컬 AI 모델과 대화하기 위해 LLMChat을 사용할 수 있습니다!",
-            "ignoreMessage": "LLMChat 계정을 등록한 적이 없으면 이 이메일을 무시하세요.",
-            "footer": "이 이메일은 자동으로 발송되었습니다. 회신하지 마세요.",
-            "copyright": "© 2025 LLMChat. All rights reserved.",
-            "pageTitle": "LLMChat 이메일 확인"
-        }
+    "github": "GitHub에서 보기",
+    "menu": "메뉴",
+    "adminBadge": "관리자",
+    "adminButton": "사용자 관리"
+  },
+  "settings": {
+    "panels": {
+      "user": "사용자 설정",
+      "llm": "LLM 구성",
+      "generation": "생성 매개변수"
     },
     "language": {
-        "selector": "언어",
-        "zh-TW": "번체 중국어",
-        "zh-CN": "간체 중국어",
-        "en": "영어",
-        "ja": "일본어",
-        "ko": "한국어"
+      "label": "언어 설정"
     },
-    "admin": {
-        "accessDenied": "접근 거부",
-        "accessDeniedMessage": "이 페이지에 접근하려면 관리자 권한이 필요합니다",
-        "backToChat": "채팅으로 돌아가기",
-        "title": "관리자 설정 페이지",
-        "subtitle": "시스템의 모든 사용자 계정과 LLM 설정을 관리",
-        "stats": {
-            "totalUsers": "총 사용자 수",
-            "enabledUsers": "활성화된 사용자",
-            "disabledUsers": "비활성화된 사용자",
-            "admins": "관리자"
-        },
-        "table": {
-            "list": "사용자 목록",
-            "email": "이메일",
-            "status": "상태",
-            "role": "역할",
-            "registrationDate": "등록 날짜",
-            "lastLogin": "마지막 로그인",
-            "actions": "작업"
-        },
-        "status": {
-            "enabled": "활성화",
-            "disabled": "비활성화"
-        },
-        "role": {
-            "admin": "관리자",
-            "user": "사용자"
-        },
-        "neverLoggedIn": "로그인한 적 없음",
-        "disableUser": "사용자 비활성화",
-        "enableUser": "사용자 활성화",
-        "setAsAdmin": "관리자로 설정",
-        "setAsUser": "일반 사용자로 설정",
-        "deleteUser": "사용자 삭제",
-        "deleteUserConfirm": "이 사용자를 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.",
-        "noUsers": "사용자 데이터 없음",
-        "pagination": {
-            "showing": "{{start}}에서 {{end}}까지 표시, 총 {{total}}개",
-            "previous": "이전",
-            "next": "다음"
-        },
-        "close": "닫기",
-        "error": {
-            "fetchUsers": "사용자 목록을 가져오는데 실패했습니다",
-            "updateRole": "역할 업데이트에 실패했습니다",
-            "deleteUser": "사용자 삭제에 실패했습니다",
-            "toggleUser": "사용자 상태 전환에 실패했습니다",
-            "unknown": "알 수 없는 오류"
-        },
-        "usersTab": "사용자 관리",
-        "llmTab": "LLM 제공자 설정",
-        "llm": {
-            "config": "LLM 제공자 구성",
-            "selectProvider": "제공자 선택",
-            "baseUrl": "기본 URL",
-            "baseUrlHint": "제공자 선택 후 자동으로 입력되며 수동으로 수정 가능합니다",
-            "apiKey": "API 키",
-            "apiKeyPlaceholder": "API 키 (선택사항, 일부 제공자는 필요 없음)",
-            "apiKeyHint": "형식은 제공자에 따라 다릅니다(API 키, OAuth 토큰 등)",
-            "modelName": "모델 이름",
-            "modelPlaceholder": "예: gpt-4, claude-3, llama3",
-            "fetchModels": "모델 가져오기",
-            "visionModel": "비전 모델 (선택사항)",
-            "visionPlaceholder": "멀티모달 콘텐츠에 사용, 자동 선택을 위해 비워둠",
-            "visionHint": "이미지, 스케치 등을 읽는 데 사용됩니다. 비워두면 동일한 제공자에서 자동으로 선택됩니다.",
-            "generation": "생성 매개변수",
-            "temperature": "온도",
-            "topP": "Top P",
-            "topK": "Top K",
-            "contextSize": "Context Size (최대 컨텍스트)",
-            "temperatureHint": "출력 무작위성 제어: 낮음=결정론적, 높음=창의적",
-            "topPHint": "핵 샘플링 확률: 높음=높은 확률, 낮음=낮은 확률",
-            "topKHint": "후보 토큰 수 제한: 높음=샘플링 많음, 낮음=샘플링 적음",
-            "maxTokensHint": "최대 컨텍스트 길이",
-            "testing": "테스트 중...",
-            "testConnection": "연결 테스트",
-            "saveSettings": "설정 저장",
-            "testAndSave": "제공자 테스트 및 저장",
-            "saveSuccess": "✅ 설정이 저장되었습니다",
-            "saveWarning": "⚠️ 설정은 저장되었지만 연결에 실패했습니다",
-            "saveError": "❌ 저장 실패",
-            "current": "현재",
-            "testSuccess": "✅ 연결에 성공했습니다",
-            "testFailed": "❌ 연결에 실패했습니다",
-            "testError": "❌ 연결 오류: "
-        }
+    "theme": {
+      "label": "테마 설정",
+      "auto": "시스템 따라가기",
+      "light": "밝은 모드",
+      "dark": "어두운 모드"
     },
-    "systemPrompt": "당신은 도움이 되는 AI 어시스턴트입니다. 사용자의 질문에 한국어로 답변해 주세요."
+    "password": {
+      "label": "비밀번호 변경",
+      "current": "현재 비밀번호",
+      "currentPlaceholder": "현재 비밀번호 입력",
+      "new": "새 비밀번호",
+      "newPlaceholder": "새 비밀번호 입력 (최소 6자)",
+      "button": "비밀번호 변경",
+      "success": "비밀번호가 성공적으로 변경되었습니다",
+      "error": "비밀번호 변경 실패",
+      "weak": "비밀번호는 최소 6자 이상이어야 합니다",
+      "incorrect": "현재 비밀번호가 올바르지 않습니다"
+    },
+    "api": {
+      "url": "API URL (Ollama/OpenAI API 주소)",
+      "key": "API 키 (인증이 필요한 API 서비스용)",
+      "keyPlaceholder": "API 키 입력 (선택사항)"
+    },
+    "model": {
+      "label": "모델 (사용할 AI 모델 선택)",
+      "loading": "(로딩 중...)",
+      "none": "(모델을 찾을 수 없음)",
+      "placeholder": "로딩 중...",
+      "noModels": "사용 가능한 모델이 없습니다"
+    },
+    "parameters": {
+      "temperature": "온도: {{value}} (출력 무작위성 제어 0-2: 낮음=결정론적, 논리적, 일관성; 높음=다양성, 창의성, 놀라움)",
+      "topP": "Top P: {{value}} (코어 샘플링 확률 제어 0-1: 높음=높은 확률; 낮음=낮은 확률)",
+      "topK": "Top K: {{value}} (후보 토큰 수 제한 1-100: 높음=샘플링 많음; 낮음=샘플링 적음)",
+      "maxTokens": "최대 컨텍스트: {{value}} (응답의 최대 컨텍스트 길이 설정 4096-262144)",
+      "showTokenStats": "토큰 통계 표시",
+      "on": "켜기",
+      "off": "끄기"
+    },
+    "adminOnly": "관리자",
+    "adminOnlyMessage": "관리자만이 다음 API 설정을 구성할 수 있습니다"
+  },
+  "messages": {
+    "user": "사용자",
+    "assistant": "어시스턴트",
+    "thinking": "생각 과정",
+    "files": "첨부 파일",
+    "interrupted": "(사용자가 중단)",
+    "error": "죄송합니다. 오류가 발생했습니다. 백엔드 서비스가 정상적으로 실행되고 있는지 확인해주세요.",
+    "delete": {
+      "confirm": "이 메시지를 삭제하시겠습니까?",
+      "button": "메시지 삭제"
+    },
+    "generating": "응답 생성 중...",
+    "copy": {
+      "buttonTitle": "코드 복사",
+      "success": "코드가 클립보드에 복사되었습니다",
+      "failed": "복사 실패, 수동으로 코드 선택 후 복사하세요"
+    },
+    "voice": {
+      "play": "클릭하여 음성 재생",
+      "stop": "클릭하여 재생 중지",
+      "playing": "음성 재생 중",
+      "queued": "재생 대기열에 추가됨",
+      "next": "다음에 재생",
+      "unsupported": "브라우저가 음성 합성을 지원하지 않습니다",
+      "queue": "대기열",
+      "queueItems": "대기열: {{count}} 항목",
+      "playingStatus": "재생 중",
+      "skip": "건너뛰기",
+      "skipTitle": "현재 음성 건너뛰기",
+      "clear": "지우기",
+      "clearTitle": "음성 대기열 지우기",
+      "removeFromQueue": "클릭하여 대기열에서 제거",
+      "otherTabPlaying": "다른 탭에서 재생 중"
+    }
+  },
+  "input": {
+    "placeholder": "메시지를 입력하세요... (Shift+Enter로 줄바꿈)",
+    "voice": {
+      "start": "음성 입력",
+      "stop": "음성 입력 중지",
+      "unsupported": "브라우저가 음성 인식을 지원하지 않습니다"
+    },
+    "files": {
+      "button": "파일 첨부 (이미지, 텍스트, PDF, JSON 지원, 최대 50MB)",
+      "sizeError": "파일 {{name}}이(가) 너무 큽니다. 50MB 미만의 파일을 선택하세요",
+      "typeError": "파일 유형 {{type}}은(는) 지원되지 않습니다"
+    },
+    "stopDoubleConfirm": "한 번 더 누르면 중지"
+  },
+  "auth": {
+    "welcome": "LLMChat에 오신 것을 환영합니다",
+    "login": "로그인",
+    "register": "등록",
+    "email": "이메일",
+    "emailPlaceholder": "이메일 주소를 입력하세요",
+    "password": "비밀번호",
+    "passwordPlaceholder": "비밀번호를 입력하세요",
+    "confirmPassword": "비밀번호 확인",
+    "confirmPasswordPlaceholder": "비밀번호를 다시 입력하세요",
+    "passwordMismatch": "비밀번호가 일치하지 않습니다",
+    "processing": "처리 중...",
+    "noAccount": "계정이 없으신가요?",
+    "hasAccount": "이미 계정이 있으신가요?",
+    "logout": "로그아웃",
+    "registrationSuccess": "등록해 주셔서 감사합니다!",
+    "verificationEmailSent": "확인 이메일을 보냈습니다:",
+    "verificationLinkGenerated": "확인 링크가 생성되었습니다. 다음 링크를 브라우저에서 열어주세요:",
+    "verificationSent": "확인 링크를 보냈습니다:",
+    "verificationLink": "확인 링크:",
+    "verificationInstructions": "이메일을 확인하여 활성화 편지를 받으세요.",
+    "copyLink": "복사",
+    "linkCopied": "확인 링크가 클립보드에 복사되었습니다",
+    "backToLogin": "로그인으로 돌아가기",
+    "resendVerification": "확인 이메일 재전송",
+    "resendVerificationSuccess": "확인 이메일을 다시 보냈습니다!",
+    "duplicateRegistration": "이 이메일은 이미 등록되어 있습니다",
+    "duplicateRegistrationMessage": "다른 이메일로 등록하거나 직접 로그인하세요",
+    "backToLoginButton": "로그인으로 돌아가기",
+    "registrationDisabled": "등록이 비활성화되었습니다",
+    "registrationDisabledMessage": "시스템 관리자가 아직 이메일 서비스를 구성하지 않았습니다. 확인 이메일을 보낼 수 없습니다. 계정 등록에 대해서는 관리자에게 문의하세요.",
+    "emailVerificationRequired": "먼저 이메일 주소를 확인하세요"
+  },
+  "email": {
+    "verification": {
+      "subject": "LLMChat - 이메일 주소 확인",
+      "greeting": "안녕하세요",
+      "greetingWithName": "{{name}} 님",
+      "title": "LLMChat에 오신 것을 환영합니다!",
+      "description": "LLMChat 계정에 등록해 주셔서 감사합니다. 계정 보안을 위해 아래 버튼을 클릭하여 이메일 주소를 확인하세요:",
+      "buttonText": "이메일 주소 확인",
+      "alternativeText": "또는 다음 링크를 복사하여 브라우저에서 열 수 있습니다:",
+      "warningTitle": "중요 알림:",
+      "warningMessage": "이 확인 링크는 24시간 후에 만료됩니다. 링크가 만료되면 다시 등록하세요.",
+      "successMessage": "확인 후 로컬 AI 모델과 대화하기 위해 LLMChat을 사용할 수 있습니다!",
+      "ignoreMessage": "LLMChat 계정을 등록한 적이 없으면 이 이메일을 무시하세요.",
+      "footer": "이 이메일은 자동으로 발송되었습니다. 회신하지 마세요.",
+      "copyright": "© 2025 LLMChat. All rights reserved.",
+      "pageTitle": "LLMChat 이메일 확인"
+    }
+  },
+  "language": {
+    "selector": "언어",
+    "zh-TW": "번체 중국어",
+    "zh-CN": "간체 중국어",
+    "en": "영어",
+    "ja": "일본어",
+    "ko": "한국어"
+  },
+  "admin": {
+    "accessDenied": "접근 거부",
+    "accessDeniedMessage": "이 페이지에 접근하려면 관리자 권한이 필요합니다",
+    "backToChat": "채팅으로 돌아가기",
+    "title": "관리자 설정 페이지",
+    "subtitle": "시스템의 모든 사용자 계정과 LLM 설정을 관리",
+    "stats": {
+      "totalUsers": "총 사용자 수",
+      "enabledUsers": "활성화된 사용자",
+      "disabledUsers": "비활성화된 사용자",
+      "admins": "관리자"
+    },
+    "table": {
+      "list": "사용자 목록",
+      "email": "이메일",
+      "status": "상태",
+      "role": "역할",
+      "registrationDate": "등록 날짜",
+      "lastLogin": "마지막 로그인",
+      "actions": "작업"
+    },
+    "status": {
+      "enabled": "활성화",
+      "disabled": "비활성화"
+    },
+    "role": {
+      "admin": "관리자",
+      "user": "사용자"
+    },
+    "neverLoggedIn": "로그인한 적 없음",
+    "disableUser": "사용자 비활성화",
+    "enableUser": "사용자 활성화",
+    "setAsAdmin": "관리자로 설정",
+    "setAsUser": "일반 사용자로 설정",
+    "deleteUser": "사용자 삭제",
+    "deleteUserConfirm": "이 사용자를 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.",
+    "noUsers": "사용자 데이터 없음",
+    "pagination": {
+      "showing": "{{start}}에서 {{end}}까지 표시, 총 {{total}}개",
+      "previous": "이전",
+      "next": "다음"
+    },
+    "close": "닫기",
+    "error": {
+      "fetchUsers": "사용자 목록을 가져오는데 실패했습니다",
+      "updateRole": "역할 업데이트에 실패했습니다",
+      "deleteUser": "사용자 삭제에 실패했습니다",
+      "toggleUser": "사용자 상태 전환에 실패했습니다",
+      "unknown": "알 수 없는 오류",
+      "emailPasswordRequired": "이메일과 비밀번호는 필수입니다",
+      "addFailed": "추가 실패",
+      "emailRequired": "이메일은 필수입니다",
+      "saveFailed": "저장 실패",
+      "adcFailed": "로컬 자격 증명 가져오기 실패.",
+      "connectBackendFailed": "백엔드 연결 실패.",
+      "googleUrlFailed": "Google 인증 URL 가져오기 실패: ",
+      "googleAuthFailed": "Google 인증 실패: ",
+      "connectBackendFailedAlert": "백엔드 연결 실패: "
+    },
+    "usersTab": "사용자 관리",
+    "llmTab": "LLM 제공자 설정",
+    "llm": {
+      "config": "LLM 제공자 구성",
+      "selectProvider": "제공자 선택",
+      "baseUrl": "기본 URL",
+      "baseUrlHint": "제공자 선택 후 자동으로 입력되며 수동으로 수정 가능합니다",
+      "apiKey": "API 키",
+      "apiKeyPlaceholder": "API 키 (선택사항, 일부 제공자는 필요 없음)",
+      "apiKeyHint": "형식은 제공자에 따라 다릅니다(API 키, OAuth 토큰 등)",
+      "modelName": "모델 이름",
+      "modelPlaceholder": "예: gpt-4, claude-3, llama3",
+      "fetchModels": "모델 가져오기",
+      "visionModel": "비전 모델 (선택사항)",
+      "visionPlaceholder": "멀티모달 콘텐츠에 사용, 자동 선택을 위해 비워둠",
+      "visionHint": "이미지, 스케치 등을 읽는 데 사용됩니다. 비워두면 동일한 제공자에서 자동으로 선택됩니다.",
+      "generation": "생성 매개변수",
+      "temperature": "온도",
+      "topP": "Top P",
+      "topK": "Top K",
+      "contextSize": "Context Size (최대 컨텍스트)",
+      "temperatureHint": "출력 무작위성 제어: 낮음=결정론적, 높음=창의적",
+      "topPHint": "핵 샘플링 확률: 높음=높은 확률, 낮음=낮은 확률",
+      "topKHint": "후보 토큰 수 제한: 높음=샘플링 많음, 낮음=샘플링 적음",
+      "maxTokensHint": "최대 컨텍스트 길이",
+      "testing": "테스트 중...",
+      "testConnection": "연결 테스트",
+      "saveSettings": "설정 저장",
+      "testAndSave": "제공자 테스트 및 저장",
+      "saveSuccess": "✅ 설정이 저장되었습니다",
+      "saveWarning": "⚠️ 설정은 저장되었지만 연결에 실패했습니다",
+      "saveError": "❌ 저장 실패",
+      "current": "현재",
+      "testSuccess": "✅ 연결에 성공했습니다",
+      "testFailed": "❌ 연결에 실패했습니다",
+      "testError": "❌ 연결 오류: ",
+      "connectSuccess": "✅ 연결 성공",
+      "connectFailed": "❌ 연결 실패",
+      "connectError": "❌ 연결 오류: ",
+      "saveFailed": "저장 실패: ",
+      "providerSettings": "제공자 설정",
+      "apiKeyOptional": "(선택 사항, 위 계정으로 로그인한 경우 비워둠)",
+      "checking": "확인 중...",
+      "checkConnection": "연결 확인",
+      "authGoogleSA": "🌐 Google 서비스 계정 JSON",
+      "authGitHub": "🐙 GitHub Copilot OAuth",
+      "authAzure": "🌐 Microsoft Entra ID (OAuth 2.0)",
+      "authAws": "☁️ AWS IAM (SigV4)",
+      "authApiKey": "🔑 정적 API 키",
+      "gcpServiceAccount": "GCP 서비스 계정 JSON",
+      "sessionToken": "세션 토큰 (선택 사항)",
+      "authMethod": "인증 방법",
+      "advancedParams": "고급 매개변수"
+    },
+    "addUser": "사용자 추가"
+  },
+  "systemPrompt": "당신은 도움이 되는 AI 어시스턴트입니다. 사용자의 질문에 한국어로 답변해 주세요."
 }

@@ -32,7 +32,9 @@ export class InferenceService {
             apiKey,
             model,
             temperature,
-            maxTokens
+            maxTokens,
+            authMethod: 'api-key',
+            oauthConfig: {}
         }
     }
 
@@ -51,7 +53,9 @@ export class InferenceService {
             type: this.defaultProvider.type,
             baseUrl: this.defaultProvider.baseUrl,
             model: this.defaultProvider.model,
-            requiresApiKey: AVAILABLE_PROVIDERS.find(p => p.type === this.defaultProvider.type)?.requiresApiKey || false
+            requiresApiKey: AVAILABLE_PROVIDERS.find(p => p.type === this.defaultProvider.type)?.requiresApiKey || false,
+            authMethod: this.defaultProvider.authMethod || 'api-key',
+            oauthConfig: this.defaultProvider.oauthConfig || {}
         }
     }
 
@@ -59,7 +63,7 @@ export class InferenceService {
      * 更新 Provider 配置
      */
     updateProvider(config) {
-        const { type, baseUrl, apiKey, model, temperature, maxTokens } = config
+        const { type, baseUrl, apiKey, model, temperature, maxTokens, authMethod, oauthConfig } = config
         
         this.defaultProvider = {
             type,
@@ -67,10 +71,11 @@ export class InferenceService {
             apiKey,
             model,
             temperature,
-            maxTokens
+            maxTokens,
+            authMethod: authMethod || 'api-key',
+            oauthConfig: oauthConfig || {}
         }
 
-        // 創建或更新 provider 實例
         try {
             const provider = ProviderFactory.createProvider(type, this.defaultProvider)
             this.providers.set(type, provider)
@@ -162,8 +167,6 @@ export class InferenceService {
             const provider = this.providers.get(this.defaultProvider.type) || 
                             ProviderFactory.createProvider(this.defaultProvider.type, this.defaultProvider)
             
-            // 注意：目前 provider 實作都是非流式的
-            // 如果需要流式，需要在 provider 層面實現
             const response = await provider.generateResponse({
                 message,
                 history,

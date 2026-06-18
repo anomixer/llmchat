@@ -28,18 +28,23 @@ export function createMultiProviderRouter(deps: any) {
                 if (safeOauthConfig.googleJson) safeOauthConfig.googleJson = '********'
                 if (safeOauthConfig.azureClientSecret) safeOauthConfig.azureClientSecret = '********'
                 if (safeOauthConfig.awsSecretKey) safeOauthConfig.awsSecretKey = '********'
+                if (safeOauthConfig.githubToken) safeOauthConfig.githubToken = '********'
+                if (safeOauthConfig.googleUserRefreshToken) safeOauthConfig.googleUserRefreshToken = '********'
+                if (safeOauthConfig.chatgptAccessToken) safeOauthConfig.chatgptAccessToken = '********'
+                if (safeOauthConfig.googleUserClientId) safeOauthConfig.googleUserClientId = '********'
+                if (safeOauthConfig.googleUserClientSecret) safeOauthConfig.googleUserClientSecret = '********'
             }
 
             const currentProvider = {
                 type: providerType,
                 name: AVAILABLE_PROVIDERS.find(p => p.type === providerType)?.name || providerType,
                 baseUrl: adminSettings?.apiUrl || process.env.LLM_BASE_URL || 
-                    (providerType === 'ollama' ? 'http://localhost:11434/v1' : 'https://api.openai.com/v1'),
+                    (AVAILABLE_PROVIDERS.find(p => p.type === providerType)?.baseUrl || 'https://api.openai.com/v1'),
                 model: adminSettings?.model || process.env.LLM_MODEL || 'llama2',
                 apiKey: adminSettings?.apiKey ? '********' : (process.env.LLM_API_KEY ? '********' : ''),
                 temperature: adminSettings?.temperature || parseFloat(process.env.LLM_TEMPERATURE || '0.7'),
                 maxTokens: adminSettings?.maxTokens || parseInt(process.env.LLM_MAX_TOKENS || '4096'),
-                requiresApiKey: !['ollama', 'ollama-cloud', 'vllm', 'sglang', 'lm-studio', 'custom'].includes(providerType),
+                requiresApiKey: AVAILABLE_PROVIDERS.find(p => p.type === providerType)?.requiresApiKey ?? true,
                 authMethod: adminSettings?.authMethod || 'api-key',
                 oauthConfig: safeOauthConfig
             }
@@ -76,6 +81,11 @@ export function createMultiProviderRouter(deps: any) {
                         if (finalOauthConfig.googleJson === '********') finalOauthConfig.googleJson = existingSettings.oauthConfig.googleJson
                         if (finalOauthConfig.azureClientSecret === '********') finalOauthConfig.azureClientSecret = existingSettings.oauthConfig.azureClientSecret
                         if (finalOauthConfig.awsSecretKey === '********') finalOauthConfig.awsSecretKey = existingSettings.oauthConfig.awsSecretKey
+                        if (finalOauthConfig.githubToken === '********') finalOauthConfig.githubToken = existingSettings.oauthConfig.githubToken
+                        if (finalOauthConfig.googleUserRefreshToken === '********') finalOauthConfig.googleUserRefreshToken = existingSettings.oauthConfig.googleUserRefreshToken
+                        if (finalOauthConfig.chatgptAccessToken === '********') finalOauthConfig.chatgptAccessToken = existingSettings.oauthConfig.chatgptAccessToken
+                        if (finalOauthConfig.googleUserClientId === '********') finalOauthConfig.googleUserClientId = existingSettings.oauthConfig.googleUserClientId
+                        if (finalOauthConfig.googleUserClientSecret === '********') finalOauthConfig.googleUserClientSecret = existingSettings.oauthConfig.googleUserClientSecret
                     }
 
                     userService.updateUserSettings(admin.id, {
@@ -151,11 +161,7 @@ export function createMultiProviderRouter(deps: any) {
             
             const providerType = type || process.env.LLM_PROVIDER || 'ollama'
             const providerBaseUrl = baseUrl || process.env.LLM_BASE_URL || 
-                (providerType === 'ollama' ? 'http://localhost:11434' : 
-                 providerType === 'anthropic' ? 'https://api.anthropic.com/v1' :
-                 providerType === 'openai' ? 'https://api.openai.com/v1' :
-                 providerType === 'groq' ? 'https://api.groq.com/openai/v1' :
-                 'https://api.openai.com/v1')
+                (AVAILABLE_PROVIDERS.find(p => p.type === providerType)?.baseUrl || 'https://api.openai.com/v1')
             
             const admin = userService ? userService.users.find((u: any) => u.role === 'admin') : null
             const existingSettings = admin ? userService.getUserSettings(admin.id) : null
@@ -168,6 +174,11 @@ export function createMultiProviderRouter(deps: any) {
                 if (finalOauthConfig.googleJson === '********') finalOauthConfig.googleJson = existingSettings.oauthConfig.googleJson
                 if (finalOauthConfig.azureClientSecret === '********') finalOauthConfig.azureClientSecret = existingSettings.oauthConfig.azureClientSecret
                 if (finalOauthConfig.awsSecretKey === '********') finalOauthConfig.awsSecretKey = existingSettings.oauthConfig.awsSecretKey
+                if (finalOauthConfig.githubToken === '********') finalOauthConfig.githubToken = existingSettings.oauthConfig.githubToken
+                if (finalOauthConfig.googleUserRefreshToken === '********') finalOauthConfig.googleUserRefreshToken = existingSettings.oauthConfig.googleUserRefreshToken
+                if (finalOauthConfig.chatgptAccessToken === '********') finalOauthConfig.chatgptAccessToken = existingSettings.oauthConfig.chatgptAccessToken
+                if (finalOauthConfig.googleUserClientId === '********') finalOauthConfig.googleUserClientId = existingSettings.oauthConfig.googleUserClientId
+                if (finalOauthConfig.googleUserClientSecret === '********') finalOauthConfig.googleUserClientSecret = existingSettings.oauthConfig.googleUserClientSecret
             }
 
             const provider = ProviderFactory.createProvider(providerType, {
@@ -195,11 +206,7 @@ export function createMultiProviderRouter(deps: any) {
             const adminSettings = userService ? userService.getAdminSettings() : null
             const providerType = req.query.type as string || adminSettings?.type || process.env.LLM_PROVIDER || 'ollama'
             const providerBaseUrl = req.query.baseUrl as string || adminSettings?.apiUrl || process.env.LLM_BASE_URL || 
-                (providerType === 'ollama' ? 'http://localhost:11434' : 
-                 providerType === 'anthropic' ? 'https://api.anthropic.com/v1' :
-                 providerType === 'openai' ? 'https://api.openai.com/v1' :
-                 providerType === 'groq' ? 'https://api.groq.com/openai/v1' :
-                 'https://api.openai.com/v1')
+                (AVAILABLE_PROVIDERS.find(p => p.type === providerType)?.baseUrl || 'https://api.openai.com/v1')
             
             const providerApiKey = req.query.apiKey as string === '********' ? adminSettings?.apiKey : (req.query.apiKey as string || adminSettings?.apiKey || process.env.LLM_API_KEY || '')
             const providerModel = req.query.model as string || adminSettings?.model || process.env.LLM_MODEL || 'llama2'
@@ -214,6 +221,11 @@ export function createMultiProviderRouter(deps: any) {
                         if (parsed.googleJson === '********') oauthConfig.googleJson = adminSettings?.oauthConfig?.googleJson
                         if (parsed.azureClientSecret === '********') oauthConfig.azureClientSecret = adminSettings?.oauthConfig?.azureClientSecret
                         if (parsed.awsSecretKey === '********') oauthConfig.awsSecretKey = adminSettings?.oauthConfig?.awsSecretKey
+                        if (parsed.githubToken === '********') oauthConfig.githubToken = adminSettings?.oauthConfig?.githubToken
+                        if (parsed.googleUserRefreshToken === '********') oauthConfig.googleUserRefreshToken = adminSettings?.oauthConfig?.googleUserRefreshToken
+                        if (parsed.chatgptAccessToken === '********') oauthConfig.chatgptAccessToken = adminSettings?.oauthConfig?.chatgptAccessToken
+                        if (parsed.googleUserClientId === '********') oauthConfig.googleUserClientId = adminSettings?.oauthConfig?.googleUserClientId
+                        if (parsed.googleUserClientSecret === '********') oauthConfig.googleUserClientSecret = adminSettings?.oauthConfig?.googleUserClientSecret
                     }
                 } catch (e) {}
             }
@@ -248,11 +260,7 @@ export function createMultiProviderRouter(deps: any) {
 
             const providerType = settings?.providerType || process.env.LLM_PROVIDER || 'ollama'
             const providerBaseUrl = settings?.baseUrl || process.env.LLM_BASE_URL || 
-                (providerType === 'ollama' ? 'http://localhost:11434' : 
-                 providerType === 'anthropic' ? 'https://api.anthropic.com/v1' :
-                 providerType === 'openai' ? 'https://api.openai.com/v1' :
-                 providerType === 'groq' ? 'https://api.groq.com/openai/v1' :
-                 'https://api.openai.com/v1')
+                (AVAILABLE_PROVIDERS.find(p => p.type === providerType)?.baseUrl || 'https://api.openai.com/v1')
             const providerApiKey = settings?.apiKey || process.env.LLM_API_KEY || ''
             const providerModel = settings?.model || process.env.LLM_MODEL || 'llama2'
 

@@ -9,13 +9,15 @@ export type ProviderType =
     | 'google-gemini' 
     | 'mistral' 
     | 'groq' 
-    | 'xai-grok' 
-    | 'nvidia' 
+    | 'xai-grok'
+    | 'github-copilot'
+    | 'nvidia'
     | 'together' 
     | 'openrouter' 
     | 'kilo-gateway' 
     | 'synthetic' 
     | 'moonshot' 
+    | 'deepseek'
     | 'vercel-gateway' 
     | 'cloudflare-gateway' 
     | 'ollama-cloud' 
@@ -25,7 +27,7 @@ export type ProviderType =
     | 'lm-studio' 
     | 'custom'
 
-// 所有支援的 Provider 完整列表（與 aipc-agent 完全一致）
+// 所有支援的 Provider 完整列表
 export const AVAILABLE_PROVIDERS = [
     {
         name: 'OpenAI',
@@ -35,6 +37,7 @@ export const AVAILABLE_PROVIDERS = [
         requiresApiKey: true,
         modelPlaceholder: 'gpt-4.1, gpt-4o-mini'
     },
+
     {
         name: 'Anthropic Claude',
         type: 'anthropic',
@@ -71,17 +74,33 @@ export const AVAILABLE_PROVIDERS = [
         name: 'xAI (Grok)',
         type: 'xai-grok',
         baseUrl: 'https://api.x.ai/v1',
-        description: 'xAI Grok 模型',
+        description: 'xAI Grok 系列模型',
         requiresApiKey: true,
-        modelPlaceholder: 'grok-beta'
+        modelPlaceholder: 'grok-3, grok-3-mini'
+    },
+    {
+        name: 'GitHub Copilot',
+        type: 'github-copilot',
+        baseUrl: 'https://api.githubcopilot.com',
+        description: 'GitHub Copilot Chat API (支援 OAuth 登入)',
+        requiresApiKey: true,
+        modelPlaceholder: 'gpt-4o, claude-3.5-sonnet'
+    },
+    {
+        name: 'DeepSeek',
+        type: 'deepseek',
+        baseUrl: 'https://api.deepseek.com/v1',
+        description: 'DeepSeek-V3, DeepSeek-R1 推理模型',
+        requiresApiKey: true,
+        modelPlaceholder: 'deepseek-chat, deepseek-reasoner'
     },
     {
         name: 'NVIDIA NIM',
         type: 'nvidia',
         baseUrl: 'https://integrate.api.nvidia.com/v1',
-        description: 'NVIDIA 雲端服務',
+        description: 'NVIDIA 雲端 NIM 推理服務',
         requiresApiKey: true,
-        modelPlaceholder: 'nvidia/nemotron-4-340b-instruct'
+        modelPlaceholder: 'meta/llama-3.1-70b-instruct'
     },
     {
         name: 'Together AI',
@@ -95,15 +114,15 @@ export const AVAILABLE_PROVIDERS = [
         name: 'OpenRouter',
         type: 'openrouter',
         baseUrl: 'https://openrouter.ai/api/v1',
-        description: 'OpenRouter 聚合平台',
+        description: 'OpenRouter 多模型聚合路由平台',
         requiresApiKey: true,
-        modelPlaceholder: 'auto'
+        modelPlaceholder: 'openai/gpt-4o, anthropic/claude-3.5-sonnet'
     },
     {
         name: 'Kilo Gateway',
         type: 'kilo-gateway',
-        baseUrl: 'https://api.kilo.ai/api/gateway/',
-        description: 'Kilo AI Gateway',
+        baseUrl: 'https://api.kilo.ai/api/gateway',
+        description: 'Kilo AI Gateway 企業路由',
         requiresApiKey: true,
         modelPlaceholder: 'auto'
     },
@@ -111,31 +130,31 @@ export const AVAILABLE_PROVIDERS = [
         name: 'Synthetic (Anthropic-compatible)',
         type: 'synthetic',
         baseUrl: 'https://api.synthetic.new/anthropic',
-        description: 'Synthetic AI (Anthropic 相容)',
+        description: 'Synthetic AI (Anthropic 格式相容)',
         requiresApiKey: true,
-        modelPlaceholder: 'claude-3-sonnet'
+        modelPlaceholder: 'claude-3-7-sonnet-20250219'
     },
     {
         name: 'Moonshot AI (Kimi)',
         type: 'moonshot',
         baseUrl: 'https://api.moonshot.ai/v1',
-        description: '月之暗面 Kimi 模型',
+        description: '月之暗面 Kimi 系列模型（全球版）',
         requiresApiKey: true,
-        modelPlaceholder: 'moonshot-v1-8k'
+        modelPlaceholder: 'kimi-k2.6, moonshot-v1-8k'
     },
     {
         name: 'Vercel AI Gateway',
         type: 'vercel-gateway',
-        baseUrl: 'https://gateway.ai.vercel.com/v1/',
-        description: 'Vercel AI Gateway',
+        baseUrl: 'https://gateway.ai.vercel.com/v1',
+        description: 'Vercel AI Gateway 統一路由',
         requiresApiKey: true,
         modelPlaceholder: 'auto'
     },
     {
         name: 'Cloudflare AI Gateway',
         type: 'cloudflare-gateway',
-        baseUrl: 'https://gateway.ai.cloudflare.com/v1/',
-        description: 'Cloudflare AI Gateway',
+        baseUrl: 'https://gateway.ai.cloudflare.com/v1',
+        description: 'Cloudflare AI Gateway 統一路由',
         requiresApiKey: true,
         modelPlaceholder: 'auto'
     },
@@ -143,60 +162,58 @@ export const AVAILABLE_PROVIDERS = [
         name: 'Ollama Cloud',
         type: 'ollama-cloud',
         baseUrl: 'https://ollama.com',
-        description: 'Ollama 雲端服務',
-        requiresApiKey: false,
-        modelPlaceholder: 'llama3'
+        description: 'Ollama Cloud 官方服務（需要 API Key）',
+        requiresApiKey: true,
+        modelPlaceholder: 'llama3.2, qwen2.5'
     },
     {
         name: 'Ollama',
         type: 'ollama',
-        baseUrl: 'http://127.0.0.1:11434/v1',
-        description: '本地 Ollama 服務器',
+        baseUrl: 'http://127.0.0.1:11434',
+        description: '本地 Ollama 服務（支援 llama, qwen, deepseek 等）',
         requiresApiKey: false,
-        modelPlaceholder: 'llama3'
+        modelPlaceholder: 'llama3.2, qwen2.5, deepseek-r1'
     },
     {
         name: 'vLLM',
         type: 'vllm',
         baseUrl: 'http://127.0.0.1:8000/v1',
-        description: 'vLLM 本地服務',
+        description: 'vLLM 高效能本地推理服務',
         requiresApiKey: false,
-        modelPlaceholder: 'auto'
+        modelPlaceholder: '（自動從服務獲取）'
     },
     {
         name: 'SGLang',
         type: 'sglang',
         baseUrl: 'http://127.0.0.1:30000/v1',
-        description: 'SGLang 本地服務',
+        description: 'SGLang 本地推理服務',
         requiresApiKey: false,
-        modelPlaceholder: 'auto'
+        modelPlaceholder: '（自動從服務獲取）'
     },
     {
         name: 'LM Studio',
         type: 'lm-studio',
         baseUrl: 'http://127.0.0.1:1234/v1',
-        description: 'LM Studio 本地服務',
+        description: 'LM Studio 本地 GUI 推理服務',
         requiresApiKey: false,
-        modelPlaceholder: 'auto'
+        modelPlaceholder: '（自動從服務獲取）'
     },
     {
-        name: 'Customer Provider (自訂)',
+        name: 'Custom Provider (自訂)',
         type: 'custom',
         baseUrl: 'http://127.0.0.1:11434/v1',
-        description: '企業 Gateway 或自架服務',
+        description: '企業 Gateway 或自架 OpenAI 相容服務',
         requiresApiKey: true,
         modelPlaceholder: '請填寫實際模型名稱'
     }
 ]
 
-// 本地 Provider 列表（不需要 API Key）
+// 本地 / 不需要 API Key 的 Provider 列表
 export const LOCAL_NOAUTH_PROVIDERS = [
     'ollama',
-    'ollama-cloud',
     'vllm',
     'sglang',
-    'lm-studio',
-    'custom'
+    'lm-studio'
 ]
 
 export interface ProviderConfig {
@@ -209,7 +226,7 @@ export interface ProviderConfig {
     maxTokens?: number
     visionModel?: string
     authConfig?: any
-    authMethod?: 'api-key' | 'google-service-account' | 'azure-entra-id' | 'aws-iam'
+    authMethod?: 'api-key' | 'google-service-account' | 'azure-entra-id' | 'aws-iam' | 'github-copilot-oauth' | 'google-oauth-user'
     oauthConfig?: {
         googleJson?: string
         azureTenantId?: string
@@ -219,6 +236,10 @@ export interface ProviderConfig {
         awsSecretKey?: string
         awsRegion?: string
         awsSessionToken?: string
+        githubToken?: string
+        googleUserRefreshToken?: string
+        googleUserClientId?: string
+        googleUserClientSecret?: string
     }
 }
 
@@ -238,6 +259,10 @@ export interface ProviderResponse {
 
 /**
  * Provider 端點資料庫
+ *
+ * ⚠️ 重要設計說明：
+ * - list / chat 路徑是「相對於 baseUrl」的路徑，不含 /v1 前綴
+ * - BaseProvider 的 axios baseURL 直接使用 config.baseUrl（只去尾部斜線）
  */
 const PROVIDER_ENDPOINTS: Record<ProviderType, {
     list: string
@@ -245,15 +270,16 @@ const PROVIDER_ENDPOINTS: Record<ProviderType, {
     headers?: (config: ProviderConfig) => Record<string, string>
 }> = {
     openai: {
-        list: '/v1/models',
-        chat: '/v1/chat/completions',
+        list: '/models',
+        chat: '/chat/completions',
         headers: (config) => ({
-            'Authorization': config.apiKey ? `Bearer ${config.apiKey}` : ''
+            'Authorization': config.apiKey ? `Bearer ${config.apiKey}` : '',
+            'Content-Type': 'application/json'
         })
     },
     anthropic: {
-        list: '/v1/models',
-        chat: '/v1/messages',
+        list: '/models',
+        chat: '/messages',
         headers: (config) => ({
             'x-api-key': config.apiKey || '',
             'anthropic-version': '2023-06-01',
@@ -261,66 +287,90 @@ const PROVIDER_ENDPOINTS: Record<ProviderType, {
         })
     },
     'google-gemini': {
-        list: '/v1/models',
-        chat: '/v1/chat/completions',
+        list: '/models',
+        chat: '/chat/completions',
         headers: (config) => ({
-            'Authorization': config.apiKey ? `Bearer ${config.apiKey}` : ''
+            'Authorization': config.apiKey ? `Bearer ${config.apiKey}` : '',
+            'Content-Type': 'application/json'
+        })
+    },
+    // Gemini OAuth：路徑與 google-gemini 相同，Authorization 由 interceptor 注入
+    'gemini-oauth': {
+        list: '/models',
+        chat: '/chat/completions',
+        headers: (_config) => ({
+            'Content-Type': 'application/json'
         })
     },
     mistral: {
-        list: '/v1/models',
-        chat: '/v1/chat/completions',
+        list: '/models',
+        chat: '/chat/completions',
         headers: (config) => ({
-            'Authorization': config.apiKey ? `Bearer ${config.apiKey}` : ''
+            'Authorization': config.apiKey ? `Bearer ${config.apiKey}` : '',
+            'Content-Type': 'application/json'
         })
     },
     groq: {
-        list: '/v1/models',
-        chat: '/v1/chat/completions',
+        list: '/models',
+        chat: '/chat/completions',
         headers: (config) => ({
-            'Authorization': config.apiKey ? `Bearer ${config.apiKey}` : ''
+            'Authorization': config.apiKey ? `Bearer ${config.apiKey}` : '',
+            'Content-Type': 'application/json'
         })
     },
     'xai-grok': {
-        list: '/v1/models',
-        chat: '/v1/chat/completions',
+        list: '/models',
+        chat: '/chat/completions',
         headers: (config) => ({
-            'Authorization': config.apiKey ? `Bearer ${config.apiKey}` : ''
+            'Authorization': config.apiKey ? `Bearer ${config.apiKey}` : '',
+            'Content-Type': 'application/json'
+        })
+    },
+    deepseek: {
+        list: '/models',
+        chat: '/chat/completions',
+        headers: (config) => ({
+            'Authorization': config.apiKey ? `Bearer ${config.apiKey}` : '',
+            'Content-Type': 'application/json'
         })
     },
     nvidia: {
-        list: '/v1/models',
-        chat: '/v1/chat/completions',
+        list: '/models',
+        chat: '/chat/completions',
         headers: (config) => ({
-            'Authorization': config.apiKey ? `Bearer ${config.apiKey}` : ''
+            'Authorization': config.apiKey ? `Bearer ${config.apiKey}` : '',
+            'Content-Type': 'application/json'
         })
     },
     together: {
-        list: '/v1/models',
-        chat: '/v1/chat/completions',
+        list: '/models',
+        chat: '/chat/completions',
         headers: (config) => ({
-            'Authorization': config.apiKey ? `Bearer ${config.apiKey}` : ''
+            'Authorization': config.apiKey ? `Bearer ${config.apiKey}` : '',
+            'Content-Type': 'application/json'
         })
     },
     openrouter: {
-        list: '/v1/models',
-        chat: '/v1/chat/completions',
+        list: '/models',
+        chat: '/chat/completions',
         headers: (config) => ({
             'Authorization': config.apiKey ? `Bearer ${config.apiKey}` : '',
-            'HTTP-Referer': 'https://llmchat.example.com',
-            'X-Title': 'LLMChat'
+            'HTTP-Referer': 'https://llmchat.app',
+            'X-Title': 'LLMChat',
+            'Content-Type': 'application/json'
         })
     },
     'kilo-gateway': {
-        list: '/v1/models',
-        chat: '/v1/chat/completions',
+        list: '/models',
+        chat: '/chat/completions',
         headers: (config) => ({
-            'Authorization': config.apiKey ? `Bearer ${config.apiKey}` : ''
+            'Authorization': config.apiKey ? `Bearer ${config.apiKey}` : '',
+            'Content-Type': 'application/json'
         })
     },
     synthetic: {
-        list: '/v1/models',
-        chat: '/v1/messages',
+        list: '/models',
+        chat: '/messages',
         headers: (config) => ({
             'x-api-key': config.apiKey || '',
             'anthropic-version': '2023-06-01',
@@ -328,67 +378,82 @@ const PROVIDER_ENDPOINTS: Record<ProviderType, {
         })
     },
     moonshot: {
-        list: '/v1/models',
-        chat: '/v1/chat/completions',
+        list: '/models',
+        chat: '/chat/completions',
         headers: (config) => ({
-            'Authorization': config.apiKey ? `Bearer ${config.apiKey}` : ''
+            'Authorization': config.apiKey ? `Bearer ${config.apiKey}` : '',
+            'Content-Type': 'application/json'
         })
     },
     'vercel-gateway': {
-        list: '/v1/models',
-        chat: '/v1/chat/completions',
+        list: '/models',
+        chat: '/chat/completions',
         headers: (config) => ({
-            'Authorization': config.apiKey ? `Bearer ${config.apiKey}` : ''
+            'Authorization': config.apiKey ? `Bearer ${config.apiKey}` : '',
+            'Content-Type': 'application/json'
         })
     },
     'cloudflare-gateway': {
-        list: '/v1/models',
-        chat: '/v1/chat/completions',
+        list: '/models',
+        chat: '/chat/completions',
         headers: (config) => ({
-            'Authorization': config.apiKey ? `Bearer ${config.apiKey}` : ''
-        })
-    },
-    'ollama-cloud': {
-        list: '/api/tags',
-        chat: '/api/chat',
-        headers: (config) => ({
+            'Authorization': config.apiKey ? `Bearer ${config.apiKey}` : '',
             'Content-Type': 'application/json'
         })
     },
     ollama: {
         list: '/api/tags',
         chat: '/api/chat',
-        headers: (config) => ({
+        headers: (_config) => ({
             'Content-Type': 'application/json'
         })
     },
-    vllm: {
-        list: '/v1/models',
-        chat: '/v1/chat/completions',
+    'ollama-cloud': {
+        list: '/api/tags',
+        chat: '/api/chat',
         headers: (config) => ({
+            'Content-Type': 'application/json',
+            ...(config.apiKey ? { 'Authorization': `Bearer ${config.apiKey}` } : {})
+        })
+    },
+    vllm: {
+        list: '/models',
+        chat: '/chat/completions',
+        headers: (_config) => ({
             'Content-Type': 'application/json'
         })
     },
     sglang: {
-        list: '/v1/models',
-        chat: '/v1/chat/completions',
-        headers: (config) => ({
+        list: '/models',
+        chat: '/chat/completions',
+        headers: (_config) => ({
             'Content-Type': 'application/json'
         })
     },
     'lm-studio': {
-        list: '/v1/models',
-        chat: '/v1/chat/completions',
-        headers: (config) => ({
+        list: '/models',
+        chat: '/chat/completions',
+        headers: (_config) => ({
             'Content-Type': 'application/json'
         })
     },
     custom: {
-        list: '/v1/models',
-        chat: '/v1/chat/completions',
+        list: '/models',
+        chat: '/chat/completions',
         headers: (config) => ({
             'Authorization': config.apiKey ? `Bearer ${config.apiKey}` : '',
             'Content-Type': 'application/json'
+        })
+    },
+    'github-copilot': {
+        list: '/models',
+        chat: '/chat/completions',
+        headers: (config) => ({
+            'Authorization': config.apiKey ? `Bearer ${config.apiKey}` : '',
+            'Content-Type': 'application/json',
+            'Editor-Version': 'vscode/1.96.0',
+            'Editor-Plugin-Version': 'copilot-chat/0.23.0',
+            'User-Agent': 'GithubCopilot/1.234.0'
         })
     }
 }
@@ -402,10 +467,11 @@ export abstract class BaseProvider {
 
     constructor(config: ProviderConfig) {
         this.config = config
+        const normalizedBaseUrl = config.baseUrl.replace(/\/+$/, '')
         this.client = axios.create({
-            baseURL: config.baseUrl.replace(/\/v1\/?$/, ''),
+            baseURL: normalizedBaseUrl,
             timeout: 60000,
-            headers: PROVIDER_ENDPOINTS[config.type].headers?.(config) || {}
+            headers: PROVIDER_ENDPOINTS[config.type]?.headers?.(config) || {}
         })
 
         // 注入 dynamic OAuth 2.0 / Cloud IAM SigV4 攔截器
@@ -431,12 +497,41 @@ export abstract class BaseProvider {
                 } catch (e: any) {
                     console.error('Azure AD OAuth interceptor error:', e.message)
                 }
+            } else if (authMethod === 'github-copilot-oauth' && oauthConfig?.githubToken) {
+                try {
+                    const token = await tokenService.getGitHubCopilotToken(oauthConfig.githubToken)
+                    axiosConfig.headers['Authorization'] = `Bearer ${token}`
+                    axiosConfig.headers['Editor-Version'] = 'vscode/1.96.0'
+                    axiosConfig.headers['Editor-Plugin-Version'] = 'copilot-chat/0.23.0'
+                    axiosConfig.headers['User-Agent'] = 'GithubCopilot/1.234.0'
+                } catch (e: any) {
+                    console.error('GitHub Copilot token exchange interceptor error:', e.message)
+                }
+            } else if (
+                authMethod === 'google-oauth-user'
+                && oauthConfig?.googleUserRefreshToken
+            ) {
+                try {
+                    const token = await tokenService.getGoogleUserAccessToken(
+                        oauthConfig.googleUserRefreshToken,
+                        oauthConfig.googleUserClientId,
+                        oauthConfig.googleUserClientSecret
+                    )
+                    axiosConfig.headers['Authorization'] = `Bearer ${token}`
+                    if (oauthConfig.googleUserClientId) {
+                        const projectNumber = oauthConfig.googleUserClientId.split('-')[0]
+                        if (projectNumber) {
+                            axiosConfig.headers['x-goog-user-project'] = projectNumber
+                        }
+                    }
+                } catch (e: any) {
+                    console.error('Google User OAuth interceptor error:', e.message)
+                }
+
             } else if (authMethod === 'aws-iam' && oauthConfig) {
                 try {
-                    // 獲取完整的 URL，結合 baseURL 與 axiosConfig.url
                     const fullUrl = (axiosConfig.baseURL || '') + (axiosConfig.url || '')
                     const body = axiosConfig.data ? (typeof axiosConfig.data === 'string' ? axiosConfig.data : JSON.stringify(axiosConfig.data)) : ''
-                    
                     const signedHeaders = signAwsRequest({
                         url: fullUrl,
                         method: axiosConfig.method || 'POST',
@@ -449,8 +544,6 @@ export abstract class BaseProvider {
                             sessionToken: oauthConfig.awsSessionToken
                         }
                     })
-
-                    // 將簽署後的 headers 寫回
                     for (const [key, value] of Object.entries(signedHeaders)) {
                         axiosConfig.headers[key] = value
                     }
@@ -463,6 +556,24 @@ export abstract class BaseProvider {
         }, (error: any) => {
             return Promise.reject(error)
         })
+
+        // github-copilot：gho_ / ghp_ 前綴自動換 token
+        if (config.type === 'github-copilot' && config.apiKey && (config.apiKey.startsWith('gho_') || config.apiKey.startsWith('ghp_') || config.apiKey.startsWith('github_pat_'))) {
+            this.client.interceptors.request.use(async (axiosConfig: any) => {
+                try {
+                    const token = await tokenService.getGitHubCopilotToken(config.apiKey!)
+                    axiosConfig.headers['Authorization'] = `Bearer ${token}`
+                    axiosConfig.headers['Editor-Version'] = 'vscode/1.96.0'
+                    axiosConfig.headers['Editor-Plugin-Version'] = 'copilot-chat/0.23.0'
+                    axiosConfig.headers['User-Agent'] = 'GithubCopilot/1.234.0'
+                } catch (e: any) {
+                    console.error('GitHub Copilot token exchange error:', e.message)
+                }
+                return axiosConfig
+            }, (error: any) => {
+                return Promise.reject(error)
+            })
+        }
     }
 
     abstract checkConnection(): Promise<boolean>
@@ -509,7 +620,9 @@ export class OllamaProvider extends BaseProvider {
             console.error('獲取模型列表失敗:', error.message)
             return []
         }
-    }    async generateResponse(params: {
+    }
+
+    async generateResponse(params: {
         message: string
         history: ChatMessage[]
         images?: string[]
@@ -619,12 +732,20 @@ export class OllamaProvider extends BaseProvider {
 }
 
 /**
- * OpenAI-compatible Provider (OpenAI, Google Gemini, Mistral, Groq, xAI, NVIDIA, Together, OpenRouter, Kilo, Moonshot, Vercel, Cloudflare, vLLM, SGLang, LM Studio, Custom)
+ * OpenAI-compatible Provider
  */
 export class OpenAIProvider extends BaseProvider {
+    private get listPath(): string {
+        return PROVIDER_ENDPOINTS[this.config.type]?.list || '/models'
+    }
+
+    private get chatPath(): string {
+        return PROVIDER_ENDPOINTS[this.config.type]?.chat || '/chat/completions'
+    }
+
     async checkConnection(): Promise<boolean> {
         try {
-            await this.client.get('/v1/models')
+            await this.client.get(this.listPath)
             return true
         } catch (error) {
             console.error('API 連接失敗:', error.message)
@@ -634,16 +755,27 @@ export class OpenAIProvider extends BaseProvider {
 
     async getAvailableModels(): Promise<Array<{ name: string; size: number }>> {
         try {
-            const response = await this.client.get('/v1/models')
-            return response.data.data.map(model => ({
-                name: model.id,
-                size: 0
-            }))
+            const response = await this.client.get(this.listPath)
+            const rawData = response.data
+            if (rawData?.data && Array.isArray(rawData.data)) {
+                return rawData.data.map((model: any) => ({
+                    name: model.id,
+                    size: 0
+                }))
+            }
+            if (Array.isArray(rawData)) {
+                return rawData.map((model: any) => ({
+                    name: model.id || model.name,
+                    size: 0
+                }))
+            }
+            return []
         } catch (error) {
             console.error('獲取模型列表失敗:', error.message)
             return []
         }
     }
+
     async generateResponse(params: {
         message: string
         history: ChatMessage[]
@@ -664,9 +796,7 @@ export class OpenAIProvider extends BaseProvider {
                 { type: 'text', text: message },
                 ...images.map(img => ({
                     type: 'image_url',
-                    image_url: {
-                        url: img
-                    }
+                    image_url: { url: img }
                 }))
             ]
         }
@@ -685,7 +815,7 @@ export class OpenAIProvider extends BaseProvider {
             max_tokens: parseInt(maxTokens.toString())
         }
 
-        const response = await this.client.post('/v1/chat/completions', requestData)
+        const response = await this.client.post(this.chatPath, requestData)
         
         return {
             content: response.data.choices?.[0]?.message?.content || '',
@@ -718,9 +848,7 @@ export class OpenAIProvider extends BaseProvider {
                 { type: 'text', text: message },
                 ...images.map(img => ({
                     type: 'image_url',
-                    image_url: {
-                        url: img
-                    }
+                    image_url: { url: img }
                 }))
             ]
         }
@@ -739,7 +867,7 @@ export class OpenAIProvider extends BaseProvider {
             max_tokens: parseInt(maxTokens.toString())
         }
 
-        const response = await this.client.post('/v1/chat/completions', requestData, {
+        const response = await this.client.post(this.chatPath, requestData, {
             responseType: 'stream',
             signal: abortSignal
         })
@@ -750,31 +878,24 @@ export class OpenAIProvider extends BaseProvider {
         for await (const chunk of stream) {
             const chunkStr = chunk.toString()
             buffer += chunkStr
-            
             const lines = buffer.split('\n')
             buffer = lines.pop() || ''
-            
             for (const line of lines) {
                 const trimmedLine = line.trim()
                 if (!trimmedLine) continue
-                
                 if (trimmedLine.startsWith('data: ')) {
                     const dataStr = trimmedLine.replace('data: ', '')
-                    
                     if (dataStr === '[DONE]') {
                         yield JSON.stringify({ done: true }) + '\n'
                         continue
                     }
-                    
                     try {
                         const data = JSON.parse(dataStr)
                         const content = data.choices?.[0]?.delta?.content || ''
                         if (content) {
                             yield JSON.stringify({ message: { content }, done: false }) + '\n'
                         }
-                    } catch (e) {
-                        // ignore
-                    }
+                    } catch (e) { }
                 }
             }
         }
@@ -795,12 +916,52 @@ export class OpenAIProvider extends BaseProvider {
 }
 
 /**
- * Anthropic-compatible Provider (Anthropic, Synthetic)
+ * GitHub Copilot Provider
  */
-export class AnthropicProvider extends BaseProvider {
+export class GitHubCopilotProvider extends OpenAIProvider {
     async checkConnection(): Promise<boolean> {
         try {
-            await this.client.get('/v1/models')
+            await this.client.post(
+                PROVIDER_ENDPOINTS['github-copilot']?.chat || '/chat/completions',
+                { model: 'gpt-4o', messages: [{ role: 'user', content: 'ping' }], max_tokens: 1 },
+                { timeout: 10000 }
+            )
+            return true
+        } catch (error: any) {
+            if (error.response) {
+                const status = error.response.status
+                if (status === 400 || status === 422 || status === 200) return true
+            }
+            console.error('GitHub Copilot 連接失敗:', error.message)
+            return false
+        }
+    }
+
+    async getAvailableModels(): Promise<Array<{ name: string; size: number }>> {
+        return [
+            { name: 'gpt-4o', size: 0 },
+            { name: 'claude-3.5-sonnet', size: 0 },
+            { name: 'o1-mini', size: 0 },
+            { name: 'o1-preview', size: 0 }
+        ]
+    }
+}
+
+/**
+ * Anthropic-compatible Provider
+ */
+export class AnthropicProvider extends BaseProvider {
+    private get listPath(): string {
+        return PROVIDER_ENDPOINTS[this.config.type]?.list || '/models'
+    }
+
+    private get chatPath(): string {
+        return PROVIDER_ENDPOINTS[this.config.type]?.chat || '/messages'
+    }
+
+    async checkConnection(): Promise<boolean> {
+        try {
+            await this.client.get(this.listPath)
             return true
         } catch (error) {
             console.error('Anthropic 連接失敗:', error.message)
@@ -810,16 +971,20 @@ export class AnthropicProvider extends BaseProvider {
 
     async getAvailableModels(): Promise<Array<{ name: string; size: number }>> {
         try {
-            const response = await this.client.get('/v1/models')
-            return response.data.data.map(model => ({
-                name: model.id,
-                size: 0
-            }))
+            const response = await this.client.get(this.listPath)
+            if (response.data?.data && Array.isArray(response.data.data)) {
+                return response.data.data.map((model: any) => ({
+                    name: model.id,
+                    size: 0
+                }))
+            }
+            return []
         } catch (error) {
             console.error('獲取模型列表失敗:', error.message)
             return []
         }
     }
+
     async generateResponse(params: {
         message: string
         history: ChatMessage[]
@@ -834,7 +999,6 @@ export class AnthropicProvider extends BaseProvider {
             systemPrompt = settings.systemPrompt || 'You are a helpful AI assistant.'
         } = settings
 
-        // 轉換歷史對話格式
         const anthropicMessages = history
             .filter(msg => msg.role !== 'system')
             .map(msg => ({
@@ -852,11 +1016,7 @@ export class AnthropicProvider extends BaseProvider {
                     const base64Data = match ? match[2] : img
                     return {
                         type: 'image',
-                        source: {
-                            type: 'base64',
-                            media_type: mediaType,
-                            data: base64Data
-                        }
+                        source: { type: 'base64', media_type: mediaType, data: base64Data }
                     }
                 })
             ]
@@ -871,7 +1031,7 @@ export class AnthropicProvider extends BaseProvider {
             system: systemPrompt
         }
 
-        const response = await this.client.post('/v1/messages', requestData)
+        const response = await this.client.post(this.chatPath, requestData)
         
         return {
             content: response.data.content?.[0]?.text || '',
@@ -915,11 +1075,7 @@ export class AnthropicProvider extends BaseProvider {
                     const base64Data = match ? match[2] : img
                     return {
                         type: 'image',
-                        source: {
-                            type: 'base64',
-                            media_type: mediaType,
-                            data: base64Data
-                        }
+                        source: { type: 'base64', media_type: mediaType, data: base64Data }
                     }
                 })
             ]
@@ -935,7 +1091,7 @@ export class AnthropicProvider extends BaseProvider {
             stream: true
         }
 
-        const response = await this.client.post('/v1/messages', requestData, {
+        const response = await this.client.post(this.chatPath, requestData, {
             responseType: 'stream',
             signal: abortSignal
         })
@@ -957,9 +1113,7 @@ export class AnthropicProvider extends BaseProvider {
                         } else if (data.type === 'message_stop') {
                             yield JSON.stringify({ done: true }) + '\n'
                         }
-                    } catch (e) {
-                        // ignore
-                    }
+                    } catch (e) { }
                 }
             }
         }
@@ -978,11 +1132,15 @@ export class ProviderFactory {
             case 'anthropic':
             case 'synthetic':
                 return new AnthropicProvider(config)
+            case 'github-copilot':
+                return new GitHubCopilotProvider(config)
             case 'openai':
+            case 'chatgpt-web':       // ChatGPT 網頁版 session，使用 OpenAI 相容路徑
             case 'google-gemini':
             case 'mistral':
             case 'groq':
             case 'xai-grok':
+            case 'deepseek':
             case 'nvidia':
             case 'together':
             case 'openrouter':

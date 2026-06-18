@@ -1,309 +1,341 @@
 {
-    "app": {
-        "loading": "Loading...",
-        "welcome": {
-            "title": "Start chatting with AI!",
-            "subtitle": "Enter or speak your question, and I'll do my best to answer.",
-            "fileHint": "You can also upload files, and I'll help analyze and summarize them."
-        }
+  "app": {
+    "loading": "Loading...",
+    "welcome": {
+      "title": "Start chatting with AI!",
+      "subtitle": "Enter or speak your question, and I'll do my best to answer.",
+      "fileHint": "You can also upload files, and I'll help analyze and summarize them."
+    }
+  },
+  "conversation": {
+    "defaultTitle": "Conversation",
+    "list": "Conversations",
+    "empty": "No conversations yet",
+    "messages": "messages ·",
+    "delete": {
+      "confirm": "Are you sure you want to delete conversation \"{{title}}\"? This action cannot be undone.",
+      "button": "Delete conversation"
     },
-    "conversation": {
-        "defaultTitle": "Conversation",
-        "list": "Conversations",
-        "empty": "No conversations yet",
-        "messages": "messages ·",
-        "delete": {
-            "confirm": "Are you sure you want to delete conversation \"{{title}}\"? This action cannot be undone.",
-            "button": "Delete conversation"
-        },
-        "clear": {
-            "confirm": "Are you sure you want to clear all content in the current conversation? This action cannot be undone.",
-            "button": "Clear conversation (Ctrl + K)"
-        },
-        "new": "New conversation (Ctrl + I)",
-        "export": {
-            "button": "Export conversation",
-            "json": "Export as JSON",
-            "markdown": "Export as Markdown"
-        }
+    "clear": {
+      "confirm": "Are you sure you want to clear all content in the current conversation? This action cannot be undone.",
+      "button": "Clear conversation (Ctrl + K)"
     },
-    "buttons": {
-        "send": "Send message",
-        "stop": "Stop generation",
-        "stopConfirm": "Press again to stop generation →",
-        "stopAction": "Stop"
+    "new": "New conversation (Ctrl + I)",
+    "export": {
+      "button": "Export conversation",
+      "json": "Export as JSON",
+      "markdown": "Export as Markdown"
+    }
+  },
+  "buttons": {
+    "send": "Send message",
+    "stop": "Stop generation",
+    "stopConfirm": "Press again to stop generation →",
+    "stopAction": "Stop"
+  },
+  "header": {
+    "model": {
+      "none": "No model selected",
+      "openSettings": "Click to open settings",
+      "closeSettings": "Click to close settings"
     },
-    "header": {
-        "model": {
-            "none": "No model selected",
-            "openSettings": "Click to open settings",
-            "closeSettings": "Click to close settings"
-        },
-        "conversations": {
-            "button": "Conversations (Ctrl + B)",
-            "panel": "Conversations"
-        },
-        "settings": {
-            "button": "Settings (Ctrl + , )"
-        },
-        "theme": {
-            "light": "Switch to light mode",
-            "dark": "Switch to dark mode"
-        },
-        "fullscreen": {
-            "enter": "Enter fullscreen",
-            "exit": "Exit fullscreen"
-        },
-        "github": "View on GitHub",
-        "menu": "Menu",
-        "adminBadge": "Admin",
-        "adminButton": "User Management"
+    "conversations": {
+      "button": "Conversations (Ctrl + B)",
+      "panel": "Conversations"
     },
     "settings": {
-        "panels": {
-            "user": "User Settings",
-            "llm": "LLM Configuration",
-            "generation": "Generation Parameters"
-        },
-        "language": {
-            "label": "Language Settings"
-        },
-        "theme": {
-            "label": "Theme Settings",
-            "auto": "Follow System",
-            "light": "Light Mode",
-            "dark": "Dark Mode"
-        },
-        "password": {
-            "label": "Change Password",
-            "current": "Current Password",
-            "currentPlaceholder": "Enter current password",
-            "new": "New Password",
-            "newPlaceholder": "Enter new password (min 6 characters)",
-            "button": "Change Password",
-            "success": "Password changed successfully",
-            "error": "Failed to change password",
-            "weak": "Password must be at least 6 characters long",
-            "incorrect": "Current password is incorrect"
-        },
-        "api": {
-            "url": "API URL (Ollama/OpenAI API address)",
-            "key": "API Key (for authenticated API services)",
-            "keyPlaceholder": "Enter API Key (optional)"
-        },
-        "model": {
-            "label": "Model (Select AI model to use)",
-            "loading": "(Loading...)",
-            "none": "(No models found)",
-            "placeholder": "Loading...",
-            "noModels": "No models available"
-        },
-        "parameters": {
-            "temperature": "Temperature: {{value}} (Controls output randomness 0-2: Low=deterministic, logical, consistent; High=diverse, creative, surprising)",
-            "topP": "Top P: {{value}} (Controls core sampling probability 0-1: High=high probability; Low=low probability)",
-            "topK": "Top K: {{value}} (Limits candidate token count 1-100: High=more sampling; Low=less sampling)",
-            "maxTokens": "Max Context: {{value}} (Sets maximum context length for responses 4096-262144)",
-            "showTokenStats": "Show Token Stats",
-            "on": "On",
-            "off": "Off"
-        },
-        "adminOnly": "Admin",
-        "adminOnlyMessage": "Only administrators can configure the following API settings"
+      "button": "Settings (Ctrl + , )"
     },
-    "messages": {
-        "user": "User",
-        "assistant": "Assistant",
-        "thinking": "Thinking process",
-        "files": "Attached files",
-        "interrupted": "(User interrupted)",
-        "error": "Sorry, an error occurred. Please check if the backend service is running properly.",
-        "delete": {
-            "confirm": "Are you sure you want to delete this message?",
-            "button": "Delete message"
-        },
-        "generating": "Generating response...",
-        "copy": {
-            "buttonTitle": "Copy code",
-            "success": "Code copied to clipboard",
-            "failed": "Copy failed, please manually select and copy the code"
-        },
-        "voice": {
-            "play": "Click to play voice",
-            "stop": "Click to stop playback",
-            "playing": "Playing voice",
-            "queued": "Added to playback queue",
-            "next": "Playing next",
-            "unsupported": "Your browser does not support voice synthesis",
-            "queue": "Queue",
-            "queueItems": "Queue: {{count}} items",
-            "playingStatus": "Playing",
-            "skip": "Skip",
-            "skipTitle": "Skip current voice",
-            "clear": "Clear",
-            "clearTitle": "Clear voice queue",
-            "removeFromQueue": "Click to remove from queue",
-            "otherTabPlaying": "Playing in another tab"
-        }
+    "theme": {
+      "light": "Switch to light mode",
+      "dark": "Switch to dark mode"
     },
-    "input": {
-        "placeholder": "Enter your message... (Shift+Enter for new line)",
-        "voice": {
-            "start": "Voice input",
-            "stop": "Stop voice input",
-            "unsupported": "Your browser does not support voice recognition"
-        },
-        "files": {
-            "button": "Attach files (supports images, text, PDF, JSON, max 50MB)",
-            "sizeError": "File {{name}} is too large, please select files smaller than 50MB",
-            "typeError": "File type {{type}} is not supported"
-        }
+    "fullscreen": {
+      "enter": "Enter fullscreen",
+      "exit": "Exit fullscreen"
     },
-    "auth": {
-        "welcome": "Welcome to LLMChat",
-        "login": "Login",
-        "register": "Register",
-        "email": "Email",
-        "emailPlaceholder": "Enter your email address",
-        "password": "Password",
-        "passwordPlaceholder": "Enter your password",
-        "confirmPassword": "Confirm Password",
-        "confirmPasswordPlaceholder": "Enter password again",
-        "passwordMismatch": "Passwords do not match",
-        "processing": "Processing...",
-        "noAccount": "Don't have an account?",
-        "hasAccount": "Already have an account?",
-        "logout": "Logout",
-        "registrationSuccess": "Thank you for registering!",
-        "verificationEmailSent": "We have sent a verification email to:",
-        "verificationLinkGenerated": "Verification link generated, please copy the following link to your browser:",
-        "verificationSent": "We have sent a verification link to:",
-        "verificationLink": "Verification link:",
-        "verificationInstructions": "Please check your email to receive the activation letter.",
-        "copyLink": "Copy",
-        "linkCopied": "Verification link copied to clipboard",
-        "backToLogin": "Back to Login",
-        "resendVerification": "Resend verification email",
-        "resendVerificationSuccess": "Verification email sent again!",
-        "duplicateRegistration": "This email is already registered",
-        "duplicateRegistrationMessage": "Please use a different email to register, or log in directly",
-        "backToLoginButton": "Back to Login",
-        "registrationDisabled": "Registration is disabled",
-        "registrationDisabledMessage": "The system administrator has not configured email service yet, unable to send verification emails. Please contact administrator to register an account.",
-        "emailVerificationRequired": "Please verify your email address first"
-    },
-    "email": {
-        "verification": {
-            "subject": "LLMChat - Please verify your email address",
-            "greeting": "Hello",
-            "greetingWithName": "Hello {{name}}",
-            "title": "Welcome to LLMChat!",
-            "description": "Thank you for registering an LLMChat account. To ensure account security, please click the button below to verify your email address:",
-            "buttonText": "Verify Email Address",
-            "alternativeText": "Alternatively, you can copy the following link and open it in your browser:",
-            "warningTitle": "Important reminder:",
-            "warningMessage": "This verification link will expire in 24 hours. If the link expires, please register again.",
-            "successMessage": "After verification, you can start using LLMChat to chat with local AI models!",
-            "ignoreMessage": "If you did not register for an LLMChat account, please ignore this email.",
-            "footer": "This email was sent automatically, please do not reply.",
-            "copyright": "© 2025 LLMChat. All rights reserved.",
-            "pageTitle": "LLMChat Email Verification"
-        }
+    "github": "View on GitHub",
+    "menu": "Menu",
+    "adminBadge": "Admin",
+    "adminButton": "User Management"
+  },
+  "settings": {
+    "panels": {
+      "user": "User Settings",
+      "llm": "LLM Configuration",
+      "generation": "Generation Parameters"
     },
     "language": {
-        "selector": "Language",
-        "zh-TW": "Traditional Chinese",
-        "zh-CN": "Simplified Chinese",
-        "en": "English",
-        "ja": "Japanese",
-        "ko": "Korean"
+      "label": "Language Settings"
     },
-    "admin": {
-        "accessDenied": "Access Denied",
-        "accessDeniedMessage": "You need administrator privileges to access this page",
-        "backToChat": "Back to Chat",
-        "title": "Admin Settings Page",
-        "subtitle": "Manage all user accounts and LLM configurations in the system",
-        "stats": {
-            "totalUsers": "Total Users",
-            "enabledUsers": "Enabled Users",
-            "disabledUsers": "Disabled Users",
-            "admins": "Administrators"
-        },
-        "table": {
-            "list": "User List",
-            "email": "Email",
-            "status": "Status",
-            "role": "Role",
-            "registrationDate": "Registration Date",
-            "lastLogin": "Last Login",
-            "actions": "Actions"
-        },
-        "status": {
-            "enabled": "Enabled",
-            "disabled": "Disabled"
-        },
-        "role": {
-            "admin": "Admin",
-            "user": "User"
-        },
-        "neverLoggedIn": "Never logged in",
-        "disableUser": "Disable user",
-        "enableUser": "Enable user",
-        "setAsAdmin": "Set as admin",
-        "setAsUser": "Set as regular user",
-        "deleteUser": "Delete user",
-        "deleteUserConfirm": "Are you sure you want to delete this user? This action cannot be undone.",
-        "noUsers": "No user data",
-        "pagination": {
-            "showing": "Showing {{start}} to {{end}} of {{total}} entries",
-            "previous": "Previous",
-            "next": "Next"
-        },
-        "close": "Close",
-        "error": {
-            "fetchUsers": "Failed to fetch user list",
-            "updateRole": "Failed to update role",
-            "deleteUser": "Failed to delete user",
-            "toggleUser": "Failed to toggle user status",
-            "unknown": "Unknown error"
-        },
-        "usersTab": "User Management",
-        "llmTab": "LLM Provider Settings",
-        "llm": {
-            "config": "LLM Provider Configuration",
-            "selectProvider": "Select Provider",
-            "baseUrl": "Base URL",
-            "baseUrlHint": "Automatically filled after selecting provider, can be modified manually",
-            "apiKey": "API Key",
-            "apiKeyPlaceholder": "API Key (Optional, some providers don't need it)",
-            "apiKeyHint": "Format depends on the provider (API Key, OAuth Token, etc.)",
-            "modelName": "Model Name",
-            "modelPlaceholder": "e.g., gpt-4, claude-3, llama3",
-            "fetchModels": "Fetch Models",
-            "visionModel": "Vision Model (Optional)",
-            "visionPlaceholder": "Used for multimodal content, leave empty for auto-selection",
-            "visionHint": "Used for reading images, sketches, etc. Leave empty to auto-select from the same provider.",
-            "generation": "Generation Parameters",
-            "temperature": "Temperature",
-            "topP": "Top P",
-            "topK": "Top K",
-            "contextSize": "Context Size",
-            "temperatureHint": "Controls output randomness: Low=deterministic; High=creative",
-            "topPHint": "Nucleus sampling probability: High=high probability; Low=low probability",
-            "topKHint": "Limits candidate token count: High=more sampling; Low=less sampling",
-            "maxTokensHint": "Maximum context length",
-            "testing": "Testing...",
-            "testConnection": "Test Connection",
-            "saveSettings": "Save Settings",
-            "testAndSave": "Test & Save Provider",
-            "saveSuccess": "✅ Settings saved",
-            "saveWarning": "⚠️ Settings saved but connection failed",
-            "saveError": "❌ Failed to save",
-            "current": "Current",
-            "testSuccess": "✅ Connection successful",
-            "testFailed": "❌ Connection failed",
-            "testError": "❌ Connection error: "
-        }
+    "theme": {
+      "label": "Theme Settings",
+      "auto": "Follow System",
+      "light": "Light Mode",
+      "dark": "Dark Mode"
     },
-    "systemPrompt": "You are a helpful AI assistant. Please answer user questions in English."
+    "password": {
+      "label": "Change Password",
+      "current": "Current Password",
+      "currentPlaceholder": "Enter current password",
+      "new": "New Password",
+      "newPlaceholder": "Enter new password (min 6 characters)",
+      "button": "Change Password",
+      "success": "Password changed successfully",
+      "error": "Failed to change password",
+      "weak": "Password must be at least 6 characters long",
+      "incorrect": "Current password is incorrect"
+    },
+    "api": {
+      "url": "API URL (Ollama/OpenAI API address)",
+      "key": "API Key (for authenticated API services)",
+      "keyPlaceholder": "Enter API Key (optional)"
+    },
+    "model": {
+      "label": "Model (Select AI model to use)",
+      "loading": "(Loading...)",
+      "none": "(No models found)",
+      "placeholder": "Loading...",
+      "noModels": "No models available"
+    },
+    "parameters": {
+      "temperature": "Temperature: {{value}} (Controls output randomness 0-2: Low=deterministic, logical, consistent; High=diverse, creative, surprising)",
+      "topP": "Top P: {{value}} (Controls core sampling probability 0-1: High=high probability; Low=low probability)",
+      "topK": "Top K: {{value}} (Limits candidate token count 1-100: High=more sampling; Low=less sampling)",
+      "maxTokens": "Max Context: {{value}} (Sets maximum context length for responses 4096-262144)",
+      "showTokenStats": "Show Token Stats",
+      "on": "On",
+      "off": "Off"
+    },
+    "adminOnly": "Admin",
+    "adminOnlyMessage": "Only administrators can configure the following API settings"
+  },
+  "messages": {
+    "user": "User",
+    "assistant": "Assistant",
+    "thinking": "Thinking process",
+    "files": "Attached files",
+    "interrupted": "(User interrupted)",
+    "error": "Sorry, an error occurred. Please check if the backend service is running properly.",
+    "delete": {
+      "confirm": "Are you sure you want to delete this message?",
+      "button": "Delete message"
+    },
+    "generating": "Generating response...",
+    "copy": {
+      "buttonTitle": "Copy code",
+      "success": "Code copied to clipboard",
+      "failed": "Copy failed, please manually select and copy the code"
+    },
+    "voice": {
+      "play": "Click to play voice",
+      "stop": "Click to stop playback",
+      "playing": "Playing voice",
+      "queued": "Added to playback queue",
+      "next": "Playing next",
+      "unsupported": "Your browser does not support voice synthesis",
+      "queue": "Queue",
+      "queueItems": "Queue: {{count}} items",
+      "playingStatus": "Playing",
+      "skip": "Skip",
+      "skipTitle": "Skip current voice",
+      "clear": "Clear",
+      "clearTitle": "Clear voice queue",
+      "removeFromQueue": "Click to remove from queue",
+      "otherTabPlaying": "Playing in another tab"
+    }
+  },
+  "input": {
+    "placeholder": "Enter your message... (Shift+Enter for new line)",
+    "voice": {
+      "start": "Voice input",
+      "stop": "Stop voice input",
+      "unsupported": "Your browser does not support voice recognition"
+    },
+    "files": {
+      "button": "Attach files (supports images, text, PDF, JSON, max 50MB)",
+      "sizeError": "File {{name}} is too large, please select files smaller than 50MB",
+      "typeError": "File type {{type}} is not supported"
+    },
+    "stopDoubleConfirm": "Press again to stop"
+  },
+  "auth": {
+    "welcome": "Welcome to LLMChat",
+    "login": "Login",
+    "register": "Register",
+    "email": "Email",
+    "emailPlaceholder": "Enter your email address",
+    "password": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "confirmPassword": "Confirm Password",
+    "confirmPasswordPlaceholder": "Enter password again",
+    "passwordMismatch": "Passwords do not match",
+    "processing": "Processing...",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "logout": "Logout",
+    "registrationSuccess": "Thank you for registering!",
+    "verificationEmailSent": "We have sent a verification email to:",
+    "verificationLinkGenerated": "Verification link generated, please copy the following link to your browser:",
+    "verificationSent": "We have sent a verification link to:",
+    "verificationLink": "Verification link:",
+    "verificationInstructions": "Please check your email to receive the activation letter.",
+    "copyLink": "Copy",
+    "linkCopied": "Verification link copied to clipboard",
+    "backToLogin": "Back to Login",
+    "resendVerification": "Resend verification email",
+    "resendVerificationSuccess": "Verification email sent again!",
+    "duplicateRegistration": "This email is already registered",
+    "duplicateRegistrationMessage": "Please use a different email to register, or log in directly",
+    "backToLoginButton": "Back to Login",
+    "registrationDisabled": "Registration is disabled",
+    "registrationDisabledMessage": "The system administrator has not configured email service yet, unable to send verification emails. Please contact administrator to register an account.",
+    "emailVerificationRequired": "Please verify your email address first"
+  },
+  "email": {
+    "verification": {
+      "subject": "LLMChat - Please verify your email address",
+      "greeting": "Hello",
+      "greetingWithName": "Hello {{name}}",
+      "title": "Welcome to LLMChat!",
+      "description": "Thank you for registering an LLMChat account. To ensure account security, please click the button below to verify your email address:",
+      "buttonText": "Verify Email Address",
+      "alternativeText": "Alternatively, you can copy the following link and open it in your browser:",
+      "warningTitle": "Important reminder:",
+      "warningMessage": "This verification link will expire in 24 hours. If the link expires, please register again.",
+      "successMessage": "After verification, you can start using LLMChat to chat with local AI models!",
+      "ignoreMessage": "If you did not register for an LLMChat account, please ignore this email.",
+      "footer": "This email was sent automatically, please do not reply.",
+      "copyright": "© 2025 LLMChat. All rights reserved.",
+      "pageTitle": "LLMChat Email Verification"
+    }
+  },
+  "language": {
+    "selector": "Language",
+    "zh-TW": "Traditional Chinese",
+    "zh-CN": "Simplified Chinese",
+    "en": "English",
+    "ja": "Japanese",
+    "ko": "Korean"
+  },
+  "admin": {
+    "accessDenied": "Access Denied",
+    "accessDeniedMessage": "You need administrator privileges to access this page",
+    "backToChat": "Back to Chat",
+    "title": "Admin Settings Page",
+    "subtitle": "Manage all user accounts and LLM configurations in the system",
+    "userManagement": "User Management",
+    "users": "users",
+    "you": "You",
+    "never": "Never logged in",
+    "stats": {
+      "totalUsers": "Total Users",
+      "enabledUsers": "Enabled Users",
+      "disabledUsers": "Disabled Users",
+      "admins": "Administrators"
+    },
+    "table": {
+      "list": "User List",
+      "email": "Email",
+      "status": "Status",
+      "role": "Role",
+      "registrationDate": "Registration Date",
+      "lastLogin": "Last Login",
+      "actions": "Actions"
+    },
+    "status": {
+      "enabled": "Enabled",
+      "disabled": "Disabled"
+    },
+    "role": {
+      "admin": "Admin",
+      "user": "User"
+    },
+    "neverLoggedIn": "Never logged in",
+    "disableUser": "Disable user",
+    "enableUser": "Enable user",
+    "setAsAdmin": "Set as admin",
+    "setAsUser": "Set as regular user",
+    "deleteUser": "Delete user",
+    "deleteUserConfirm": "Are you sure you want to delete this user? This action cannot be undone.",
+    "noUsers": "No user data",
+    "pagination": {
+      "showing": "Showing {{start}} to {{end}} of {{total}} entries",
+      "previous": "Previous",
+      "next": "Next"
+    },
+    "close": "Close",
+    "error": {
+      "fetchUsers": "Failed to fetch user list",
+      "updateRole": "Failed to update role",
+      "deleteUser": "Failed to delete user",
+      "toggleUser": "Failed to toggle user status",
+      "unknown": "Unknown error",
+      "emailPasswordRequired": "Email and password are required",
+      "addFailed": "Add failed",
+      "emailRequired": "Email is required",
+      "saveFailed": "Save failed",
+      "adcFailed": "Failed to import ADC credentials.",
+      "connectBackendFailed": "Failed to connect to backend.",
+      "googleUrlFailed": "Failed to get Google Auth URL: ",
+      "googleAuthFailed": "Google Auth failed: ",
+      "connectBackendFailedAlert": "Failed to connect to backend: "
+    },
+    "usersTab": "User Management",
+    "llmTab": "LLM Provider Settings",
+    "llm": {
+      "config": "LLM Provider Configuration",
+      "selectProvider": "Select Provider",
+      "baseUrl": "Base URL",
+      "baseUrlHint": "Automatically filled after selecting provider, can be modified manually",
+      "apiKey": "API Key",
+      "apiKeyPlaceholder": "API Key (Optional, some providers don't need it)",
+      "apiKeyHint": "Format depends on the provider (API Key, OAuth Token, etc.)",
+      "modelName": "Model Name",
+      "modelPlaceholder": "e.g., gpt-4, claude-3, llama3",
+      "fetchModels": "Fetch Models",
+      "visionModel": "Vision Model (Optional)",
+      "visionPlaceholder": "Used for multimodal content, leave empty for auto-selection",
+      "visionHint": "Used for reading images, sketches, etc. Leave empty to auto-select from the same provider.",
+      "generation": "Generation Parameters",
+      "temperature": "Temperature",
+      "topP": "Top P",
+      "topK": "Top K",
+      "contextSize": "Context Size",
+      "temperatureHint": "Controls output randomness: Low=deterministic; High=creative",
+      "topPHint": "Nucleus sampling probability: High=high probability; Low=low probability",
+      "topKHint": "Limits candidate token count: High=more sampling; Low=less sampling",
+      "maxTokensHint": "Maximum context length",
+      "testing": "Testing...",
+      "testConnection": "Test Connection",
+      "saveSettings": "Save Settings",
+      "testAndSave": "Test & Save Provider",
+      "saveSuccess": "✅ Settings saved",
+      "saveWarning": "⚠️ Settings saved but connection failed",
+      "saveError": "❌ Failed to save",
+      "current": "Current",
+      "testSuccess": "✅ Connection successful",
+      "testFailed": "❌ Connection failed",
+      "testError": "❌ Connection error: ",
+      "connectSuccess": "✅ Connection successful",
+      "connectFailed": "❌ Connection failed",
+      "connectError": "❌ Connection error: ",
+      "saveFailed": "Save failed: ",
+      "providerSettings": "Provider Settings",
+      "apiKeyOptional": "(Optional, leave blank if logged in above)",
+      "checking": "Checking...",
+      "checkConnection": "Check Connection",
+      "authGoogleSA": "🌐 Google Service Account JSON",
+      "authGitHub": "🐙 GitHub Copilot OAuth",
+      "authAzure": "🌐 Microsoft Entra ID (OAuth 2.0)",
+      "authAws": "☁️ AWS IAM (SigV4)",
+      "authApiKey": "🔑 Static API Key",
+      "gcpServiceAccount": "GCP Service Account JSON",
+      "sessionToken": "Session Token (Optional)",
+      "authMethod": "Authentication Method",
+      "advancedParams": "Advanced Parameters"
+    },
+    "addUser": "Add User"
+  },
+  "systemPrompt": "You are a helpful AI assistant. Please answer user questions in English."
 }

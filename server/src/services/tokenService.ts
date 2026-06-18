@@ -152,6 +152,116 @@ export class TokenService {
     }
 
     /**
+     * 獲取 GitHub Copilot Session Token
+     * 使用 GitHub Personal Access Token (PAT) 或 OAuth Token 向 GitHub 交換 Copilot Session Token
+     */
+    async getGitHubCopilotToken(githubToken: string): Promise<string> {
+        try {
+            if (!githubToken) {
+                throw new Error('缺少 GitHub Token')
+            }
+
+            // 用 SHA-256 雜湊來做快取 key
+            const hash = crypto.createHash('sha256').update(githubToken).digest('hex')
+            const cacheKey = `github-copilot:${hash}`
+            const cached = this.tokenCache.get(cacheKey)
+            const now = Date.now()
+
+            // 如果快取未過期，直接返回（保留 5 分鐘緩衝時間）
+            if (cached && cached.expiresAt > now + 300 * 1000) {
+                return cached.token
+            }
+
+            // 呼叫 GitHub Copilot Token 交換端點
+            const tokenUrl = 'https://api.github.com/copilot_internal/v2/token'
+            const response = await axios.get(tokenUrl, {
+                headers: {
+                    'Authorization': `token ${githubToken}`,
+                    'User-Agent': 'GithubCopilot/1.234.0'
+                }
+            })
+
+            const sessionToken = response.data.token
+            if (!sessionToken) {
+                throw new Error('GitHub 未傳回 Copilot token')
+            }
+
+            // 快取 Token (通常有效期為 25-30 分鐘，快取 20 分鐘)
+            const expiresAt = response.data.expires_at ? response.data.expires_at * 1000 : now + 1200 * 1000
+            
+            this.tokenCache.set(cacheKey, {
+                token: sessionToken,
+                expiresAt: expiresAt
+            })
+
+            return sessionToken
+        } catch (error: any) {
+            console.error('獲取 GitHub Copilot Token 失敗:', error.response?.data || error.message)
+            throw new Error(`GitHub Copilot 授權失敗: ${error.message}`)
+        }
+    }
+
+    /**
+     * 獲取 Google User OAuth Access Token (透過 refresh_token 交換)
+     */
+    async getGoogleUserAccessToken(refreshToken: string, userClientId?: string, userClientSecret?: string): Promise<string> {
+        try {
+            if (!refreshToken) {
+                throw new Error('缺少 Google Refresh Token')
+            }
+
+            const clientId = userClientId || process.env.GOOGLE_CLIENT_ID
+            const clientSecret = userClientSecret || process.env.GOOGLE_CLIENT_SECRET
+            if (!clientId || !clientSecret) {
+                throw new Error('系統未配置 GOOGLE_CLIENT_ID 或 GOOGLE_CLIENT_SECRET 環境變數，且未提供 gcloud 用戶端憑證。')
+            }
+
+            // 用 SHA-256 雜湊來做快取 key
+            const hash = crypto.createHash('sha256').update(refreshToken).digest('hex')
+            const cacheKey = `google-user:${hash}`
+            const cached = this.tokenCache.get(cacheKey)
+            const now = Date.now()
+
+            // 如果快取未過期，直接返回（保留 5 分鐘緩衝時間）
+            if (cached && cached.expiresAt > now + 300 * 1000) {
+                return cached.token
+            }
+
+            // 呼叫 Google Token 端點交換 Access Token
+            const tokenUrl = 'https://oauth2.googleapis.com/token'
+            const params = new URLSearchParams()
+            params.append('client_id', clientId)
+            params.append('client_secret', clientSecret)
+            params.append('refresh_token', refreshToken)
+            params.append('grant_type', 'refresh_token')
+
+            const response = await axios.post(tokenUrl, params.toString(), {
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+            })
+
+            const accessToken = response.data.access_token
+            if (!accessToken) {
+                throw new Error('Google 未傳回 access_token')
+            }
+
+            // 快取 Token (通常有效期為 3600 秒，即 1 小時)
+            const expiresAt = now + (response.data.expires_in || 3600) * 1000
+            
+            this.tokenCache.set(cacheKey, {
+                token: accessToken,
+                expiresAt: expiresAt
+            })
+
+            return accessToken
+        } catch (error: any) {
+            console.error('交換 Google User Access Token 失敗:', error.response?.data || error.message)
+            throw new Error(`Google 帳號 Token 交換失敗: ${error.message}`)
+        }
+    }
+
+    /**
      * 清除特定或所有快取 Token
      */
     clearCache(key?: string) {

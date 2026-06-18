@@ -27,6 +27,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({ isDarkMode }
         // ✅ 儲存到 localStorage，確保刷新頁面後保留
         try {
             localStorage.setItem('llmchat_language', languageCode)
+            sessionStorage.setItem('login_language_changed', 'true')
         } catch (e) {}
     }
 

@@ -18,7 +18,7 @@ export interface UserSettings {
     topP: number
     topK: number
     showTokenStats: boolean
-    authMethod?: 'api-key' | 'google-service-account' | 'azure-entra-id' | 'aws-iam'
+    authMethod?: 'api-key' | 'google-service-account' | 'azure-entra-id' | 'aws-iam' | 'github-copilot-oauth' | 'google-oauth-user' | 'chatgpt-web-session'
     oauthConfig?: {
         googleJson?: string
         azureTenantId?: string
@@ -28,6 +28,12 @@ export interface UserSettings {
         awsSecretKey?: string
         awsRegion?: string
         awsSessionToken?: string
+        githubToken?: string
+        googleUserRefreshToken?: string
+        chatgptAccessToken?: string
+        chatgptProxyUrl?: string
+        googleUserClientId?: string
+        googleUserClientSecret?: string
     }
 }
 
@@ -330,6 +336,11 @@ class UserService {
             if (conf.googleJson) conf.googleJson = this.decrypt(conf.googleJson)
             if (conf.azureClientSecret) conf.azureClientSecret = this.decrypt(conf.azureClientSecret)
             if (conf.awsSecretKey) conf.awsSecretKey = this.decrypt(conf.awsSecretKey)
+            if (conf.githubToken) conf.githubToken = this.decrypt(conf.githubToken)
+            if (conf.googleUserRefreshToken) conf.googleUserRefreshToken = this.decrypt(conf.googleUserRefreshToken)
+            if (conf.chatgptAccessToken) conf.chatgptAccessToken = this.decrypt(conf.chatgptAccessToken)
+            if (conf.googleUserClientId) conf.googleUserClientId = this.decrypt(conf.googleUserClientId)
+            if (conf.googleUserClientSecret) conf.googleUserClientSecret = this.decrypt(conf.googleUserClientSecret)
             settings.oauthConfig = conf
         }
         return settings
@@ -393,6 +404,11 @@ class UserService {
                 if (conf.googleJson) conf.googleJson = this.encrypt(conf.googleJson)
                 if (conf.azureClientSecret) conf.azureClientSecret = this.encrypt(conf.azureClientSecret)
                 if (conf.awsSecretKey) conf.awsSecretKey = this.encrypt(conf.awsSecretKey)
+                if (conf.githubToken) conf.githubToken = this.encrypt(conf.githubToken)
+                if (conf.googleUserRefreshToken) conf.googleUserRefreshToken = this.encrypt(conf.googleUserRefreshToken)
+                if (conf.chatgptAccessToken) conf.chatgptAccessToken = this.encrypt(conf.chatgptAccessToken)
+                if (conf.googleUserClientId) conf.googleUserClientId = this.encrypt(conf.googleUserClientId)
+                if (conf.googleUserClientSecret) conf.googleUserClientSecret = this.encrypt(conf.googleUserClientSecret)
                 settings.oauthConfig = conf
             }
 

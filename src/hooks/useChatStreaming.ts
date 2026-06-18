@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 export interface StreamChatInput {
     message: string
@@ -35,6 +36,7 @@ function createInitialParserState(): ParserState {
 
 export function useChatStreaming(args: { token: string | null }) {
     const { token } = args
+    const { t } = useTranslation()
 
     const [isStreaming, setIsStreaming] = useState(false)
     const [streamingMessage, setStreamingMessage] = useState('')
@@ -114,7 +116,7 @@ export function useChatStreaming(args: { token: string | null }) {
 
         if (!stopRequested && !force) {
             setStopRequested(true)
-            setStopConfirmText('再按一次停止生成')
+            setStopConfirmText(t('input.stopDoubleConfirm', '再按一次停止生成'))
 
             clearStopTimer()
             stopResetTimerRef.current = window.setTimeout(() => {

@@ -4,9 +4,33 @@
 
 ---
 
+### v260618
+
+- ✨ **Refine Auth Provider UX & i18n**: 
+  - Removed deprecated Google Gemini OAuth and ChatGPT Web Session frontend logics completely to simplify the UI.
+  - Consolidated GitHub Copilot authentication into the standard `api-key` method. Users can now simply provide their GitHub PAT with `ghp_` prefix without using a dedicated OAuth field.
+  - Implemented smart UI fallback for Auth Methods: automatically resets incompatible authentication methods to `api-key` when switching providers to prevent UI state mismatches, and seamlessly migrates legacy `github-copilot-oauth` states.
+  - Eliminated hardcoded strings and completed full i18n support across 5 locales (en, zh-TW, zh-CN, ja, ko) for all UI components, ensuring language persistence across page reloads and backend synchronization.
+
+- 👤 **OAuth 帳號綁定基礎設施**：新增 `server/oauthService.js`，目前用於處理 GitHub Copilot 驗證流程與後端記憶體儲存。
+- 📝 **文件同步更新**：同步更新 `README.md`、`api.md` 與 `CHANGELOG.md`。
+- 🛑 **前後端智慧串流中斷與連線關閉機制優化**：修復了當關閉「地球」（聯網搜尋）時，連線會被 prematurely 判定為中斷而拋出 canceled 錯誤的 Bug。此問題源自於原先監聽 `req.on('close')` 在 Body 解析完畢後即會觸發；我們已將監聽對象修正為回應對象 `res.on('close')`，確保 any Provider 在未開啟聯網搜尋的情況下均能穩定串流輸出。
+- ☁️ **Ollama Cloud 設定與 API Key 認證調整**：將 Ollama Cloud 的預設端點由原先 `http://your-ollama-server:11434` 變更回官方端點 `https://ollama.com`，並將其自本地免密鑰清單（`LOCAL_NOAUTH_PROVIDERS`）中移除，使前端與後端管理介面均強制要求輸入 API Key，以符合官方雲端認證的要求。
+- 🐙 **新增 GitHub Copilot 服務與 OAuth 驗證支援**：
+  - 引進 `github-copilot` 獨立 Provider，提供專屬的連線探針與預設常用模型列表（`gpt-4o`, `claude-3.5-sonnet`, `o1-mini`, `o1-preview`），避開其不支援標準 `/models` 端點導致的連線測試失敗。
+  - 新增 `github-copilot-oauth` 認證方法，串接後端 `TokenService` 自動利用 GitHub OAuth/PAT Token 向 GitHub API 交換臨時的 Copilot 階段金鑰，並於 Axios Interceptor 中自動帶入對應的 Authorization Bearer Token 以及 VSCode 編輯器特定的 HTTP Header（如 `Editor-Version`、`Editor-Plugin-Version`、`User-Agent`）。
+  - 對於以 `gho_` / `ghp_` 等前綴之 GitHub 金鑰，實施自動辨識與攔截換證機制，並配合 AES-256-CBC 進行去敏感與安全資料庫存儲。
+- 🔒 **補全多 Provider 雲端與 OAuth 驗證說明**：於 API 文件中明確釐清與補全 OpenAI (`azure-entra-id`)、Gemini (`google-service-account`) 與 GitHub Copilot (`github-copilot-oauth`) 等 OAuth 與雲端 IAM 驗證的架構規格。
+- 🗑️ **移除實驗性個人帳號登入支援**：因第三方防護限制（如 Cloudflare 盾）及高維護成本，正式移除 Google 個人帳號 OAuth 與 ChatGPT 網頁版 Session 登入功能，確保連線穩定性與系統安全。
+
+---
+
 ### v260602
 
 - 🛑 **前後端智能串流中斷機制優化**：修復了 AI 在進行串流生成（Inference）時，前端按 Stop 按鈕或點擊垃圾桶清除歷史紀錄，後端卻仍在持續推理的問題。在後端 `/api/chat/stream` 監聽客戶端斷開 `req.on('close')` 並調用 `abort()`；且在前端清除/刪除對話函數中主動發送終止請求，確保前後端同時中斷。
+- 🔌 **AI Provider 架構重構與路徑拼接優化**：重構 `BaseProvider` 的 `baseURL` 處理邏輯，由原先強制截除 `/v1` 改為僅去除尾部斜線，並將各 Provider 的 API 相對路徑（如 `/models`、`/chat/completions`、`/api/tags`）解耦至 `PROVIDER_ENDPOINTS` 中。解決了非 `/v1` 結尾的 API（如 Google Gemini 的 `.../v1beta/openai`）在獲取模型列表時會拼接出錯誤路徑導致 404 報錯的問題。
+- 🔑 **全新新增 DeepSeek 支援**：正式引入 `deepseek` 服務商，預設 API 端點為 `https://api.deepseek.com/v1`，支援模型列表獲取與對話生成。
+- ⚙️ **Ollama Cloud 與多 Provider 預設值修正**：將 Ollama Cloud 的預設端點修正為 `http://your-ollama-server:11434`；同時同步更新管理後台與多 Provider 路由的預設端點（包含 Gemini、Vercel/Cloudflare AI Gateway 等），確保路徑格式與本地/雲端部署環境一致。
 - 👥 **管理員使用者 CRUD 控制面板**：在管理面板中增加「新增」、「編輯」（重設密碼與修改角色）以及「刪除」使用者的功能，補全了先前僅能檢視使用者清單的缺失。
 - 🎨 **暗黑模式 UI 視覺修正**：修正了暗黑模式下，使用者新增與編輯 Modal 中「取消」按鈕文字顏色隱形看不見的 Bug。
 - 📁 **專案文件架構重構與瘦身**：

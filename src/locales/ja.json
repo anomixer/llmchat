@@ -1,309 +1,337 @@
 {
-    "app": {
-        "loading": "読み込み中...",
-        "welcome": {
-            "title": "AIとの会話を始めましょう！",
-            "subtitle": "質問を入力または話しかけてください。ベストを尽くして回答します。",
-            "fileHint": "ファイルをアップロードすることもできます。分析と要約をお手伝いします。"
-        }
+  "app": {
+    "loading": "読み込み中...",
+    "welcome": {
+      "title": "AIとの会話を始めましょう！",
+      "subtitle": "質問を入力または話しかけてください。ベストを尽くして回答します。",
+      "fileHint": "ファイルをアップロードすることもできます。分析と要約をお手伝いします。"
+    }
+  },
+  "conversation": {
+    "defaultTitle": "会話",
+    "list": "会話リスト",
+    "empty": "会話がありません",
+    "messages": "件のメッセージ ·",
+    "delete": {
+      "confirm": "会話「{{title}}」を削除してもよろしいですか？この操作は元に戻せません。",
+      "button": "会話を削除"
     },
-    "conversation": {
-        "defaultTitle": "会話",
-        "list": "会話リスト",
-        "empty": "会話がありません",
-        "messages": "件のメッセージ ·",
-        "delete": {
-            "confirm": "会話「{{title}}」を削除してもよろしいですか？この操作は元に戻せません。",
-            "button": "会話を削除"
-        },
-        "clear": {
-            "confirm": "現在の会話のすべての内容をクリアしてもよろしいですか？この操作は元に戻せません。",
-            "button": "会話をクリア (Ctrl + K)"
-        },
-        "new": "新規会話 (Ctrl + I)",
-        "export": {
-            "button": "会話をエクスポート",
-            "json": "JSONとしてエクスポート",
-            "markdown": "Markdownとしてエクスポート"
-        }
+    "clear": {
+      "confirm": "現在の会話のすべての内容をクリアしてもよろしいですか？この操作は元に戻せません。",
+      "button": "会話をクリア (Ctrl + K)"
     },
-    "buttons": {
-        "send": "メッセージを送信",
-        "stop": "生成を停止",
-        "stopConfirm": "もう一度押して生成を停止 →",
-        "stopAction": "停止"
+    "new": "新規会話 (Ctrl + I)",
+    "export": {
+      "button": "会話をエクスポート",
+      "json": "JSONとしてエクスポート",
+      "markdown": "Markdownとしてエクスポート"
+    }
+  },
+  "buttons": {
+    "send": "メッセージを送信",
+    "stop": "生成を停止",
+    "stopConfirm": "もう一度押して生成を停止 →",
+    "stopAction": "停止"
+  },
+  "header": {
+    "model": {
+      "none": "モデルが選択されていません",
+      "openSettings": "クリックして設定を開く",
+      "closeSettings": "クリックして設定を閉じる"
     },
-    "header": {
-        "model": {
-            "none": "モデルが選択されていません",
-            "openSettings": "クリックして設定を開く",
-            "closeSettings": "クリックして設定を閉じる"
-        },
-        "conversations": {
-            "button": "会話リスト (Ctrl + B)",
-            "panel": "会話リスト"
-        },
-        "settings": {
-            "button": "設定 (Ctrl + , )"
-        },
-        "theme": {
-            "light": "ライトモードに切り替え",
-            "dark": "ダークモードに切り替え"
-        },
-        "fullscreen": {
-            "enter": "フルスクリーンに入る",
-            "exit": "フルスクリーンを終了"
-        },
-        "github": "GitHubで表示",
-        "menu": "メニュー",
-        "adminBadge": "管理者",
-        "adminButton": "ユーザー管理"
+    "conversations": {
+      "button": "会話リスト (Ctrl + B)",
+      "panel": "会話リスト"
     },
     "settings": {
-        "panels": {
-            "user": "ユーザー設定",
-            "llm": "LLM設定",
-            "generation": "生成パラメータ"
-        },
-        "language": {
-            "label": "言語設定"
-        },
-        "theme": {
-            "label": "テーマ設定",
-            "auto": "システムに追従",
-            "light": "ライトモード",
-            "dark": "ダークモード"
-        },
-        "password": {
-            "label": "パスワード変更",
-            "current": "現在のパスワード",
-            "currentPlaceholder": "現在のパスワードを入力",
-            "new": "新しいパスワード",
-            "newPlaceholder": "新しいパスワードを入力 (最小6文字)",
-            "button": "パスワード変更",
-            "success": "パスワードが正常に変更されました",
-            "error": "パスワードの変更に失敗しました",
-            "weak": "パスワードは最低6文字以上である必要があります",
-            "incorrect": "現在のパスワードが正しくありません"
-        },
-        "api": {
-            "url": "API URL (Ollama/OpenAI APIアドレス)",
-            "key": "APIキー (認証が必要なAPIサービス用)",
-            "keyPlaceholder": "APIキーを入力 (オプション)"
-        },
-        "model": {
-            "label": "モデル (使用するAIモデルを選択)",
-            "loading": "(読み込み中...)",
-            "none": "(モデルが見つかりません)",
-            "placeholder": "読み込み中...",
-            "noModels": "利用可能なモデルがありません"
-        },
-        "parameters": {
-            "temperature": "温度: {{value}} (出力のランダム性を制御 0-2: 低温=決定論的、論理的、一貫性; 高温=多様性、創造性、驚き)",
-            "topP": "Top P: {{value}} (コアサンプリング確率を制御 0-1: 高=高確率; 低=低確率)",
-            "topK": "Top K: {{value}} (候補トークン数を制限 1-100: 高=サンプリング多め; 低=サンプリング少なめ)",
-            "maxTokens": "最大コンテキスト: {{value}} (応答の最大コンテキスト長を設定 4096-262144)",
-            "showTokenStats": "トークン統計を表示",
-            "on": "オン",
-            "off": "オフ"
-        },
-        "adminOnly": "管理者",
-        "adminOnlyMessage": "管理者のみが以下のAPI設定を構成できます"
+      "button": "設定 (Ctrl + , )"
     },
-    "messages": {
-        "user": "ユーザー",
-        "assistant": "アシスタント",
-        "thinking": "思考プロセス",
-        "files": "添付ファイル",
-        "interrupted": "(ユーザーが中断)",
-        "error": "申し訳ありません。エラーが発生しました。バックエンドサービスが正常に動作しているか確認してください。",
-        "delete": {
-            "confirm": "このメッセージを削除してもよろしいですか？",
-            "button": "メッセージを削除"
-        },
-        "generating": "応答を生成中...",
-        "copy": {
-            "buttonTitle": "コードをコピー",
-            "success": "コードがクリップボードにコピーされました",
-            "failed": "コピーに失敗しました。手動でコードを選択してコピーしてください"
-        },
-        "voice": {
-            "play": "クリックして音声を再生",
-            "stop": "クリックして再生を停止",
-            "playing": "音声を再生中",
-            "queued": "再生キューに追加されました",
-            "next": "次に再生",
-            "unsupported": "お使いのブラウザは音声合成をサポートしていません",
-            "queue": "キュー",
-            "queueItems": "キュー: {{count}} 項目",
-            "playingStatus": "再生中",
-            "skip": "スキップ",
-            "skipTitle": "現在の音声をスキップ",
-            "clear": "クリア",
-            "clearTitle": "音声キューをクリア",
-            "removeFromQueue": "クリックしてキューから削除",
-            "otherTabPlaying": "別のタブで再生中"
-        }
+    "theme": {
+      "light": "ライトモードに切り替え",
+      "dark": "ダークモードに切り替え"
     },
-    "input": {
-        "placeholder": "メッセージを入力... (Shift+Enterで改行)",
-        "voice": {
-            "start": "音声入力",
-            "stop": "音声入力を停止",
-            "unsupported": "お使いのブラウザは音声認識をサポートしていません"
-        },
-        "files": {
-            "button": "ファイルを添付 (画像、テキスト、PDF、JSONをサポート、最大50MB)",
-            "sizeError": "ファイル {{name}} が大きすぎます。50MB未満のファイルを選択してください",
-            "typeError": "ファイルタイプ {{type}} はサポートされていません"
-        }
+    "fullscreen": {
+      "enter": "フルスクリーンに入る",
+      "exit": "フルスクリーンを終了"
     },
-    "auth": {
-        "welcome": "LLMChatへようこそ",
-        "login": "ログイン",
-        "register": "登録",
-        "email": "メールアドレス",
-        "emailPlaceholder": "メールアドレスを入力してください",
-        "password": "パスワード",
-        "passwordPlaceholder": "パスワードを入力してください",
-        "confirmPassword": "パスワード確認",
-        "confirmPasswordPlaceholder": "パスワードを再度入力してください",
-        "passwordMismatch": "パスワードが一致しません",
-        "processing": "処理中...",
-        "noAccount": "アカウントをお持ちではありませんか？",
-        "hasAccount": "すでにアカウントをお持ちですか？",
-        "logout": "ログアウト",
-        "registrationSuccess": "ご登録ありがとうございます！",
-        "verificationEmailSent": "確認メールを送信しました：",
-        "verificationLinkGenerated": "確認リンクが生成されました。以下のリンクをブラウザで開いてください：",
-        "verificationSent": "確認リンクを送信しました：",
-        "verificationLink": "確認リンク：",
-        "verificationInstructions": "メールを確認してアクティベーションの手紙を受信してください。",
-        "copyLink": "コピー",
-        "linkCopied": "確認リンクがクリップボードにコピーされました",
-        "backToLogin": "ログインに戻る",
-        "resendVerification": "確認メールを再送信",
-        "resendVerificationSuccess": "確認メールを再送信しました！",
-        "duplicateRegistration": "このメールアドレスはすでに登録されています",
-        "duplicateRegistrationMessage": "別のメールアドレスで登録するか、直接ログインしてください",
-        "backToLoginButton": "ログインに戻る",
-        "registrationDisabled": "登録機能が無効です",
-        "registrationDisabledMessage": "システム管理者がまだメールサービスを設定していません。確認メールを送信できません。アカウント登録については管理者にお問い合わせください。",
-        "emailVerificationRequired": "まずメールアドレスを確認してください"
-    },
-    "email": {
-        "verification": {
-            "subject": "LLMChat - メールアドレスを確認してください",
-            "greeting": "こんにちは",
-            "greetingWithName": "{{name}} 様",
-            "title": "LLMChatへようこそ！",
-            "description": "LLMChatアカウントにご登録いただきありがとうございます。アカウントのセキュリティを確保するため、下のボタンをクリックしてメールアドレスを確認してください：",
-            "buttonText": "メールアドレスを確認",
-            "alternativeText": "または、以下のリンクをコピーしてブラウザで開くことができます：",
-            "warningTitle": "重要なお知らせ：",
-            "warningMessage": "この確認リンクは24時間後に期限切れになります。リンクが無効になった場合は、再度登録してください。",
-            "successMessage": "確認が完了したら、ローカルAIモデルとの会話にLLMChatを使い始めることができます！",
-            "ignoreMessage": "LLMChatアカウントを登録したことがない場合は、このメールを無視してください。",
-            "footer": "このメールは自動送信されています。返信しないでください。",
-            "copyright": "© 2025 LLMChat. All rights reserved.",
-            "pageTitle": "LLMChat メール確認"
-        }
+    "github": "GitHubで表示",
+    "menu": "メニュー",
+    "adminBadge": "管理者",
+    "adminButton": "ユーザー管理"
+  },
+  "settings": {
+    "panels": {
+      "user": "ユーザー設定",
+      "llm": "LLM設定",
+      "generation": "生成パラメータ"
     },
     "language": {
-        "selector": "言語",
-        "zh-TW": "繁体中国語",
-        "zh-CN": "簡体中国語",
-        "en": "英語",
-        "ja": "日本語",
-        "ko": "韓国語"
+      "label": "言語設定"
     },
-    "admin": {
-        "accessDenied": "アクセス拒否",
-        "accessDeniedMessage": "このページにアクセスするには管理者権限が必要です",
-        "backToChat": "チャットに戻る",
-        "title": "管理者設定ページ",
-        "subtitle": "システム内の全ユーザーアカウントとLLM設定を管理",
-        "stats": {
-            "totalUsers": "総ユーザー数",
-            "enabledUsers": "有効ユーザー",
-            "disabledUsers": "無効ユーザー",
-            "admins": "管理者"
-        },
-        "table": {
-            "list": "ユーザー一覧",
-            "email": "メールアドレス",
-            "status": "ステータス",
-            "role": "役割",
-            "registrationDate": "登録日",
-            "lastLogin": "最終ログイン",
-            "actions": "アクション"
-        },
-        "status": {
-            "enabled": "有効",
-            "disabled": "無効"
-        },
-        "role": {
-            "admin": "管理者",
-            "user": "ユーザー"
-        },
-        "neverLoggedIn": "ログインしたことがありません",
-        "disableUser": "ユーザーを無効化",
-        "enableUser": "ユーザーを有効化",
-        "setAsAdmin": "管理者として設定",
-        "setAsUser": "通常ユーザーとして設定",
-        "deleteUser": "ユーザーを削除",
-        "deleteUserConfirm": "このユーザーを削除してもよろしいですか？この操作は元に戻せません。",
-        "noUsers": "ユーザーデータがありません",
-        "pagination": {
-            "showing": "{{start}} から {{end}} までを表示、合計 {{total}} 件",
-            "previous": "前へ",
-            "next": "次へ"
-        },
-        "close": "閉じる",
-        "error": {
-            "fetchUsers": "ユーザー一覧の取得に失敗しました",
-            "updateRole": "役割の更新に失敗しました",
-            "deleteUser": "ユーザーの削除に失敗しました",
-            "toggleUser": "ユーザー状態の切り替えに失敗しました",
-            "unknown": "不明なエラー"
-        },
-        "usersTab": "ユーザー管理",
-        "llmTab": "LLMプロバイダー設定",
-        "llm": {
-            "config": "LLMプロバイダー構成",
-            "selectProvider": "プロバイダーを選択",
-            "baseUrl": "ベースURL",
-            "baseUrlHint": "プロバイダー選択後に自動入力されます。手動で変更可能です。",
-            "apiKey": "APIキー",
-            "apiKeyPlaceholder": "APIキー (オプション、一部のプロバイダーは不要)",
-            "apiKeyHint": "形式はプロバイダーによって異なります (APIキー、OAuthトークンなど)",
-            "modelName": "モデル名",
-            "modelPlaceholder": "例: gpt-4, claude-3, llama3",
-            "fetchModels": "モデルを取得",
-            "visionModel": "ビジョンモデル (オプション)",
-            "visionPlaceholder": "マルチモーダルコンテンツに使用。空欄の場合は自動的に選択されます",
-            "visionHint": "画像やスケッチの読み取りに使用されます。空欄にすると、同じプロバイダーから自動選択されます。",
-            "generation": "生成パラメータ",
-            "temperature": "温度",
-            "topP": "Top P",
-            "topK": "Top K",
-            "contextSize": "Context Size (最大コンテキスト)",
-            "temperatureHint": "出力のランダム性を制御：低温＝決定論的、高温＝創造的",
-            "topPHint": "核サンプリング確率：高＝高確率、低＝低確率",
-            "topKHint": "候補トークン数を制限：高＝サンプリング多め、低＝少なめ",
-            "maxTokensHint": "最大コンテキスト長",
-            "testing": "テスト中...",
-            "testConnection": "接続テスト",
-            "saveSettings": "設定を保存",
-            "testAndSave": "プロバイダーをテストして保存",
-            "saveSuccess": "✅ 設定を保存しました",
-            "saveWarning": "⚠️ 設定は保存されましたが、接続に失敗しました",
-            "saveError": "❌ 保存に失敗しました",
-            "current": "現在",
-            "testSuccess": "✅ 接続に成功しました",
-            "testFailed": "❌ 接続に失敗しました",
-            "testError": "❌ 接続エラー： "
-        }
+    "theme": {
+      "label": "テーマ設定",
+      "auto": "システムに追従",
+      "light": "ライトモード",
+      "dark": "ダークモード"
     },
-    "systemPrompt": "あなたは役立つAIアシスタントです。ユーザーの質問に日本語で答えてください。"
+    "password": {
+      "label": "パスワード変更",
+      "current": "現在のパスワード",
+      "currentPlaceholder": "現在のパスワードを入力",
+      "new": "新しいパスワード",
+      "newPlaceholder": "新しいパスワードを入力 (最小6文字)",
+      "button": "パスワード変更",
+      "success": "パスワードが正常に変更されました",
+      "error": "パスワードの変更に失敗しました",
+      "weak": "パスワードは最低6文字以上である必要があります",
+      "incorrect": "現在のパスワードが正しくありません"
+    },
+    "api": {
+      "url": "API URL (Ollama/OpenAI APIアドレス)",
+      "key": "APIキー (認証が必要なAPIサービス用)",
+      "keyPlaceholder": "APIキーを入力 (オプション)"
+    },
+    "model": {
+      "label": "モデル (使用するAIモデルを選択)",
+      "loading": "(読み込み中...)",
+      "none": "(モデルが見つかりません)",
+      "placeholder": "読み込み中...",
+      "noModels": "利用可能なモデルがありません"
+    },
+    "parameters": {
+      "temperature": "温度: {{value}} (出力のランダム性を制御 0-2: 低温=決定論的、論理的、一貫性; 高温=多様性、創造性、驚き)",
+      "topP": "Top P: {{value}} (コアサンプリング確率を制御 0-1: 高=高確率; 低=低確率)",
+      "topK": "Top K: {{value}} (候補トークン数を制限 1-100: 高=サンプリング多め; 低=サンプリング少なめ)",
+      "maxTokens": "最大コンテキスト: {{value}} (応答の最大コンテキスト長を設定 4096-262144)",
+      "showTokenStats": "トークン統計を表示",
+      "on": "オン",
+      "off": "オフ"
+    },
+    "adminOnly": "管理者",
+    "adminOnlyMessage": "管理者のみが以下のAPI設定を構成できます"
+  },
+  "messages": {
+    "user": "ユーザー",
+    "assistant": "アシスタント",
+    "thinking": "思考プロセス",
+    "files": "添付ファイル",
+    "interrupted": "(ユーザーが中断)",
+    "error": "申し訳ありません。エラーが発生しました。バックエンドサービスが正常に動作しているか確認してください。",
+    "delete": {
+      "confirm": "このメッセージを削除してもよろしいですか？",
+      "button": "メッセージを削除"
+    },
+    "generating": "応答を生成中...",
+    "copy": {
+      "buttonTitle": "コードをコピー",
+      "success": "コードがクリップボードにコピーされました",
+      "failed": "コピーに失敗しました。手動でコードを選択してコピーしてください"
+    },
+    "voice": {
+      "play": "クリックして音声を再生",
+      "stop": "クリックして再生を停止",
+      "playing": "音声を再生中",
+      "queued": "再生キューに追加されました",
+      "next": "次に再生",
+      "unsupported": "お使いのブラウザは音声合成をサポートしていません",
+      "queue": "キュー",
+      "queueItems": "キュー: {{count}} 項目",
+      "playingStatus": "再生中",
+      "skip": "スキップ",
+      "skipTitle": "現在の音声をスキップ",
+      "clear": "クリア",
+      "clearTitle": "音声キューをクリア",
+      "removeFromQueue": "クリックしてキューから削除",
+      "otherTabPlaying": "別のタブで再生中"
+    }
+  },
+  "input": {
+    "placeholder": "メッセージを入力... (Shift+Enterで改行)",
+    "voice": {
+      "start": "音声入力",
+      "stop": "音声入力を停止",
+      "unsupported": "お使いのブラウザは音声認識をサポートしていません"
+    },
+    "files": {
+      "button": "ファイルを添付 (画像、テキスト、PDF、JSONをサポート、最大50MB)",
+      "sizeError": "ファイル {{name}} が大きすぎます。50MB未満のファイルを選択してください",
+      "typeError": "ファイルタイプ {{type}} はサポートされていません"
+    },
+    "stopDoubleConfirm": "もう一度押して停止"
+  },
+  "auth": {
+    "welcome": "LLMChatへようこそ",
+    "login": "ログイン",
+    "register": "登録",
+    "email": "メールアドレス",
+    "emailPlaceholder": "メールアドレスを入力してください",
+    "password": "パスワード",
+    "passwordPlaceholder": "パスワードを入力してください",
+    "confirmPassword": "パスワード確認",
+    "confirmPasswordPlaceholder": "パスワードを再度入力してください",
+    "passwordMismatch": "パスワードが一致しません",
+    "processing": "処理中...",
+    "noAccount": "アカウントをお持ちではありませんか？",
+    "hasAccount": "すでにアカウントをお持ちですか？",
+    "logout": "ログアウト",
+    "registrationSuccess": "ご登録ありがとうございます！",
+    "verificationEmailSent": "確認メールを送信しました：",
+    "verificationLinkGenerated": "確認リンクが生成されました。以下のリンクをブラウザで開いてください：",
+    "verificationSent": "確認リンクを送信しました：",
+    "verificationLink": "確認リンク：",
+    "verificationInstructions": "メールを確認してアクティベーションの手紙を受信してください。",
+    "copyLink": "コピー",
+    "linkCopied": "確認リンクがクリップボードにコピーされました",
+    "backToLogin": "ログインに戻る",
+    "resendVerification": "確認メールを再送信",
+    "resendVerificationSuccess": "確認メールを再送信しました！",
+    "duplicateRegistration": "このメールアドレスはすでに登録されています",
+    "duplicateRegistrationMessage": "別のメールアドレスで登録するか、直接ログインしてください",
+    "backToLoginButton": "ログインに戻る",
+    "registrationDisabled": "登録機能が無効です",
+    "registrationDisabledMessage": "システム管理者がまだメールサービスを設定していません。確認メールを送信できません。アカウント登録については管理者にお問い合わせください。",
+    "emailVerificationRequired": "まずメールアドレスを確認してください"
+  },
+  "email": {
+    "verification": {
+      "subject": "LLMChat - メールアドレスを確認してください",
+      "greeting": "こんにちは",
+      "greetingWithName": "{{name}} 様",
+      "title": "LLMChatへようこそ！",
+      "description": "LLMChatアカウントにご登録いただきありがとうございます。アカウントのセキュリティを確保するため、下のボタンをクリックしてメールアドレスを確認してください：",
+      "buttonText": "メールアドレスを確認",
+      "alternativeText": "または、以下のリンクをコピーしてブラウザで開くことができます：",
+      "warningTitle": "重要なお知らせ：",
+      "warningMessage": "この確認リンクは24時間後に期限切れになります。リンクが無効になった場合は、再度登録してください。",
+      "successMessage": "確認が完了したら、ローカルAIモデルとの会話にLLMChatを使い始めることができます！",
+      "ignoreMessage": "LLMChatアカウントを登録したことがない場合は、このメールを無視してください。",
+      "footer": "このメールは自動送信されています。返信しないでください。",
+      "copyright": "© 2025 LLMChat. All rights reserved.",
+      "pageTitle": "LLMChat メール確認"
+    }
+  },
+  "language": {
+    "selector": "言語",
+    "zh-TW": "繁体中国語",
+    "zh-CN": "簡体中国語",
+    "en": "英語",
+    "ja": "日本語",
+    "ko": "韓国語"
+  },
+  "admin": {
+    "accessDenied": "アクセス拒否",
+    "accessDeniedMessage": "このページにアクセスするには管理者権限が必要です",
+    "backToChat": "チャットに戻る",
+    "title": "管理者設定ページ",
+    "subtitle": "システム内の全ユーザーアカウントとLLM設定を管理",
+    "stats": {
+      "totalUsers": "総ユーザー数",
+      "enabledUsers": "有効ユーザー",
+      "disabledUsers": "無効ユーザー",
+      "admins": "管理者"
+    },
+    "table": {
+      "list": "ユーザー一覧",
+      "email": "メールアドレス",
+      "status": "ステータス",
+      "role": "役割",
+      "registrationDate": "登録日",
+      "lastLogin": "最終ログイン",
+      "actions": "アクション"
+    },
+    "status": {
+      "enabled": "有効",
+      "disabled": "無効"
+    },
+    "role": {
+      "admin": "管理者",
+      "user": "ユーザー"
+    },
+    "neverLoggedIn": "ログインしたことがありません",
+    "disableUser": "ユーザーを無効化",
+    "enableUser": "ユーザーを有効化",
+    "setAsAdmin": "管理者として設定",
+    "setAsUser": "通常ユーザーとして設定",
+    "deleteUser": "ユーザーを削除",
+    "deleteUserConfirm": "このユーザーを削除してもよろしいですか？この操作は元に戻せません。",
+    "noUsers": "ユーザーデータがありません",
+    "pagination": {
+      "showing": "{{start}} から {{end}} までを表示、合計 {{total}} 件",
+      "previous": "前へ",
+      "next": "次へ"
+    },
+    "close": "閉じる",
+    "error": {
+      "fetchUsers": "ユーザー一覧の取得に失敗しました",
+      "updateRole": "役割の更新に失敗しました",
+      "deleteUser": "ユーザーの削除に失敗しました",
+      "toggleUser": "ユーザー状態の切り替えに失敗しました",
+      "unknown": "不明なエラー",
+      "emailPasswordRequired": "メールとパスワードは必須です",
+      "addFailed": "追加に失敗しました",
+      "emailRequired": "メールは必須です",
+      "saveFailed": "保存に失敗しました",
+      "adcFailed": "ローカル資格情報のインポートに失敗しました。",
+      "connectBackendFailed": "バックエンドへの接続に失敗しました。",
+      "googleUrlFailed": "Google認証URLの取得に失敗しました：",
+      "googleAuthFailed": "Google認証に失敗しました：",
+      "connectBackendFailedAlert": "バックエンドへの接続に失敗しました："
+    },
+    "usersTab": "ユーザー管理",
+    "llmTab": "LLMプロバイダー設定",
+    "llm": {
+      "config": "LLMプロバイダー構成",
+      "selectProvider": "プロバイダーを選択",
+      "baseUrl": "ベースURL",
+      "baseUrlHint": "プロバイダー選択後に自動入力されます。手動で変更可能です。",
+      "apiKey": "APIキー",
+      "apiKeyPlaceholder": "APIキー (オプション、一部のプロバイダーは不要)",
+      "apiKeyHint": "形式はプロバイダーによって異なります (APIキー、OAuthトークンなど)",
+      "modelName": "モデル名",
+      "modelPlaceholder": "例: gpt-4, claude-3, llama3",
+      "fetchModels": "モデルを取得",
+      "visionModel": "ビジョンモデル (オプション)",
+      "visionPlaceholder": "マルチモーダルコンテンツに使用。空欄の場合は自動的に選択されます",
+      "visionHint": "画像やスケッチの読み取りに使用されます。空欄にすると、同じプロバイダーから自動選択されます。",
+      "generation": "生成パラメータ",
+      "temperature": "温度",
+      "topP": "Top P",
+      "topK": "Top K",
+      "contextSize": "Context Size (最大コンテキスト)",
+      "temperatureHint": "出力のランダム性を制御：低温＝決定論的、高温＝創造的",
+      "topPHint": "核サンプリング確率：高＝高確率、低＝低確率",
+      "topKHint": "候補トークン数を制限：高＝サンプリング多め、低＝少なめ",
+      "maxTokensHint": "最大コンテキスト長",
+      "testing": "テスト中...",
+      "testConnection": "接続テスト",
+      "saveSettings": "設定を保存",
+      "testAndSave": "プロバイダーをテストして保存",
+      "saveSuccess": "✅ 設定を保存しました",
+      "saveWarning": "⚠️ 設定は保存されましたが、接続に失敗しました",
+      "saveError": "❌ 保存に失敗しました",
+      "current": "現在",
+      "testSuccess": "✅ 接続に成功しました",
+      "testFailed": "❌ 接続に失敗しました",
+      "testError": "❌ 接続エラー： ",
+      "connectSuccess": "✅ 接続成功",
+      "connectFailed": "❌ 接続失敗",
+      "connectError": "❌ 接続エラー：",
+      "saveFailed": "保存失敗：",
+      "providerSettings": "プロバイダー設定",
+      "apiKeyOptional": "（任意、上記アカウントでログイン済みの場合は空白）",
+      "checking": "確認中...",
+      "checkConnection": "接続を確認",
+      "authGoogleSA": "🌐 Google サービスアカウント JSON",
+      "authGitHub": "🐙 GitHub Copilot OAuth",
+      "authAzure": "🌐 Microsoft Entra ID (OAuth 2.0)",
+      "authAws": "☁️ AWS IAM (SigV4)",
+      "authApiKey": "🔑 静的 API キー",
+      "gcpServiceAccount": "GCP サービスアカウント JSON",
+      "sessionToken": "セッショントークン（任意）",
+      "authMethod": "認証方法",
+      "advancedParams": "詳細パラメータ"
+    },
+    "addUser": "ユーザー追加"
+  },
+  "systemPrompt": "あなたは役立つAIアシスタントです。ユーザーの質問に日本語で答えてください。"
 }

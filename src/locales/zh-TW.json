@@ -1,312 +1,358 @@
 {
-    "app": {
-        "loading": "載入中...",
-        "welcome": {
-            "title": "開始與 AI 對話吧！",
-            "subtitle": "輸入或說出您的問題，我會盡力為您回答。",
-            "fileHint": "您也可以上傳檔案，我來幫您分析與歸納。"
-        }
+  "app": {
+    "loading": "載入中...",
+    "welcome": {
+      "title": "開始與 AI 對話吧！",
+      "subtitle": "輸入或說出您的問題，我會盡力為您回答。",
+      "fileHint": "您也可以上傳檔案，我來幫您分析與歸納。"
+    }
+  },
+  "conversation": {
+    "defaultTitle": "對話",
+    "list": "對話列表",
+    "empty": "尚無對話",
+    "messages": "條消息 ·",
+    "delete": {
+      "confirm": "確定要刪除對話「{{title}}」嗎？此操作無法復原。",
+      "button": "刪除對話"
     },
-    "conversation": {
-        "defaultTitle": "對話",
-        "list": "對話列表",
-        "empty": "尚無對話",
-        "messages": "條消息 ·",
-        "delete": {
-            "confirm": "確定要刪除對話「{{title}}」嗎？此操作無法復原。",
-            "button": "刪除對話"
-        },
-        "clear": {
-            "confirm": "確定要清除當前對話的所有內容嗎？此操作無法復原。",
-            "button": "清除對話 (Ctrl + K)"
-        },
-        "new": "新對話 (Ctrl + I)",
-        "export": {
-            "button": "導出對話",
-            "json": "導出為 JSON",
-            "markdown": "導出為 Markdown",
-            "created": "創建時間",
-            "updated": "最後更新"
-        }
+    "clear": {
+      "confirm": "確定要清除當前對話的所有內容嗎？此操作無法復原。",
+      "button": "清除對話 (Ctrl + K)"
     },
-    "buttons": {
-        "send": "發送消息",
-        "stop": "停止生成",
-        "stopConfirm": "再按一次停止生成 →",
-        "stopAction": "停止"
+    "new": "新對話 (Ctrl + I)",
+    "export": {
+      "button": "導出對話",
+      "json": "導出為 JSON",
+      "markdown": "導出為 Markdown",
+      "created": "創建時間",
+      "updated": "最後更新"
+    }
+  },
+  "buttons": {
+    "send": "發送消息",
+    "stop": "停止生成",
+    "stopConfirm": "再按一次停止生成 →",
+    "stopAction": "停止"
+  },
+  "header": {
+    "model": {
+      "none": "未選擇模型",
+      "openSettings": "點擊開啟設定",
+      "closeSettings": "點擊關閉設定"
     },
-    "header": {
-        "model": {
-            "none": "未選擇模型",
-            "openSettings": "點擊開啟設定",
-            "closeSettings": "點擊關閉設定"
-        },
-        "conversations": {
-            "button": "對話列表 (Ctrl + B)",
-            "panel": "對話列表"
-        },
-        "settings": {
-            "button": "設定 (Ctrl + , )"
-        },
-        "theme": {
-            "light": "切換到亮色模式",
-            "dark": "切換到暗色模式"
-        },
-        "fullscreen": {
-            "enter": "進入全螢幕",
-            "exit": "退出全螢幕"
-        },
-        "github": "在 GitHub 上查看",
-        "menu": "選單",
-        "adminBadge": "管理員",
-        "adminButton": "用戶管理"
+    "conversations": {
+      "button": "對話列表 (Ctrl + B)",
+      "panel": "對話列表"
     },
     "settings": {
-        "panels": {
-            "user": "用戶設定",
-            "llm": "LLM 配置",
-            "generation": "生成參數"
-        },
-        "language": {
-            "label": "語言設定"
-        },
-        "theme": {
-            "label": "主題設定",
-            "auto": "跟隨系統",
-            "light": "亮色模式",
-            "dark": "暗色模式"
-        },
-        "password": {
-            "label": "更改密碼",
-            "current": "目前密碼",
-            "currentPlaceholder": "輸入目前密碼",
-            "new": "新密碼",
-            "newPlaceholder": "輸入新密碼 (最少6個字符)",
-            "button": "更改密碼",
-            "success": "密碼更改成功",
-            "error": "密碼更改失敗",
-            "weak": "密碼長度至少需要6個字符",
-            "incorrect": "目前密碼不正確"
-        },
-        "api": {
-            "url": "API URL (Ollama/OpenAI API 地址)",
-            "key": "API Key (用於需要驗證的 API 服務)",
-            "keyPlaceholder": "輸入 API Key (可選)"
-        },
-        "model": {
-            "label": "模型 (選擇要使用的 AI 模型)",
-            "loading": "(載入中...)",
-            "none": "(未找到模型)",
-            "placeholder": "載入中...",
-            "noModels": "沒有可用模型"
-        },
-        "parameters": {
-            "temperature": "溫度: {{value}} (控制輸出的隨機性參數 0-2：低溫=確定、邏輯、一致；高溫=多樣、創造、驚喜)",
-            "topP": "Top P: {{value}} (控制核心採樣的機率參數 0-1：高=高機率；低=低機率)",
-            "topK": "Top K: {{value}} (限制候選Token的數量參數 1-100：高=取樣多；低=取樣少)",
-            "maxTokens": "最大 Context 數: {{value}} (設定生成回應的最大上下文長度 4096-262144)",
-            "showTokenStats": "顯示 Token 統計",
-            "on": "開啟",
-            "off": "關閉"
-        },
-        "adminOnly": "管理員",
-        "adminOnlyMessage": "只有管理員才能設定以下API配置"
+      "button": "設定 (Ctrl + , )"
     },
-    "messages": {
-        "user": "用戶",
-        "assistant": "助手",
-        "thinking": "思考過程",
-        "files": "附加檔案",
-        "interrupted": "(用戶中斷)",
-        "error": "抱歉，發生錯誤。請檢查後端服務是否正常運行。",
-        "delete": {
-            "confirm": "確定要刪除這條訊息嗎？",
-            "button": "刪除訊息"
-        },
-        "generating": "正在生成回應...",
-        "copy": {
-            "buttonTitle": "複製程式碼",
-            "success": "程式碼已複製到剪貼簿",
-            "failed": "複製失敗，請手動選取並複製程式碼"
-        },
-        "voice": {
-            "play": "點擊播放語音",
-            "stop": "點擊停止播放",
-            "playing": "正在播放語音",
-            "queued": "已加入播放隊列",
-            "next": "即將播放",
-            "unsupported": "您的瀏覽器不支援語音合成功能",
-            "queue": "隊列",
-            "queueItems": "隊列: {{count}} 項",
-            "playingStatus": "播放中",
-            "skip": "跳過",
-            "skipTitle": "跳過當前語音",
-            "clear": "清除",
-            "clearTitle": "清除語音隊列",
-            "removeFromQueue": "點擊從隊列中移除",
-            "otherTabPlaying": "其他標籤頁正在播放"
-        }
+    "theme": {
+      "light": "切換到亮色模式",
+      "dark": "切換到暗色模式"
     },
-    "input": {
-        "placeholder": "輸入您的訊息... (Shift+Enter 換行)",
-        "voice": {
-            "start": "語音輸入",
-            "stop": "停止語音輸入",
-            "unsupported": "您的瀏覽器不支援語音識別功能"
-        },
-        "files": {
-            "button": "附加檔案 (支援圖片、文字、PDF、JSON，最大50MB)",
-            "sizeError": "檔案 {{name}} 太大，請選擇小於 50MB 的檔案",
-            "typeError": "檔案類型 {{type}} 不支援",
-            "pdfNote": "注意：PDF內容無法在瀏覽器中直接解析。如需分析PDF內容，請考慮將PDF轉換為文字檔案後上傳，或使用支援PDF解析的服務。"
-        }
+    "fullscreen": {
+      "enter": "進入全螢幕",
+      "exit": "退出全螢幕"
     },
-    "auth": {
-        "welcome": "歡迎使用 LLMChat",
-        "login": "登入",
-        "register": "註冊",
-        "email": "Email",
-        "emailPlaceholder": "輸入您的 Email 地址",
-        "password": "密碼",
-        "passwordPlaceholder": "輸入您的密碼",
-        "confirmPassword": "確認密碼",
-        "confirmPasswordPlaceholder": "再次輸入密碼",
-        "passwordMismatch": "密碼不相符",
-        "processing": "處理中...",
-        "noAccount": "還沒有帳號？",
-        "hasAccount": "已經有帳號？",
-        "logout": "登出",
-        "registrationSuccess": "感謝註冊！",
-        "verificationEmailSent": "我們已發送驗證郵件到您的信箱：",
-        "verificationLinkGenerated": "驗證鏈接已生成，請複製以下鏈接到瀏覽器開啟：",
-        "verificationSent": "我們已發送驗證鏈接到您的信箱：",
-        "verificationLink": "驗證鏈接：",
-        "verificationInstructions": "請檢查您的郵箱收取啟用信。",
-        "copyLink": "複製",
-        "linkCopied": "驗證鏈接已複製到剪貼簿",
-        "backToLogin": "返回登入",
-        "resendVerification": "重新發送驗證郵件",
-        "resendVerificationSuccess": "驗證郵件已重新發送！",
-        "duplicateRegistration": "此 Email 已經註冊過了",
-        "duplicateRegistrationMessage": "請使用其他 Email 註冊，或直接登入",
-        "backToLoginButton": "返回登入",
-        "registrationDisabled": "註冊功能未啟用",
-        "registrationDisabledMessage": "系統管理員尚未配置郵件服務，無法發送驗證郵件。如需註冊帳號，請聯繫管理員。",
-        "emailVerificationRequired": "請先驗證您的 Email 地址"
-    },
-    "email": {
-        "verification": {
-            "subject": "LLMChat - 請驗證您的Email地址",
-            "greeting": "您好",
-            "greetingWithName": "您好 {{name}}",
-            "title": "歡迎加入 LLMChat！",
-            "description": "感謝您註冊 LLMChat 帳號。為了確保帳號安全，請點擊下方按鈕驗證您的 Email 地址：",
-            "buttonText": "驗證 Email 地址",
-            "alternativeText": "或者，您可以複製以下鏈接並在瀏覽器中開啟：",
-            "warningTitle": "重要提醒：",
-            "warningMessage": "此驗證鏈接將在 24 小時後過期。如果鏈接失效，請重新註冊帳號。",
-            "successMessage": "驗證完成後，您就可以開始使用 LLMChat 與本地 AI 模型對話了！",
-            "ignoreMessage": "如果您沒有註冊過 LLMChat 帳號，請忽略此郵件。",
-            "footer": "此郵件由系統自動發送，請勿回覆。",
-            "copyright": "© 2025 LLMChat. All rights reserved.",
-            "pageTitle": "LLMChat Email驗證"
-        }
+    "github": "在 GitHub 上查看",
+    "menu": "選單",
+    "adminBadge": "管理員",
+    "adminButton": "用戶管理"
+  },
+  "settings": {
+    "panels": {
+      "user": "用戶設定",
+      "llm": "LLM 配置",
+      "generation": "生成參數"
     },
     "language": {
-        "selector": "語言",
-        "zh-TW": "繁體中文",
-        "zh-CN": "簡體中文",
-        "en": "English",
-        "ja": "日本語",
-        "ko": "한국어"
+      "label": "語言設定"
     },
-    "admin": {
-        "accessDenied": "權限不足",
-        "accessDeniedMessage": "您需要管理員權限才能訪問此頁面",
-        "backToChat": "返回聊天",
-        "title": "管理員設定頁面",
-        "subtitle": "管理系統中的所有用戶與 LLM 設定",
-        "stats": {
-            "totalUsers": "總用戶數",
-            "enabledUsers": "啟用用戶",
-            "disabledUsers": "禁用用戶",
-            "admins": "管理員"
-        },
-        "table": {
-            "list": "用戶列表",
-            "email": "Email",
-            "status": "狀態",
-            "role": "角色",
-            "registrationDate": "註冊時間",
-            "lastLogin": "最後登入",
-            "actions": "操作"
-        },
-        "status": {
-            "enabled": "啟用",
-            "disabled": "禁用"
-        },
-        "role": {
-            "admin": "管理員",
-            "user": "用戶"
-        },
-        "neverLoggedIn": "從未登入",
-        "disableUser": "禁用用戶",
-        "enableUser": "啟用用戶",
-        "setAsAdmin": "設為管理員",
-        "setAsUser": "設為普通用戶",
-        "deleteUser": "刪除用戶",
-        "deleteUserConfirm": "確定要刪除此用戶嗎？此操作無法復原。",
-        "noUsers": "沒有用戶數據",
-        "pagination": {
-            "showing": "顯示第 {{start}} 到 {{end}} 項，共 {{total}} 項",
-            "previous": "上一頁",
-            "next": "下一頁"
-        },
-        "close": "關閉",
-        "error": {
-            "fetchUsers": "獲取用戶列表失敗",
-            "updateRole": "更新角色失敗",
-            "deleteUser": "刪除用戶失敗",
-            "toggleUser": "切換用戶狀態失敗",
-            "unknown": "未知錯誤"
-        },
-        "usersTab": "用戶管理",
-        "llmTab": "LLM Provider 設定",
-        "llm": {
-            "config": "LLM Provider 配置",
-            "selectProvider": "選擇 Provider",
-            "baseUrl": "Base URL",
-            "baseUrlHint": "選擇 Provider 後自動帶出，可手動修改",
-            "apiKey": "API Key",
-            "apiKeyPlaceholder": "API Key (可選，部分 Provider 不需要)",
-            "apiKeyHint": "格式依 Provider 而定（API Key、OAuth Token 等）",
-            "modelName": "模型名稱",
-            "modelPlaceholder": "例如：gpt-4, claude-3, llama3",
-            "fetchModels": "獲取模型",
-            "visionModel": "Vision 模型 (可選)",
-            "visionPlaceholder": "用於多模態內容，留空則自動選擇",
-            "visionHint": "用於讀取圖片、手寫草圖等。留空時系統會自動選擇同 Provider 的 vision 模型。",
-            "generation": "生成參數",
-            "temperature": "溫度",
-            "topP": "Top P",
-            "topK": "Top K",
-            "contextSize": "Context Size (最大 Context 數)",
-            "temperatureHint": "控制輸出隨機性：低溫=確定、邏輯；高溫=多樣、創造",
-            "topPHint": "核心採樣機率：高=高機率；低=低機率",
-            "topKHint": "限制候選 Token 數量：高=取樣多；低=取樣少",
-            "maxTokensHint": "最大上下文長度",
-            "testing": "測試中...",
-            "testConnection": "測試連接",
-            "saveSettings": "保存設定",
-            "testAndSave": "測試與儲存 Provider",
-            "saveSuccess": "✅ 設定已保存",
-            "saveWarning": "⚠️ 設定已保存，但連接失敗",
-            "saveError": "❌ 保存失敗",
-            "current": "當前",
-            "testSuccess": "✅ 連接成功",
-            "testFailed": "❌ 連接失敗",
-            "testError": "❌ 連接錯誤："
-        }
+    "theme": {
+      "label": "主題設定",
+      "auto": "跟隨系統",
+      "light": "亮色模式",
+      "dark": "暗色模式"
     },
-    "systemPrompt": "你是一個有用的AI助手，請用繁體中文回答用戶的問題。"
+    "password": {
+      "label": "更改密碼",
+      "current": "目前密碼",
+      "currentPlaceholder": "輸入目前密碼",
+      "new": "新密碼",
+      "newPlaceholder": "輸入新密碼 (最少6個字符)",
+      "button": "更改密碼",
+      "success": "密碼更改成功",
+      "error": "密碼更改失敗",
+      "weak": "密碼長度至少需要6個字符",
+      "incorrect": "目前密碼不正確"
+    },
+    "api": {
+      "url": "API URL (Ollama/OpenAI API 地址)",
+      "key": "API Key (用於需要驗證的 API 服務)",
+      "keyPlaceholder": "輸入 API Key (可選)"
+    },
+    "model": {
+      "label": "模型 (選擇要使用的 AI 模型)",
+      "loading": "(載入中...)",
+      "none": "(未找到模型)",
+      "placeholder": "載入中...",
+      "noModels": "沒有可用模型"
+    },
+    "parameters": {
+      "temperature": "溫度: {{value}} (控制輸出的隨機性參數 0-2：低溫=確定、邏輯、一致；高溫=多樣、創造、驚喜)",
+      "topP": "Top P: {{value}} (控制核心採樣的機率參數 0-1：高=高機率；低=低機率)",
+      "topK": "Top K: {{value}} (限制候選Token的數量參數 1-100：高=取樣多；低=取樣少)",
+      "maxTokens": "最大 Context 數: {{value}} (設定生成回應的最大上下文長度 4096-262144)",
+      "showTokenStats": "顯示 Token 統計",
+      "on": "開啟",
+      "off": "關閉"
+    },
+    "adminOnly": "管理員",
+    "adminOnlyMessage": "只有管理員才能設定以下API配置"
+  },
+  "messages": {
+    "user": "用戶",
+    "assistant": "助手",
+    "thinking": "思考過程",
+    "files": "附加檔案",
+    "interrupted": "(用戶中斷)",
+    "error": "抱歉，發生錯誤。請檢查後端服務是否正常運行。",
+    "delete": {
+      "confirm": "確定要刪除這條訊息嗎？",
+      "button": "刪除訊息"
+    },
+    "generating": "正在生成回應...",
+    "copy": {
+      "buttonTitle": "複製程式碼",
+      "success": "程式碼已複製到剪貼簿",
+      "failed": "複製失敗，請手動選取並複製程式碼"
+    },
+    "voice": {
+      "play": "點擊播放語音",
+      "stop": "點擊停止播放",
+      "playing": "正在播放語音",
+      "queued": "已加入播放隊列",
+      "next": "即將播放",
+      "unsupported": "您的瀏覽器不支援語音合成功能",
+      "queue": "隊列",
+      "queueItems": "隊列: {{count}} 項",
+      "playingStatus": "播放中",
+      "skip": "跳過",
+      "skipTitle": "跳過當前語音",
+      "clear": "清除",
+      "clearTitle": "清除語音隊列",
+      "removeFromQueue": "點擊從隊列中移除",
+      "otherTabPlaying": "其他標籤頁正在播放"
+    }
+  },
+  "input": {
+    "placeholder": "輸入您的訊息... (Shift+Enter 換行)",
+    "voice": {
+      "start": "語音輸入",
+      "stop": "停止語音輸入",
+      "unsupported": "您的瀏覽器不支援語音識別功能"
+    },
+    "files": {
+      "button": "附加檔案 (支援圖片、文字、PDF、JSON，最大50MB)",
+      "sizeError": "檔案 {{name}} 太大，請選擇小於 50MB 的檔案",
+      "typeError": "檔案類型 {{type}} 不支援",
+      "pdfNote": "注意：PDF內容無法在瀏覽器中直接解析。如需分析PDF內容，請考慮將PDF轉換為文字檔案後上傳，或使用支援PDF解析的服務。"
+    },
+    "stopDoubleConfirm": "再按一次停止生成"
+  },
+  "auth": {
+    "welcome": "歡迎使用 LLMChat",
+    "login": "登入",
+    "register": "註冊",
+    "email": "Email",
+    "emailPlaceholder": "輸入您的 Email 地址",
+    "password": "密碼",
+    "passwordPlaceholder": "輸入您的密碼",
+    "confirmPassword": "確認密碼",
+    "confirmPasswordPlaceholder": "再次輸入密碼",
+    "passwordMismatch": "密碼不相符",
+    "processing": "處理中...",
+    "noAccount": "還沒有帳號？",
+    "hasAccount": "已經有帳號？",
+    "logout": "登出",
+    "registrationSuccess": "感謝註冊！",
+    "verificationEmailSent": "我們已發送驗證郵件到您的信箱：",
+    "verificationLinkGenerated": "驗證鏈接已生成，請複製以下鏈接到瀏覽器開啟：",
+    "verificationSent": "我們已發送驗證鏈接到您的信箱：",
+    "verificationLink": "驗證鏈接：",
+    "verificationInstructions": "請檢查您的郵箱收取啟用信。",
+    "copyLink": "複製",
+    "linkCopied": "驗證鏈接已複製到剪貼簿",
+    "backToLogin": "返回登入",
+    "resendVerification": "重新發送驗證郵件",
+    "resendVerificationSuccess": "驗證郵件已重新發送！",
+    "duplicateRegistration": "此 Email 已經註冊過了",
+    "duplicateRegistrationMessage": "請使用其他 Email 註冊，或直接登入",
+    "backToLoginButton": "返回登入",
+    "registrationDisabled": "註冊功能未啟用",
+    "registrationDisabledMessage": "系統管理員尚未配置郵件服務，無法發送驗證郵件。如需註冊帳號，請聯繫管理員。",
+    "emailVerificationRequired": "請先驗證您的 Email 地址"
+  },
+  "email": {
+    "verification": {
+      "subject": "LLMChat - 請驗證您的Email地址",
+      "greeting": "您好",
+      "greetingWithName": "您好 {{name}}",
+      "title": "歡迎加入 LLMChat！",
+      "description": "感謝您註冊 LLMChat 帳號。為了確保帳號安全，請點擊下方按鈕驗證您的 Email 地址：",
+      "buttonText": "驗證 Email 地址",
+      "alternativeText": "或者，您可以複製以下鏈接並在瀏覽器中開啟：",
+      "warningTitle": "重要提醒：",
+      "warningMessage": "此驗證鏈接將在 24 小時後過期。如果鏈接失效，請重新註冊帳號。",
+      "successMessage": "驗證完成後，您就可以開始使用 LLMChat 與本地 AI 模型對話了！",
+      "ignoreMessage": "如果您沒有註冊過 LLMChat 帳號，請忽略此郵件。",
+      "footer": "此郵件由系統自動發送，請勿回覆。",
+      "copyright": "© 2025 LLMChat. All rights reserved.",
+      "pageTitle": "LLMChat Email驗證"
+    }
+  },
+  "language": {
+    "selector": "語言",
+    "zh-TW": "繁體中文",
+    "zh-CN": "簡體中文",
+    "en": "English",
+    "ja": "日本語",
+    "ko": "한국어"
+  },
+  "admin": {
+    "accessDenied": "權限不足",
+    "accessDeniedMessage": "您需要管理員權限才能訪問此頁面",
+    "backToChat": "返回聊天",
+    "title": "管理員設定頁面",
+    "subtitle": "管理系統中的所有用戶與 LLM 設定",
+    "userManagement": "用戶管理",
+    "users": "位用戶",
+    "you": "你",
+    "never": "從未登入",
+    "addUser": "新增用戶",
+    "editUser": "編輯用戶",
+    "stats": {
+      "totalUsers": "總用戶數",
+      "enabledUsers": "啟用用戶",
+      "disabledUsers": "禁用用戶",
+      "admins": "管理員"
+    },
+    "table": {
+      "list": "用戶列表",
+      "email": "Email",
+      "status": "狀態",
+      "role": "角色",
+      "createdAt": "創建時間",
+      "registrationDate": "註冊時間",
+      "lastLogin": "最後登入",
+      "actions": "操作"
+    },
+    "status": {
+      "enabled": "啟用",
+      "disabled": "禁用"
+    },
+    "role": {
+      "admin": "管理員",
+      "user": "用戶"
+    },
+    "neverLoggedIn": "從未登入",
+    "disableUser": "禁用用戶",
+    "enableUser": "啟用用戶",
+    "setAsAdmin": "設為管理員",
+    "setAsUser": "設為普通用戶",
+    "deleteUser": "刪除用戶",
+    "deleteUserConfirm": "確定要刪除此用戶嗎？此操作無法復原。",
+    "noUsers": "沒有用戶數據",
+    "pagination": {
+      "showing": "顯示第 {{start}} 到 {{end}} 項，共 {{total}} 項",
+      "previous": "上一頁",
+      "prev": "上一頁",
+      "next": "下一頁"
+    },
+    "close": "關閉",
+    "error": {
+      "fetchUsers": "獲取用戶列表失敗",
+      "updateRole": "更新角色失敗",
+      "deleteUser": "刪除用戶失敗",
+      "toggleUser": "切換用戶狀態失敗",
+      "unknown": "未知錯誤",
+      "emailPasswordRequired": "Email 和密碼為必填",
+      "addFailed": "新增失敗",
+      "emailRequired": "Email 為必填",
+      "saveFailed": "儲存失敗",
+      "adcFailed": "匯入本機憑證失敗。",
+      "connectBackendFailed": "連線後端失敗。",
+      "googleUrlFailed": "無法取得 Google 授權 URL：",
+      "googleAuthFailed": "Google 授權失敗：",
+      "connectBackendFailedAlert": "連線後端失敗："
+    },
+    "usersTab": "用戶管理",
+    "llmTab": "LLM Provider 設定",
+    "modal": {
+      "password": "密碼",
+      "newPassword": "新密碼",
+      "leaveEmpty": "留空則不變更",
+      "role": "角色",
+      "cancel": "取消",
+      "create": "新增",
+      "creating": "新增中...",
+      "save": "儲存",
+      "saving": "儲存中..."
+    },
+    "llm": {
+      "config": "LLM Provider 配置",
+      "selectProvider": "選擇 Provider",
+      "baseUrl": "Base URL",
+      "baseUrlHint": "選擇 Provider 後自動帶出，可手動修改",
+      "apiKey": "API Key",
+      "apiKeyPlaceholder": "API Key (可選，部分 Provider 不需要)",
+      "apiKeyHint": "格式依 Provider 而定（API Key、OAuth Token 等）",
+      "authMethod": "認證方法",
+      "modelName": "模型名稱",
+      "modelPlaceholder": "例如：gpt-4, claude-3, llama3",
+      "fetchModels": "獲取模型",
+      "visionModel": "Vision 模型 (可選)",
+      "visionPlaceholder": "用於多模態內容，留空則自動選擇",
+      "visionHint": "用於讀取圖片、手寫草圖等。留空時系統會自動選擇同 Provider 的 vision 模型。",
+      "generation": "生成參數",
+      "advancedParams": "進階參數",
+      "temperature": "溫度",
+      "topP": "Top P",
+      "topK": "Top K",
+      "contextSize": "Context Size (最大 Context 數)",
+      "temperatureHint": "控制輸出隨機性：低溫=確定、邏輯；高溫=多樣、創造",
+      "topPHint": "核心採樣機率：高=高機率；低=低機率",
+      "topKHint": "限制候選 Token 數量：高=取樣多；低=取樣少",
+      "maxTokensHint": "最大上下文長度",
+      "testing": "測試中...",
+      "testConnection": "測試連接",
+      "saveSettings": "保存設定",
+      "testAndSave": "測試與儲存 Provider",
+      "saveSuccess": "✅ 設定已保存",
+      "saveWarning": "⚠️ 設定已保存，但連接失敗",
+      "saveError": "❌ 保存失敗",
+      "current": "當前",
+      "testSuccess": "✅ 連接成功",
+      "testFailed": "❌ 連接失敗",
+      "testError": "❌ 連接錯誤：",
+      "connectSuccess": "✅ 連接成功",
+      "connectFailed": "❌ 連接失敗",
+      "connectError": "❌ 連接錯誤：",
+      "saveFailed": "保存失敗：",
+      "providerSettings": "Provider 設置",
+      "apiKeyOptional": "（可選，若已用上方帳號登入則留空）",
+      "checking": "檢查中...",
+      "checkConnection": "檢查連接",
+      "authGoogleSA": "🌐 Google 服務帳號金鑰 (Service Account JSON)",
+      "authGitHub": "🐙 GitHub Copilot 帳號授權 (GitHub OAuth)",
+      "authAzure": "🌐 Microsoft Entra ID 客戶端憑證 (OAuth 2.0)",
+      "authAws": "☁️ AWS IAM 簽章憑證 (SigV4)",
+      "authApiKey": "🔑 靜態 API 金鑰 (Static API Key)",
+      "gcpServiceAccount": "GCP 服務帳號金鑰 (Service Account JSON)",
+      "sessionToken": "Session Token（選填）"
+    }
+  },
+  "systemPrompt": "你是一個有用的AI助手，請用繁體中文回答用戶的問題。"
 }

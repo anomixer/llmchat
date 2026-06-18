@@ -17,6 +17,7 @@ It is highly recommended for **enterprises looking to deploy on-premise AI chat 
 - 🔍 **Live Web Search**: Enabled by default (web toggle), with 5-language intelligent intent classification (weather, news, forex, etc.) and a parallel stock quote parser.
 - 🔊 **Smart Voice Interface**: Support for multi-lingual Voice Input (STT) and Text-to-Speech (TTS) with an intelligent audio player queue to prevent overlapping voices.
 - ⚙️ **Multi-Provider Integration**: Out-of-the-box support for 20+ LLM providers (Ollama, OpenAI, Gemini, Claude, NIM, etc.) with dynamic vision model selection, maxTokens slider, and Base64 image upload.
+- 🔐 **OAuth Connections**: Backend support for GitHub Copilot OAuth integration.
 - 🔒 **Security & Admin Control**: Email registration verification (SMTP toggle), auto-activation of the first registered admin, and full admin dashboard for user CRUD, password reset, and role management.
 - 📂 **Privacy & Storage**: Support for up to 50MB file uploads (TXT, Images, PDF), localized UI, and secure isolated user session backups.
 
@@ -81,6 +82,7 @@ npm start
 Copy `.env.example` to `.env` and update configuration parameters:
 - **LLM Settings**: `LLM_PROVIDER` (e.g., `ollama`, `openai`, `gemini`), `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`.
 - **SMTP Settings**: Configure `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` to enable registration.
+
 - Refer to [.env.example](file:///.env.example) for detailed environment variable usage.
 
 ## 📝 Important Notes
@@ -88,8 +90,10 @@ Copy `.env.example` to `.env` and update configuration parameters:
 1. **Privacy**: All user data and chat history are saved locally (`server/data/`), never uploaded to the cloud.
 2. **First Admin Auto-Activation**: The first user to register becomes the administrator instantly and bypasses email verification.
 3. **SMTP registration lock**: If SMTP settings are missing, registration is disabled (only Admin can create users).
-4. **Hardware**: Running local LLM requires significant RAM (8GB+ recommended).
-5. **Backup**: Backup the `server/data/` directory to restore user history on a new server.
+4. **OAuth token storage**: The current OAuth session bindings are stored in backend memory and will be cleared after server restart unless later migrated to persistent storage.
+5. **Hardware**: Running local LLM requires significant RAM (8GB+ recommended).
+6. **Backup**: Backup the `server/data/` directory to restore user history on a new server.
+7. **Streaming Reliability**: The backend monitors response termination events (`res.on('close')`) to safely cancel streaming generation, preventing resource leaks when users navigate away.
 
 ## 📂 Documents
 
@@ -115,6 +119,7 @@ Copy `.env.example` to `.env` and update configuration parameters:
 - 🔍 **即時聯網搜尋**：預設啟用網路搜尋功能（地球開關），具備 5 國語言智慧意圖過濾（天氣、新聞、匯率等），並配備智慧多路並行股價解析引擎。
 - 🔊 **智慧語音互動**：支援多國語言的語音輸入（STT）與語音朗讀（TTS），並內建智慧語音播放隊列，確保多條語音按順序播放而不相互中斷。
 - ⚙️ **多 Provider 整合**：全面支援 20+ 組主流雲端與本地 LLM 提供商（Ollama, OpenAI, Gemini, Claude, NIM 等），支援拉霸調整 Context Size、多模態 Vision 模型自動檢測與圖片 Base64 智慧傳輸。
+- 🔐 **OAuth 帳號連接**：後端已支援 GitHub Copilot OAuth 帳號綁定授權。
 - 🔒 **安全認證與管理**：提供電子郵件驗證的使用者註冊與登入（SMTP 動態開關），首位註冊者免驗證直升 Admin。管理員可直接在後台進行使用者 CRUD、密碼重設與角色管理。
 - 📂 **資料隱私與存檔**：支援高達 50MB 檔案上傳（文字、圖片、PDF等），多語系介面（繁/簡/英/日/韓），以及使用者對話獨立分檔備份與還原。
 
@@ -183,6 +188,7 @@ npm start
 複製 `.env.example` 為 `.env` 並修改相關設定：
 - **LLM 提供商設定**：`LLM_PROVIDER` (如 `ollama`, `openai`, `gemini` 等)、`LLM_BASE_URL`、`LLM_API_KEY`、`LLM_MODEL` 等。
 - **SMTP 郵件設定**（可選）：配置 `SMTP_HOST`、`SMTP_PORT`、`SMTP_USER`、`SMTP_PASS` 以啟用使用者註冊功能。若未配置，註冊功能將自動關閉。
+
 - 詳細的環境變數說明與範例設定請直接參考 [.env.example](file:///.env.example) 檔案。
 
 ## 🌟 多 Provider 支援列表
@@ -198,8 +204,10 @@ npm start
 1. **私隱與安全性**：所有使用者資料與對話紀錄皆安全儲存於本地檔案系統（`server/data/`），預設絕不上傳雲端，確保完全的資料自主權。
 2. **首位管理員機制**：系統啟動後，首位註冊的使用者將免除 Email 驗證並自動提權為 `admin` 管理員。
 3. **郵件服務（SMTP）**：若未配置 SMTP 設定，系統將自動停用一般使用者註冊功能，此時僅允許管理員手動新增使用者。
-4. **地端硬體要求**：執行本地 LLM 對硬體要求較高，建議主機配備至少 8GB 以上記憶體（RAM），並預留足夠空間下載 AI 模型。
-5. **備份與還原**：管理員可定期備份 `server/data/` 資料夾，如有需要只需將檔案複製回原路徑並重啟伺服器。
+4. **OAuth 憑證儲存方式**：目前 Google OAuth 與 ChatGPT session 綁定資料僅儲存在後端記憶體，伺服器重啟後會清空；若需正式上線，建議改為持久化儲存。
+5. **地端硬體要求**：執行本地 LLM 對硬體要求較高，建議主機配備至少 8GB 以上記憶體（RAM），並預留足夠空間下載 AI 模型。
+6. **備份與還原**：管理員可定期備份 `server/data/` 資料夾，如有需要只需將檔案複製回原路徑並重啟伺服器。
+7. **智慧中斷與資源釋放**：後端精確監聽 HTTP 回應的 `close` 事件（`res.on('close')`），一旦使用者關閉視窗或連線中斷，即自動終止地端模型推理，徹底防止伺服器運算資源洩漏與空轉。
 
 ## 📂 相關文件
 
