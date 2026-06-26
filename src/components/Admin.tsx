@@ -363,6 +363,10 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                 setSelectedProvider(data.current.type)
                 setProviderBaseUrl(data.current.baseUrl)
                 setProviderModel(data.current.model)
+                if (data.current.temperature !== undefined) setProviderTemperature(data.current.temperature)
+                if (data.current.topP !== undefined) setProviderTopP(data.current.topP)
+                if (data.current.topK !== undefined) setProviderTopK(data.current.topK)
+                if (data.current.maxTokens !== undefined) setProviderMaxTokens(data.current.maxTokens)
 
                 let currentApiKey = ''
                 let currentAuthMethod = (data.current.authMethod === 'github-copilot-oauth' ? 'api-key' : data.current.authMethod) || 'api-key'
@@ -386,6 +390,10 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                             currentOauthConfig = { ...currentOauthConfig, ...parsed.oauthConfig }
                             setProviderOauthConfig(currentOauthConfig)
                         }
+                        if (parsed.temperature !== undefined) setProviderTemperature(parsed.temperature)
+                        if (parsed.topP !== undefined) setProviderTopP(parsed.topP)
+                        if (parsed.topK !== undefined) setProviderTopK(parsed.topK)
+                        if (parsed.maxTokens !== undefined) setProviderMaxTokens(parsed.maxTokens)
                     } catch (e) { console.error('解析 adminSettings 失敗:', e) }
                 }
 

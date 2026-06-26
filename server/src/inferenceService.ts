@@ -63,7 +63,7 @@ export class InferenceService {
      * 更新 Provider 配置
      */
     updateProvider(config) {
-        const { type, baseUrl, apiKey, model, temperature, maxTokens, authMethod, oauthConfig } = config
+        const { type, baseUrl, apiKey, model, temperature, topP, topK, maxTokens, authMethod, oauthConfig } = config
         
         this.defaultProvider = {
             type,
@@ -71,6 +71,8 @@ export class InferenceService {
             apiKey,
             model,
             temperature,
+            topP,
+            topK,
             maxTokens,
             authMethod: authMethod || 'api-key',
             oauthConfig: oauthConfig || {}
