@@ -217,18 +217,23 @@ export class OllamaProvider {
                 content: message
             })
 
+            const options: any = {
+                temperature: parseFloat(String(temperature)),
+                top_p: parseFloat(String(settings?.topP || 0.9)),
+                top_k: parseInt(String(settings?.topK || 40)),
+                repeat_penalty: 1.1
+            }
+
+            const parsedMaxTokens = parseInt(String(maxTokens))
+            if (!isNaN(parsedMaxTokens) && parsedMaxTokens > 0) {
+                options.num_ctx = parsedMaxTokens
+            }
+
             const requestData = {
                 model: model,
                 messages: messages,
                 stream: true,
-                options: {
-                    temperature: parseFloat(String(temperature)),
-                    num_predict: parseInt(String(maxTokens)),
-                    num_ctx: parseInt(String(maxTokens)),
-                    top_p: parseFloat(String(settings?.topP || 0.9)),
-                    top_k: parseInt(String(settings?.topK || 40)),
-                    repeat_penalty: 1.1
-                }
+                options: options
             }
 
             console.log('Sending streaming request to Ollama:', JSON.stringify(requestData, null, 2))

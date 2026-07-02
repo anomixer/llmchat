@@ -1036,7 +1036,7 @@ const App: React.FC = () => {
             const errorMessage: Message = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
-                content: t('messages.error'),
+                content: `${t('messages.error')}\n\n${(error as any)?.message || ''}`,
                 timestamp: new Date()
             }
             appendMessage(conversationId, errorMessage)

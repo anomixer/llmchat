@@ -4,6 +4,23 @@
 
 ---
 
+### v260702
+
+- 🛠️ **模型設定與參數解析優化 (Fix Ollama Cloud & 400 parameter errors)**:
+  - 修正了 `OllamaProvider` 錯誤地將 `maxTokens`（Context Size）同時套用到 `num_predict` 與 `num_ctx` 的問題。現在只會將 Context Size 設定給 `num_ctx`，解決了 Ollama Cloud 上 `:cloud` 模型及部分 OpenAI 相容 API（如 9router/Groq）因 Context 設太大而觸發單次輸出上限（HTTP 400 Bad Request）的 Bug。
+- 👁️ **API 錯誤診斷機制大提升**:
+  - 重構後端 Axios 串流錯誤攔截器，當 API 串流發送發生錯誤時（如 400, 401 等），會自動完整讀取 upstream 伺服器回傳的錯誤主體（Details），並附加到錯誤資訊中回傳。
+  - 前端配合將底層詳細錯誤資訊直接呈現在對話卡片上，取代原本含糊的「抱歉，發生錯誤。請檢查後端服務是否正常運行。」，供使用者即時診斷 API 連線與參數問題。
+- 📅 **防止日期幻覺與 Ambiguity 警告 (Prevent Date Hallucination)**:
+  - 後端 `chat.ts` 路由在發送對話時，會自動獲取伺服器當前系統時間並以 `YYYY年M月D日` 格式注入 System Prompt，並在月日小於等於 12 且不相等時（如 7 月 2 日）附帶月日防混淆警告，防止 AI 模型將日期誤判（如把 7 月 2 日認成 2 月 7 日）。
+- 🎨 **UI 介面微調 (Max Context Size 與選單寬度優化)**:
+  - 將 UI 及多國語系 locale 檔中的「Max Tokens (Context Size)」全面更名為更精確的 **「Max Context Size」**。
+  - 修正了 Admin 設定頁面在按下儲存時，因快取更新順序不對而導致畫面狀態短暫回復成舊值的 UI 狀態顯示 Bug。
+  - 將頂部 Title 旁的模型選單下拉寬度由 `w-48`（192px）加寬至 **`w-80`（320px）**，並加上 `overflow-x-hidden`，徹底解決長模型名稱（如 `nvidia/minimaxai/minimax-m2.7`）在選單內折行或下方冒出左右滾動條的視覺問題。
+- 📝 **文件同步更新**：同步更新 `README.md`、`api.md` 與 `CHANGELOG.md` 並更新版號。
+
+---
+
 ### v260618
 
 - ✨ **Refine Auth Provider UX & i18n**: 

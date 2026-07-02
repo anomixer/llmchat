@@ -297,7 +297,7 @@
       "temperature": "온도",
       "topP": "Top P",
       "topK": "Top K",
-      "contextSize": "Context Size (최대 컨텍스트)",
+      "contextSize": "Max Context Size",
       "temperatureHint": "출력 무작위성 제어: 낮음=결정론적, 높음=창의적",
       "topPHint": "핵 샘플링 확률: 높음=높은 확률, 낮음=낮은 확률",
       "topKHint": "후보 토큰 수 제한: 높음=샘플링 많음, 낮음=샘플링 적음",

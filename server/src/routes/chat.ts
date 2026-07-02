@@ -63,16 +63,23 @@ function buildChatSettings(payload: any, userService: UserService, userId: strin
     console.log(`[ChatSettings] 使用配置來源: ${source}, Type: ${selectedProviderType}, URL: ${selectedApiUrl}, Key: ${selectedApiKey ? '********' : '(empty)'}`)
 
     const now = new Date()
-    const formatter = new Intl.DateTimeFormat('zh-TW', {
-        timeZone: 'Asia/Taipei',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        weekday: 'long'
-    })
-    const dateStr = formatter.format(now)
+    const tzString = 'Asia/Taipei'
+    const year = now.toLocaleDateString('zh-TW', { timeZone: tzString, year: 'numeric' }).replace('年', '').trim()
+    const month = now.toLocaleDateString('zh-TW', { timeZone: tzString, month: 'numeric' }).replace('月', '').trim()
+    const day = now.toLocaleDateString('zh-TW', { timeZone: tzString, day: 'numeric' }).replace('日', '').trim()
+    const weekdayZh = now.toLocaleDateString('zh-TW', { timeZone: tzString, weekday: 'long' })
+    const monthEn = now.toLocaleDateString('en-US', { timeZone: tzString, month: 'long' })
+    const dateStr = `${year}年${month}月${day}日 ${weekdayZh} (${monthEn} ${day}, ${year})`
     const baseSystemPrompt = payload?.settings?.systemPrompt || getSystemPrompt(language)
-    const finalSystemPrompt = `${baseSystemPrompt}\n\n[目前系統時間]\n${dateStr}\n請務必以此系統時間為基準，回答使用者關於「今天」、「明天」、「後天」、「星期幾」或日期時間相關的提問。`
+    
+    const parsedMonth = parseInt(month)
+    const parsedDay = parseInt(day)
+    let warningSuffix = ''
+    if (parsedMonth <= 12 && parsedDay <= 12 && parsedMonth !== parsedDay) {
+        warningSuffix = `（請注意：今天是 ${parsedMonth} 月 ${parsedDay} 日，不要將月和日混淆誤判成 ${parsedDay} 月 ${parsedMonth} 日）`
+    }
+    
+    const finalSystemPrompt = `${baseSystemPrompt}\n\n[目前系統時間]\n${dateStr}\n請務必以此系統時間為基準，回答使用者關於「今天」、「明天」、「後天」、「星期幾」或日期時間相關的提問。${warningSuffix}`
 
     return {
         providerType: selectedProviderType,
@@ -254,7 +261,14 @@ ${message}`
                     console.log('Stream aborted by user')
                     res.end()
                 } else {
-                    console.error('Stream processing error:', error)
+                    if (error?.isAxiosError) {
+                        console.error('Stream processing error (AxiosError):', error.message)
+                        if (error.response?.status) {
+                            console.error(`Status: ${error.response.status}`);
+                        }
+                    } else {
+                        console.error('Stream processing error:', error)
+                    }
                     if (!res.headersSent) {
                         res.status(500).json({ error: '流式處理錯誤', details: error.message })
                     } else {
@@ -264,7 +278,14 @@ ${message}`
             }
 
         } catch (error: any) {
-            console.error('Stream chat error:', error)
+            if (error?.isAxiosError) {
+                console.error('Stream chat error (AxiosError):', error.message)
+                if (error.response?.status) {
+                    console.error(`Status: ${error.response.status}`);
+                }
+            } else {
+                console.error('Stream chat error:', error)
+            }
             if (!res.headersSent) {
                 res.status(500).json({ error: '處理請求時發生錯誤', details: error.message })
             } else {

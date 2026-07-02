@@ -215,6 +215,15 @@ OpenAI 相容模型列表端點（需要認證）
 ```
 回應格式：純文字串流輸出，並會在 Header 附帶 `X-Request-ID` 供停止請求使用。
 
+#### 錯誤處理回應 (500 狀態碼)：
+當串流連線失敗或 upstream 伺服器回傳錯誤（如 400 Bad Request 等），後端會自動讀取 upstream 回傳的詳細錯誤主體並於 JSON 回應中傳回，以便前端進行診斷：
+```json
+{
+  "error": "流式處理錯誤",
+  "details": "Request failed with status code 400. Details: {\"error\": \"...\"}"
+}
+```
+
 > **💡 連線中斷機制**：後端會監聽 HTTP 回應的 `close` 事件（`res.on('close')`）。當使用者在瀏覽器中斷連線（例如關閉對話分頁、重新整理頁面或連線中斷）時，後端將自動終止模型的串流推理發送，以釋放伺服器運算資源。
 
 ### POST /api/chat/stop

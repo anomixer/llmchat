@@ -298,7 +298,7 @@
       "temperature": "温度",
       "topP": "Top P",
       "topK": "Top K",
-      "contextSize": "Context Size (最大 Context 数)",
+      "contextSize": "Max Context Size",
       "temperatureHint": "控制输出随机性：低温=确定、逻辑；高温=多样、创造",
       "topPHint": "核心采样概率：高=高概率；低=低概率",
       "topKHint": "限制候选 Token 数量：高=采样多；低=采样少",

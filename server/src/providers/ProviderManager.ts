@@ -574,6 +574,40 @@ export abstract class BaseProvider {
                 return Promise.reject(error)
             })
         }
+
+        // 攔截 Axios 錯誤，如果是 Stream 則讀取其內容並附加到 error.message 中，以便前端除錯
+        this.client.interceptors.response.use(
+            (response: any) => response,
+            async (error: any) => {
+                if (error.response?.data && typeof error.response.data.on === 'function') {
+                    try {
+                        const details = await new Promise<string>((resolve) => {
+                            let data = ''
+                            error.response.data.on('data', (chunk: any) => {
+                                data += chunk.toString()
+                            })
+                            error.response.data.on('end', () => {
+                                resolve(data)
+                            })
+                            error.response.data.on('error', () => {
+                                resolve('')
+                            })
+                        })
+                        if (details) {
+                            error.message = `${error.message}. Details: ${details}`
+                        }
+                    } catch (e) {
+                        // ignore
+                    }
+                } else if (error.response?.data) {
+                    const details = typeof error.response.data === 'object'
+                        ? JSON.stringify(error.response.data)
+                        : String(error.response.data)
+                    error.message = `${error.message}. Details: ${details}`
+                }
+                return Promise.reject(error)
+            }
+        )
     }
 
     abstract checkConnection(): Promise<boolean>
@@ -706,17 +740,22 @@ export class OllamaProvider extends BaseProvider {
             }
         ]
 
+        const options: any = {
+            temperature: parseFloat(temperature.toString()),
+            top_p: parseFloat(settings?.topP || 0.9),
+            top_k: parseInt(settings?.topK || 40)
+        }
+
+        const parsedMaxTokens = parseInt(maxTokens.toString())
+        if (!isNaN(parsedMaxTokens) && parsedMaxTokens > 0) {
+            options.num_ctx = parsedMaxTokens
+        }
+
         const requestData = {
             model,
             messages,
             stream: true,
-            options: {
-                temperature: parseFloat(temperature.toString()),
-                num_predict: parseInt(maxTokens.toString()),
-                num_ctx: parseInt(maxTokens.toString()),
-                top_p: parseFloat(settings?.topP || 0.9),
-                top_k: parseInt(settings?.topK || 40)
-            }
+            options
         }
 
         const response = await this.client.post('/api/chat', requestData, {

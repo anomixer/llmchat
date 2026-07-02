@@ -1,6 +1,6 @@
 {
     "name": "local-llm-chat",
-    "version": "260618",
+    "version": "260702",
     "description": "Local LLM Chat Application with React frontend and Node.js backend",
     "type": "module",
     "scripts": {

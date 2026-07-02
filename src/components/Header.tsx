@@ -112,7 +112,7 @@ export const Header: React.FC<HeaderProps> = ({
                     </button>
                     <div
                         id="model-menu"
-                        className={`absolute top-full left-0 mt-1 w-48 rounded-md shadow-lg z-50 hidden border max-h-60 overflow-y-auto ${isDarkMode
+                        className={`absolute top-full left-0 mt-1 w-80 rounded-md shadow-lg z-50 hidden border max-h-60 overflow-y-auto overflow-x-hidden ${isDarkMode
                             ? 'bg-gray-800 border-gray-700'
                             : 'bg-white border-gray-200'
                             }`}

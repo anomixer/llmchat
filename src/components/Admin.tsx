@@ -509,15 +509,15 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
             if (response.ok) {
                 const data = await response.json()
                 if (data.isConnected) {
-                    await fetchCurrentProvider()
-                    setConnectionStatus('success')
-                    setConnectionMessage(t('admin.llm.saveSuccess', '✅ 設定已保存'))
                     localStorage.setItem('adminProviderSettings', JSON.stringify({
                         type: selectedProvider, baseUrl: providerBaseUrl, apiKey: providerApiKey,
                         model: providerModel, temperature: providerTemperature, topP: providerTopP,
                         topK: providerTopK, maxTokens: providerMaxTokens,
                         authMethod: providerAuthMethod, oauthConfig: providerOauthConfig
                     }))
+                    await fetchCurrentProvider()
+                    setConnectionStatus('success')
+                    setConnectionMessage(t('admin.llm.saveSuccess', '✅ 設定已保存'))
                     try {
                         const oauthConfigQuery = encodeURIComponent(JSON.stringify(providerOauthConfig))
                         const modelsResponse = await fetch(
@@ -932,7 +932,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                                         onChange={(e) => setProviderTopK(parseInt(e.target.value))} className="w-full" />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Max Tokens</label>
+                                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Max Context Size</label>
                                     <input type="number" min="256" max="128000" step="256" value={providerMaxTokens}
                                         onChange={(e) => setProviderMaxTokens(parseInt(e.target.value))}
                                         className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />

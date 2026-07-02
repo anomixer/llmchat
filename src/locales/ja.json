@@ -297,7 +297,7 @@
       "temperature": "温度",
       "topP": "Top P",
       "topK": "Top K",
-      "contextSize": "Context Size (最大コンテキスト)",
+      "contextSize": "Max Context Size",
       "temperatureHint": "出力のランダム性を制御：低温＝決定論的、高温＝創造的",
       "topPHint": "核サンプリング確率：高＝高確率、低＝低確率",
       "topKHint": "候補トークン数を制限：高＝サンプリング多め、低＝少なめ",

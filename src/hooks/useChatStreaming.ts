@@ -196,7 +196,8 @@ export function useChatStreaming(args: { token: string | null }) {
             currentRequestIdRef.current = response.headers.get('X-Request-ID')
 
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`)
+                const errText = await response.text().catch(() => '')
+                throw new Error(`[${response.status}]: ${errText || response.statusText}`)
             }
 
             const reader = response.body?.getReader()
