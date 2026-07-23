@@ -286,6 +286,7 @@
       "baseUrl": "Base URL",
       "baseUrlHint": "选择 Provider 后自动带出，可手动修改",
       "apiKey": "API Key",
+      "optional": "可选",
       "apiKeyPlaceholder": "API Key (可选，部分 Provider 不需要)",
       "apiKeyHint": "格式依 Provider 而定（API Key、OAuth Token 等）",
       "modelName": "模型名称",

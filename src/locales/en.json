@@ -289,6 +289,7 @@
       "baseUrl": "Base URL",
       "baseUrlHint": "Automatically filled after selecting provider, can be modified manually",
       "apiKey": "API Key",
+      "optional": "optional",
       "apiKeyPlaceholder": "API Key (Optional, some providers don't need it)",
       "apiKeyHint": "Format depends on the provider (API Key, OAuth Token, etc.)",
       "modelName": "Model Name",

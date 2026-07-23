@@ -168,12 +168,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
         if (provider) {
             const defaultUrl = PROVIDER_DEFAULTS[provider.name] || provider.baseUrl || 'http://127.0.0.1:11434/v1'
             setProviderBaseUrl(defaultUrl)
-            let newApiKey = providerApiKey
-            if (!provider.requiresApiKey) {
-                setProviderApiKey('')
-                newApiKey = ''
-            }
-            fetchAvailableModels(providerType, defaultUrl, newApiKey, '', newAuthMethod)
+            fetchAvailableModels(providerType, defaultUrl, providerApiKey, '', newAuthMethod)
         } else {
             const hardcodedUrls: Record<string, string> = {
                 'ollama': 'http://127.0.0.1:11434',
@@ -783,6 +778,16 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                             if (isLocalProvider) {
                                 return (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                {t('admin.llm.apiKey', 'API Key')} ({t('admin.llm.optional', 'optional')})
+                                            </label>
+                                            <input type="password" value={providerApiKey}
+                                                onChange={(e) => setProviderApiKey(e.target.value)}
+                                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                                placeholder={t('admin.llm.apiKeyPlaceholder', 'API Key (可選)')} />
+                                        </div>
+                                        <div className="hidden md:block"></div>
                                         <ModelSelector label={t('admin.llm.modelName', '模型名稱')} value={providerModel} onChange={setProviderModel} />
                                         <VisionModelSelector />
                                     </div>

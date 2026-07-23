@@ -285,6 +285,7 @@
       "baseUrl": "ベースURL",
       "baseUrlHint": "プロバイダー選択後に自動入力されます。手動で変更可能です。",
       "apiKey": "APIキー",
+      "optional": "任意",
       "apiKeyPlaceholder": "APIキー (オプション、一部のプロバイダーは不要)",
       "apiKeyHint": "形式はプロバイダーによって異なります (APIキー、OAuthトークンなど)",
       "modelName": "モデル名",

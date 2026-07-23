@@ -419,22 +419,25 @@ const PROVIDER_ENDPOINTS: Record<ProviderType, {
     vllm: {
         list: '/models',
         chat: '/chat/completions',
-        headers: (_config) => ({
-            'Content-Type': 'application/json'
+        headers: (config) => ({
+            'Content-Type': 'application/json',
+            ...(config.apiKey ? { 'Authorization': `Bearer ${config.apiKey}` } : {})
         })
     },
     sglang: {
         list: '/models',
         chat: '/chat/completions',
-        headers: (_config) => ({
-            'Content-Type': 'application/json'
+        headers: (config) => ({
+            'Content-Type': 'application/json',
+            ...(config.apiKey ? { 'Authorization': `Bearer ${config.apiKey}` } : {})
         })
     },
     'lm-studio': {
         list: '/models',
         chat: '/chat/completions',
-        headers: (_config) => ({
-            'Content-Type': 'application/json'
+        headers: (config) => ({
+            'Content-Type': 'application/json',
+            ...(config.apiKey ? { 'Authorization': `Bearer ${config.apiKey}` } : {})
         })
     },
     custom: {

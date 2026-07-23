@@ -143,22 +143,20 @@ export const ProviderSettings: React.FC<ProviderSettingsProps> = ({
                 />
             </div>
 
-            {/* ── API Key（純 OAuth provider 完全隱藏） ── */}
-            {selectedProvider?.requiresApiKey && (
-                <div>
-                    <label className="block text-sm font-medium mb-2">
-                        API Key 🔑
-                    </label>
-                    <input
-                        type="password"
-                        value={apiKey}
-                        onChange={(e) => setApiKey(e.target.value)}
-                        placeholder="sk-..."
-                        className="w-full px-3 py-2 border rounded-md bg-gray-700 border-gray-600 text-white"
-                    />
-                    <p className="text-xs text-gray-400 mt-1">{t('admin.llm.apiKeyHint', '此密鑰將安全地儲存在您的伺服器中')}</p>
-                </div>
-            )}
+            {/* ── API Key ── */}
+            <div>
+                <label className="block text-sm font-medium mb-2">
+                    API Key 🔑 {!selectedProvider?.requiresApiKey && ` (${t('admin.llm.optional', 'optional')})`}
+                </label>
+                <input
+                    type="password"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    placeholder={selectedProvider?.requiresApiKey ? "sk-..." : t('admin.llm.apiKeyPlaceholder', 'API Key (可選)')}
+                    className="w-full px-3 py-2 border rounded-md bg-gray-700 border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="text-xs text-gray-400 mt-1">{t('admin.llm.apiKeyHint', '此密鑰將安全地儲存在您的伺服器中')}</p>
+            </div>
 
             {/* ── Model ── */}
             <div>

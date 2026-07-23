@@ -307,6 +307,7 @@
       "baseUrl": "Base URL",
       "baseUrlHint": "選擇 Provider 後自動帶出，可手動修改",
       "apiKey": "API Key",
+      "optional": "可選",
       "apiKeyPlaceholder": "API Key (可選，部分 Provider 不需要)",
       "apiKeyHint": "格式依 Provider 而定（API Key、OAuth Token 等）",
       "authMethod": "認證方法",

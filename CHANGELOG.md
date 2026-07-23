@@ -4,6 +4,15 @@
 
 ---
 
+### v260723
+
+- 🔑 **地端 LLM 引擎支援選填 API Key (Optional API Key for Local Engines)**:
+  - 允許使用者在配置本地 `Ollama`、`vLLM`、`SGLang` 與 `LM Studio` 時輸入選填（Optional）的 API Key。
+  - 後端已完成對齊，在發送請求給 `vLLM`、`SGLang`、`LM Studio` 等地端服務時，會自動附加該選填的 `Authorization: Bearer <apiKey>` 標頭，以利支援前端有自建驗證代理（Reverse Proxy）或 API 閘道的部署環境。
+- 📝 **文件同步更新**：同步更新 `package.json` 與 `CHANGELOG.md` 並更新版號。
+
+---
+
 ### v260702
 
 - 🛠️ **模型設定與參數解析優化 (Fix Ollama Cloud & 400 parameter errors)**:

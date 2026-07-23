@@ -285,6 +285,7 @@
       "baseUrl": "기본 URL",
       "baseUrlHint": "제공자 선택 후 자동으로 입력되며 수동으로 수정 가능합니다",
       "apiKey": "API 키",
+      "optional": "선택사항",
       "apiKeyPlaceholder": "API 키 (선택사항, 일부 제공자는 필요 없음)",
       "apiKeyHint": "형식은 제공자에 따라 다릅니다(API 키, OAuth 토큰 등)",
       "modelName": "모델 이름",
