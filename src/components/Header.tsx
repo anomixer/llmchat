@@ -33,6 +33,8 @@ interface HeaderProps {
     user: User
     onAdminView?: () => void
     isMobileView?: boolean
+    tokenUsage?: { used: number; max: number }
+    onCompactConversation?: () => void
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -57,9 +59,18 @@ export const Header: React.FC<HeaderProps> = ({
     onLogout,
     user,
     onAdminView,
-    isMobileView = false
+    isMobileView = false,
+    tokenUsage,
+    onCompactConversation
 }) => {
     const { t } = useTranslation()
+    const ctxDisplay = (() => {
+        if (!tokenUsage) return null
+        const used = tokenUsage.used
+        const max = tokenUsage.max || 8192
+        const pct = Math.min(100, Math.round((used / max) * 100))
+        return `${(used / 1000).toFixed(1)}K (${pct}%)`
+    })()
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
     // 計算下次切換的主題（用於圖示與提示）
@@ -146,6 +157,18 @@ export const Header: React.FC<HeaderProps> = ({
                         </div>
                     </div>
                 </div>
+                {ctxDisplay && (
+                    <span 
+                        onClick={onCompactConversation}
+                        className={`text-[10px] sm:text-xs px-1.5 py-0.5 rounded border transition-colors whitespace-nowrap cursor-pointer select-none ${isDarkMode
+                            ? 'text-gray-300 bg-gray-700/50 border-gray-600/50 hover:bg-gray-600/50 hover:text-white'
+                            : 'text-gray-600 bg-gray-100 border-gray-200 hover:bg-gray-200/50 hover:text-gray-900'
+                            }`}
+                        title={t('header.contextUsage', '上下文用量 (已用/最大)，點擊壓縮 (/compact)')}
+                    >
+                        {ctxDisplay}
+                    </span>
+                )}
             </div>
             {/* 手機視圖：顯示收合選單 */}
             {isMobileView ? (

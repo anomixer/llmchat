@@ -24,7 +24,7 @@ export class InferenceService {
         const apiKey = process.env.LLM_API_KEY || ''
         const model = process.env.LLM_MODEL || 'llama2'
         const temperature = parseFloat(process.env.LLM_TEMPERATURE || '0.7')
-        const maxTokens = parseInt(process.env.LLM_MAX_TOKENS || '2048')
+        const maxTokens = parseInt(process.env.LLM_MAX_TOKENS || '8192')
 
         return {
             type: providerType,

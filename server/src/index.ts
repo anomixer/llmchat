@@ -65,7 +65,7 @@ function buildChatSettings(payload: any): Required<ChatSettings> {
     return {
         model: payload?.settings?.model || 'llama2',
         temperature: payload?.settings?.temperature ?? 0.7,
-        maxTokens: payload?.settings?.maxTokens ?? 2048,
+        maxTokens: payload?.settings?.maxTokens ?? 8192,
         systemPrompt: payload?.settings?.systemPrompt || getSystemPrompt(language),
         apiUrl: payload?.settings?.apiUrl || 'http://localhost:11434',
         apiKey: payload?.settings?.apiKey || '',

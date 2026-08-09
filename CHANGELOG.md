@@ -4,6 +4,27 @@
 
 ---
 
+### v260809
+
+- 📊 **新增 Context 用量指示器 (Context Token Usage Indicator)**:
+  - 於左上方模型選單右側新增一個用量指示器，即時顯示當前對話已消耗的 Token 數量以及所佔最大上下文 (Max Context Size) 的百分比比例，格式為：`"xxxK (nnn%)"`。
+  - 對話總 Token 包含了系統提示詞 (System Prompt)、歷史對話、以及當前正在串流中的文字，生成時可即時跳動更新。
+- 🗜️ **對話壓縮功能 (`/compact`)**:
+  - 當點擊 Context 用量指示器，或是使用者手動輸入 `/compact` 指令時，會自動觸發歷史對話壓縮（對話摘要）。
+  - 系統會調用 AI 將目前的對話記錄摘要成一段緊湊的「歷史摘要」，並將其作為 `System Prompt` 注入或作為隱藏的歷史起點，隨後清空過往詳細對話，將上下文佔用比例重置到最低，解決長對話爆 Token 限制的問題。
+- ⚡ **預設 Context Size 調整為 8K (8192)**:
+  - 將全系統（包含前端 Slider、後端服務回退設定、ProviderManager 的 fallback 等）的預設 Context Size (maxTokens) 全面調整為 `8192` (8K)。
+- 🔄 **模型狀態同步大重構 (Model State Synchronization Overhaul)**:
+  - **Single Source of Truth**：徹底移除了從 `adminProviderSettings` localStorage 快取強行讀取並覆蓋 `model` 的舊邏輯，改由 Server (`/api/user/settings`) 讀取的 `userSettings` 作為 model 的唯一權威來源。
+  - **消除 Race Condition**：重構 `App.tsx` 中的 `loadUserSettings` 觸發條件，採用 `settingsLoadedRef` 防止驗證與對話加載同時完成時條件失效的問題。
+  - **Admin Provider 儲存同步**：Admin 頁面儲存 LLM Provider 設定時，透過 `modelListUpdated` 自訂事件帶入 `selectedModel`，頁首 Header 模型標籤即時同步，無需 F5 重整。
+- 🐛 **Bug 修正 (發送端重複發送與 Token 估算跳動)**:
+  - 修正了發送請求時，最新使用者 Prompt 被重複組裝到 `history` 載荷中發送兩次的 Bug，大幅節省 Token 消耗。
+  - 修正了串流生成前後，由於未儲存的 `streamingMessage` 殘留以及助理 `msg.tokenCount` 低估所引起的「Token 用量顯示跳水/跳動」的問題。
+- 📝 **文件同步更新**：同步更新 `package.json` 與 `CHANGELOG.md` 並更新版號。
+
+---
+
 ### v260723
 
 - 🔑 **地端 LLM 引擎支援選填 API Key (Optional API Key for Local Engines)**:

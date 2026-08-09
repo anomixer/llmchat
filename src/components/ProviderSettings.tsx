@@ -54,7 +54,7 @@ export const ProviderSettings: React.FC<ProviderSettingsProps> = ({
     const [apiKey, setApiKey] = useState('')
     const [model, setModel] = useState(currentProvider.model)
     const [temperature, setTemperature] = useState(currentProvider.temperature !== undefined ? currentProvider.temperature : 0.7)
-    const [maxTokens, setMaxTokens] = useState(currentProvider.maxTokens !== undefined ? currentProvider.maxTokens : 2048)
+    const [maxTokens, setMaxTokens] = useState(currentProvider.maxTokens !== undefined ? currentProvider.maxTokens : 8192)
     const [isChecking, setIsChecking] = useState(false)
     const [connectionStatus, setConnectionStatus] = useState<'idle' | 'checking' | 'success' | 'error'>('idle')
     const [connectionMessage, setConnectionMessage] = useState('')

@@ -669,7 +669,7 @@ export class OllamaProvider extends BaseProvider {
         const {
             model = this.config.model,
             temperature = this.config.temperature || 0.7,
-            maxTokens = this.config.maxTokens || 2048,
+            maxTokens = this.config.maxTokens || 8192,
             systemPrompt = settings.systemPrompt || 'You are a helpful AI assistant.'
         } = settings
 
@@ -724,7 +724,7 @@ export class OllamaProvider extends BaseProvider {
         const {
             model = this.config.model,
             temperature = this.config.temperature || 0.7,
-            maxTokens = this.config.maxTokens || 2048,
+            maxTokens = this.config.maxTokens || 8192,
             systemPrompt = settings.systemPrompt || 'You are a helpful AI assistant.'
         } = settings
 
@@ -827,8 +827,7 @@ export class OpenAIProvider extends BaseProvider {
         const { message, history, images, settings = {} } = params
         const {
             model = this.config.model,
-            temperature = this.config.temperature || 0.7,
-            maxTokens = this.config.maxTokens || 2048,
+            maxTokens = this.config.maxTokens || 8192,
             systemPrompt = settings.systemPrompt || 'You are a helpful AI assistant.'
         } = settings
 
@@ -854,7 +853,7 @@ export class OpenAIProvider extends BaseProvider {
             messages,
             stream: false,
             temperature: parseFloat(temperature.toString()),
-            max_tokens: parseInt(maxTokens.toString())
+            max_tokens: Math.min(parseInt(maxTokens.toString()), 4096)
         }
 
         const response = await this.client.post(this.chatPath, requestData)
@@ -879,8 +878,7 @@ export class OpenAIProvider extends BaseProvider {
         const { message, history, images, settings = {}, abortSignal } = params
         const {
             model = this.config.model,
-            temperature = this.config.temperature || 0.7,
-            maxTokens = this.config.maxTokens || 2048,
+            maxTokens = this.config.maxTokens || 8192,
             systemPrompt = settings.systemPrompt || 'You are a helpful AI assistant.'
         } = settings
 
@@ -906,7 +904,7 @@ export class OpenAIProvider extends BaseProvider {
             messages,
             stream: true,
             temperature: parseFloat(temperature.toString()),
-            max_tokens: parseInt(maxTokens.toString())
+            max_tokens: Math.min(parseInt(maxTokens.toString()), 4096)
         }
 
         const response = await this.client.post(this.chatPath, requestData, {
@@ -1068,7 +1066,7 @@ export class AnthropicProvider extends BaseProvider {
         const requestData = {
             model,
             messages: anthropicMessages,
-            max_tokens: parseInt(maxTokens.toString()),
+            max_tokens: Math.min(parseInt(maxTokens.toString()), 4096),
             temperature: parseFloat(temperature.toString()),
             system: systemPrompt
         }
@@ -1127,7 +1125,7 @@ export class AnthropicProvider extends BaseProvider {
         const requestData = {
             model,
             messages: anthropicMessages,
-            max_tokens: parseInt(maxTokens.toString()),
+            max_tokens: Math.min(parseInt(maxTokens.toString()), 4096),
             temperature: parseFloat(temperature.toString()),
             system: systemPrompt,
             stream: true

@@ -64,7 +64,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
     const [providerTemperature, setProviderTemperature] = useState(0.7)
     const [providerTopP, setProviderTopP] = useState(0.9)
     const [providerTopK, setProviderTopK] = useState(40)
-    const [providerMaxTokens, setProviderMaxTokens] = useState(2048)
+    const [providerMaxTokens, setProviderMaxTokens] = useState(8192)
     const [providerVisionModel, setProviderVisionModel] = useState('')
     const [checkingConnection, setCheckingConnection] = useState(false)
     const [connectionStatus, setConnectionStatus] = useState<'idle' | 'success' | 'error'>('idle')
@@ -523,7 +523,7 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                             const modelsData = await modelsResponse.json()
                             const models = (modelsData.models || []).map((model: any) => ({ id: model.name, name: model.name }))
                             localStorage.setItem('adminModelList', JSON.stringify(models))
-                            window.dispatchEvent(new CustomEvent('modelListUpdated', { detail: { models } }))
+                            window.dispatchEvent(new CustomEvent('modelListUpdated', { detail: { models, selectedModel: providerModel } }))
                         }
                     } catch (error) { console.error('載入模型列表失敗:', error) }
                 } else {

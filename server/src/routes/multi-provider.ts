@@ -43,7 +43,7 @@ export function createMultiProviderRouter(deps: any) {
                 model: adminSettings?.model || process.env.LLM_MODEL || 'llama2',
                 apiKey: adminSettings?.apiKey ? '********' : (process.env.LLM_API_KEY ? '********' : ''),
                 temperature: adminSettings?.temperature || parseFloat(process.env.LLM_TEMPERATURE || '0.7'),
-                maxTokens: adminSettings?.maxTokens || parseInt(process.env.LLM_MAX_TOKENS || '4096'),
+                maxTokens: adminSettings?.maxTokens || parseInt(process.env.LLM_MAX_TOKENS || '8192'),
                 requiresApiKey: AVAILABLE_PROVIDERS.find(p => p.type === providerType)?.requiresApiKey ?? true,
                 authMethod: adminSettings?.authMethod || 'api-key',
                 oauthConfig: safeOauthConfig
@@ -66,7 +66,7 @@ export function createMultiProviderRouter(deps: any) {
             process.env.LLM_API_KEY = apiKey || ''
             process.env.LLM_MODEL = model
             process.env.LLM_TEMPERATURE = temperature?.toString() || '0.7'
-            process.env.LLM_MAX_TOKENS = maxTokens?.toString() || '4096'
+            process.env.LLM_MAX_TOKENS = maxTokens?.toString() || '8192'
 
             // ✅ 持久化到資料庫
             if (userService) {
@@ -94,7 +94,7 @@ export function createMultiProviderRouter(deps: any) {
                         apiKey: finalApiKey,
                         model,
                         temperature: parseFloat(temperature || '0.7'),
-                        maxTokens: parseInt(maxTokens || '4096'),
+                        maxTokens: parseInt(maxTokens || '8192'),
                         authMethod: authMethod || 'api-key',
                         oauthConfig: finalOauthConfig
                     })
@@ -187,7 +187,7 @@ export function createMultiProviderRouter(deps: any) {
                 apiKey: providerApiKey,
                 model: providerModel,
                 temperature: parseFloat(process.env.LLM_TEMPERATURE || '0.7'),
-                maxTokens: parseInt(process.env.LLM_MAX_TOKENS || '2048'),
+                maxTokens: parseInt(process.env.LLM_MAX_TOKENS || '8192'),
                 authMethod: authMethod || existingSettings?.authMethod || 'api-key',
                 oauthConfig: finalOauthConfig || existingSettings?.oauthConfig
             })
@@ -236,7 +236,7 @@ export function createMultiProviderRouter(deps: any) {
                 apiKey: providerApiKey,
                 model: providerModel,
                 temperature: parseFloat(process.env.LLM_TEMPERATURE || '0.7'),
-                maxTokens: parseInt(process.env.LLM_MAX_TOKENS || '2048'),
+                maxTokens: parseInt(process.env.LLM_MAX_TOKENS || '8192'),
                 authMethod,
                 oauthConfig
             })
@@ -270,7 +270,7 @@ export function createMultiProviderRouter(deps: any) {
                 apiKey: providerApiKey,
                 model: providerModel,
                 temperature: parseFloat(settings?.temperature || process.env.LLM_TEMPERATURE || '0.7'),
-                maxTokens: parseInt(settings?.maxTokens || process.env.LLM_MAX_TOKENS || '2048')
+                maxTokens: parseInt(settings?.maxTokens || process.env.LLM_MAX_TOKENS || '8192')
             })
             
             const response = await provider.generateResponse({

@@ -193,7 +193,7 @@ OpenAI 相容模型列表端點（需要認證）
   "settings": {
     "model": "llama2",
     "temperature": 0.7,
-    "maxTokens": 2048
+    "maxTokens": 8192
   },
   "history": [],
   "conversationId": "optional-conversation-id"
@@ -208,7 +208,7 @@ OpenAI 相容模型列表端點（需要認證）
   "settings": {
     "model": "llama2",
     "temperature": 0.7,
-    "maxTokens": 2048
+    "maxTokens": 8192
   },
   "history": []
 }
@@ -261,7 +261,7 @@ OpenAI 相容模型列表端點（需要認證）
   "apiKey": "YOUR_GEMINI_KEY",
   "model": "gemini-2.5-flash",
   "temperature": 0.7,
-  "maxTokens": 4096
+  "maxTokens": 8192
 }
 ```
 **回應**：

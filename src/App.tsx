@@ -41,6 +41,7 @@ const App: React.FC = () => {
         conversationsLoaded,
         currentConversationId,
         setCurrentConversationId,
+        setConversations,
         createConversation,
         createNewConversation: createNewConversationInternal,
         addConversation,
@@ -76,6 +77,8 @@ const App: React.FC = () => {
 
     // 防抖輸入處理，避免頻繁的高度調整
     const inputTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    // 用 ref 追蹤是否已為當前用戶執行過 loadUserSettings，避免 race condition
+    const settingsLoadedRef = useRef<string | null>(null)
 
     const setInputDebounced = useCallback((value: string) => {
         setInput(value)
@@ -108,19 +111,19 @@ const App: React.FC = () => {
         }
     })
     const [availableModels, setAvailableModels] = useState<Array<{ id: string; name: string }>>([])
-    const [isLoadingModels, setIsLoadingModels] = useState(true)
+    const [isLoadingModels, setIsLoadingModels] = useState(false)
     const [availableProviders, setAvailableProviders] = useState<any[]>([])
     const [currentProvider, setCurrentProvider] = useState<any>(null)
     const [settings, setSettings] = useState<ChatSettings>(() => {
-        // 優先從 localStorage 讀取 Admin 設定
+        // 從 localStorage 讀取 Provider 連線設定（apiUrl/apiKey/type）
+        // 注意：model 不從 localStorage 讀，由 server (/api/user/settings) 決定
         const adminSettings = localStorage.getItem('adminProviderSettings')
         if (adminSettings) {
             try {
                 const parsed = JSON.parse(adminSettings)
-                console.log('從 localStorage 讀取 Admin 設定:', parsed)
                 return {
                     type: parsed.type || 'ollama',
-                    model: parsed.model || '',
+                    model: '',  // 永遠從 '' 開始，由 loadUserSettings 從 server 覆蓋
                     temperature: parsed.temperature || 0.7,
                     maxTokens: parsed.maxTokens || 8192,
                     apiUrl: parsed.baseUrl || 'http://127.0.0.1:11434',
@@ -129,12 +132,8 @@ const App: React.FC = () => {
                     topK: parsed.topK || 40,
                     showTokenStats: true
                 }
-            } catch (e) {
-                console.error('解析 adminSettings 失敗:', e)
-            }
+            } catch (e) {}
         }
-        // 否則使用預設值
-        console.log('使用預設值')
         return {
             type: 'ollama',
             model: '',
@@ -265,43 +264,15 @@ const App: React.FC = () => {
 
     // 載入可用模型列表 - 支持自定義 API URL
     const loadAvailableModels = async (currentModelOverride?: string) => {
+        const callId = Date.now()
         try {
             setIsLoadingModels(true)
             
             // currentModelOverride 由 loadUserSettings 傳入，避免 React 閉包捕捉舊值
-            const effectiveModel = currentModelOverride !== undefined ? currentModelOverride : settings.model
+            const effectiveModel = currentModelOverride ? currentModelOverride : settings.model
 
-            // ✅ 先檢查 localStorage 中是否有模型列表（從 Admin 頁面同步）
-            const cachedModels = localStorage.getItem('adminModelList')
-            if (cachedModels) {
-                const models = JSON.parse(cachedModels)
-                console.log('從 localStorage 載入模型列表:', models.length, '個模型')
-                setAvailableModels(models)
 
-                // 自動選擇抉擇模型（如果當前沒選）
-                if (models.length > 0) {
-                    const isCurrentModelValid = models.some((m: any) => m.id === effectiveModel)
-                    if (!effectiveModel || !isCurrentModelValid) {
-                        let fallbackModel = models[0].id
-                        const adminSettingsStr = localStorage.getItem('adminProviderSettings')
-                        if (adminSettingsStr) {
-                            try {
-                                const parsed = JSON.parse(adminSettingsStr)
-                                if (parsed.model && models.some((m: any) => m.id === parsed.model)) {
-                                    fallbackModel = parsed.model
-                                }
-                            } catch (e) { }
-                        }
-                        console.log(`模型 "${effectiveModel}" 不在列表中，自動切換至：${fallbackModel}`)
-                        setSettings(prev => ({ ...prev, model: fallbackModel }))
-                        setUserSettings(prev => ({ ...prev, model: fallbackModel }))
-                    }
-                } else {
-                    setSettings(prev => ({ ...prev, model: '' }))
-                }
-                return
-            }
-            // 優先使用 localStorage 中的設定（從 Admin 頁面同步）
+
             const adminSettings = localStorage.getItem('adminProviderSettings')
             let apiUrl = 'http://127.0.0.1:11434'
             let apiKey = ''
@@ -334,27 +305,59 @@ const App: React.FC = () => {
 
             // ✅ 核心修正：以抓到的模型為準
             if (models.length > 0) {
-                // 如果當前沒選模型，或者當前選的模型不在新抓到的列表中
-                const isCurrentModelValid = models.some((m: any) => m.id === effectiveModel)
-                if (!effectiveModel || !isCurrentModelValid) {
-                    let fallbackModel = models[0].id
-                    const adminSettingsStr = localStorage.getItem('adminProviderSettings')
+                const adminSettingsStr = localStorage.getItem('adminProviderSettings')
+                if (adminSettingsStr) {
+                    try {
+                        const parsed = JSON.parse(adminSettingsStr)
+                        // 同步所有參數，包括 maxTokens (Context Size)
+                        setSettings(prev => ({
+                            ...prev,
+                            type: parsed.type || prev.type,
+                            apiUrl: parsed.baseUrl || prev.apiUrl,
+                            apiKey: parsed.apiKey || prev.apiKey,
+                            temperature: parsed.temperature || prev.temperature,
+                            maxTokens: parsed.maxTokens || prev.maxTokens,
+                            topP: parsed.topP || prev.topP,
+                            topK: parsed.topK || prev.topK,
+                            visionModel: parsed.visionModel || prev.visionModel
+                        }))
+                        setUserSettings(prev => ({
+                            ...prev,
+                            type: parsed.type || prev.type,
+                            apiUrl: parsed.baseUrl || prev.apiUrl,
+                            apiKey: parsed.apiKey || prev.apiKey,
+                            temperature: parsed.temperature || prev.temperature,
+                            maxTokens: parsed.maxTokens || prev.maxTokens,
+                            topP: parsed.topP || prev.topP,
+                            topK: parsed.topK || prev.topK,
+                            visionModel: parsed.visionModel || prev.visionModel
+                        }))
+                    } catch (e) {}
+                }
+
+                // 階層解析選用模型：
+                // 1. 若 effectiveModel（server 儲存的模型）非空，永遠優先使用它（即使不在模型列表中，Ollama 可能暫時無法列出）
+                // 2. 若 effectiveModel 為空，嘗試使用 admin settings 中儲存的 model（需在列表中）
+                // 3. 仍無效，則使用模型列表的第一個模型
+                let selectedModel = ''
+                if (effectiveModel) {
+                    // Server 儲存的模型優先 — 用戶明確設定過，不受即時模型列表限制
+                    selectedModel = effectiveModel
+                } else {
+                    let adminModel = ''
                     if (adminSettingsStr) {
                         try {
                             const parsed = JSON.parse(adminSettingsStr)
-                            if (parsed.model && models.some((m: any) => m.id === parsed.model)) {
-                                fallbackModel = parsed.model
-                            }
+                            adminModel = parsed.model || ''
                         } catch (e) {}
                     }
-                    console.log(`模型 "${effectiveModel}" 不在列表中，自動切換至: ${fallbackModel}`)
-                    setSettings(prev => ({ ...prev, model: fallbackModel }))
-                    setUserSettings(prev => ({ ...prev, model: fallbackModel }))
-                } else if (effectiveModel !== settings.model) {
-                    // 若 effectiveModel 有效且與目前 settings 狀態不一致，更新狀態
-                    setSettings(prev => ({ ...prev, model: effectiveModel }))
-                    setUserSettings(prev => ({ ...prev, model: effectiveModel }))
+                    const isAdminModelValid = adminModel && models.some((m: any) => m.id === adminModel)
+                    selectedModel = isAdminModelValid ? adminModel : models[0].id
                 }
+
+                console.log(`[${callId}] 確認選擇模型為: ${selectedModel}, effectiveModel=${effectiveModel}`)
+                setSettings(prev => ({ ...prev, model: selectedModel }))
+                setUserSettings(prev => ({ ...prev, model: selectedModel }))
             } else {
                 // 如果抓不到任何模型，清空選定
                 setSettings(prev => ({ ...prev, model: '' }))
@@ -521,36 +524,30 @@ const App: React.FC = () => {
                         }
                     })
 
-                    // ✅ 用 localStorage adminProviderSettings 的明文 apiKey 覆蓋（確保與重選 model 行為完全一致）
+                    // adminProviderSettings 只覆蓋連線參數（apiUrl/apiKey/type），不動 model
                     try {
                         const adminSettingsStr = localStorage.getItem('adminProviderSettings')
                         if (adminSettingsStr) {
                             const adminLocalSettings = JSON.parse(adminSettingsStr)
-                            if (adminLocalSettings.apiKey && newSettings.apiUrl) {
-                                newSettings.apiKey = adminLocalSettings.apiKey
-                            }
-                            if (adminLocalSettings.type) {
-                                newSettings.type = adminLocalSettings.type
-                            }
-                if (adminLocalSettings.baseUrl) {
-                    newSettings.apiUrl = adminLocalSettings.baseUrl
-                }
-                // ✅ 不再覆蓋 model，讓使用者自行選擇的 model 優先於 Admin 預設值
-                // 只有當使用者完全沒有設定 model 時，才使用 Admin 預設值
-                if (adminLocalSettings.model && !newSettings.model) {
-                    newSettings.model = adminLocalSettings.model
-                }
+                            if (adminLocalSettings.apiKey) newSettings.apiKey = adminLocalSettings.apiKey
+                            if (adminLocalSettings.type) newSettings.type = adminLocalSettings.type
+                            if (adminLocalSettings.baseUrl) newSettings.apiUrl = adminLocalSettings.baseUrl
+                            // ⚠️ 不從 adminProviderSettings 讀 model！model 由 server 設定
                         }
                     } catch (e) { /* ignore */ }
 
                     return newSettings
                 })
 
-                // 3. 設定更新後，立即重新載入模型列表（傳入 serverModel 避免 React 閉包舊值問題）
+                // model 直接從 server 設定（單一來源）
                 const serverModel = serverSettings.model || ''
-                setTimeout(() => {
-                    loadAvailableModels(serverModel)
-                }, 100)
+                if (serverModel) {
+                    setSettings(prev => ({ ...prev, model: serverModel }))
+                    setUserSettings(prev => ({ ...prev, model: serverModel }))
+                }
+
+                // 載入模型列表，傳入 serverModel 避免 React 閉包舊值問題
+                loadAvailableModels(serverModel || undefined)
             }
         } catch (error) {
             console.error('Error loading user settings:', error)
@@ -579,9 +576,6 @@ const App: React.FC = () => {
                     data.settings.theme = localTheme
                 }
                 setUserSettings(data.settings)
-
-                // 保存成功後，立即重新載入模型列表以反映可能的 API 變動
-                loadAvailableModels()
             }
         } catch (error) {
             console.error('Error saving user settings:', error)
@@ -665,12 +659,18 @@ const App: React.FC = () => {
     }
 
     // 當用戶登入時加載設定，當用戶登出時重置狀態
+    // 使用 ref 避免 !conversationsLoaded 的 race condition
     useEffect(() => {
-        if (user && token && !conversationsLoaded) {
-            loadUserSettings()
-            loadAvailableProviders()
-        } else if (!user && conversationsLoaded) {
-            // 用戶登出時重置設定，包括主畫面的 settings
+        if (user && token) {
+            // 只在此 user 的設定還沒載入過時才執行
+            if (settingsLoadedRef.current !== user.id) {
+                settingsLoadedRef.current = user.id
+                loadUserSettings()
+                loadAvailableProviders()
+            }
+        } else if (!user) {
+            // 登出時重置
+            settingsLoadedRef.current = null
             const initialSettings = {
                 type: 'ollama',
                 language: 'zh-TW',
@@ -689,9 +689,10 @@ const App: React.FC = () => {
             setAvailableProviders([])
             setCurrentProvider(null)
         }
-    }, [user, token, conversationsLoaded])
+    }, [user, token])
 
-    // ✅ 強制修復：頁面刷新後永遠從 localStorage 讀取最新設定覆蓋 server 設定
+    // mount 時從 localStorage 讀 provider 連線設定（apiUrl/apiKey/type）
+    // ⚠️ 不再從這裡讀 model，避免覆蓋 server 設定
     useEffect(() => {
         try {
             const adminSettings = localStorage.getItem('adminProviderSettings')
@@ -700,7 +701,7 @@ const App: React.FC = () => {
                 setSettings(prev => ({
                     ...prev,
                     type: parsed.type || prev.type,
-                    model: parsed.model || prev.model,
+                    // model: 不動！server 來的才是正確的
                     apiUrl: parsed.baseUrl || prev.apiUrl,
                     apiKey: parsed.apiKey || prev.apiKey,
                     temperature: parsed.temperature || prev.temperature,
@@ -726,45 +727,34 @@ const App: React.FC = () => {
 
         // ✅ 監聽自定義事件（來自 Admin 頁面）
         const handleModelListUpdated = (e: CustomEvent) => {
-            console.log('模型列表已更新，收到事件:', e.detail.models.length, '個模型')
-            setAvailableModels(e.detail.models)
+            const models = e.detail.models || []
+            const selectedModel: string = e.detail.selectedModel || ''
 
-            // 從 localStorage 讀取最新設定
+            console.log('模型列表已更新:', models.length, '個模型, selectedModel=', selectedModel)
+            setAvailableModels(models)
+
+            // 同步連線參數（不含 model）
             const adminSettingsStr = localStorage.getItem('adminProviderSettings')
-            let adminModel = ''
             if (adminSettingsStr) {
                 try {
                     const parsed = JSON.parse(adminSettingsStr)
-                    adminModel = parsed.model || ''
-                    // 當 modelListUpdated 發生時，只同步 api 參數，不強制覆蓋使用者的 model selection 
-                    // (除非目前 userSettings 根本沒有設定 model，或是 provider 被更換了)
-                    // 在這裡我們僅合併基礎設定， model 保留邏輯留在下面
                     setSettings(prev => ({
                         ...prev,
                         apiUrl: parsed.baseUrl || prev.apiUrl,
                         apiKey: parsed.apiKey || prev.apiKey,
                         type: parsed.type || prev.type || 'ollama',
-                    }))
-                    setUserSettings(prev => ({
-                        ...prev,
-                        apiUrl: parsed.baseUrl || prev.apiUrl,
-                        apiKey: parsed.apiKey || prev.apiKey,
-                        type: parsed.type || prev.type || 'ollama',
+                        maxTokens: parsed.maxTokens || prev.maxTokens,
+                        temperature: parsed.temperature || prev.temperature,
+                        topP: parsed.topP || prev.topP,
+                        topK: parsed.topK || prev.topK,
                     }))
                 } catch (e) { }
             }
 
-            // 如果 Admin 有指定 model，且當前無效，則使用 Admin 設定的 model；否則保留現有 settings.model（如果有效），或自動選擇第一個模型
-            if (e.detail.models.length > 0) {
-                // 檢查目前的選擇是否還有效
-                const isCurrentModelValid = settings.model && e.detail.models.some((m: any) => m.id === settings.model)
-                if (!isCurrentModelValid) {
-                    const isAdminModelValid = adminModel && e.detail.models.some((m: any) => m.id === adminModel)
-                    const fallbackModel = isAdminModelValid ? adminModel : e.detail.models[0].id
-                    
-                    setSettings(prev => ({ ...prev, model: fallbackModel }))
-                    setUserSettings(prev => ({ ...prev, model: fallbackModel }))
-                }
+            // Admin 存設定時有指定 model → 直接同步到 header
+            if (selectedModel) {
+                setSettings(prev => ({ ...prev, model: selectedModel }))
+                setUserSettings(prev => ({ ...prev, model: selectedModel }))
             }
         }
 
@@ -923,8 +913,12 @@ const App: React.FC = () => {
     const sendStreamingMessage = async () => {
         if ((!input.trim() && attachedFiles.length === 0) || isLoading) return
 
-        // 處理附加檔案
         let messageContent = input.trim()
+        if (messageContent.toLowerCase() === '/compact') {
+            setInput('')
+            handleCompactConversation()
+            return
+        }
         if (attachedFiles.length > 0) {
             messageContent = messageContent + '\n\n[附加檔案: ' + attachedFiles.map(f => f.name).join(', ') + ']'
         }
@@ -976,7 +970,7 @@ const App: React.FC = () => {
 
         try {
             const baseConversation = conversations.find(c => c.id === conversationId)
-            const historyMessages = [...(baseConversation?.messages || []), userMessage]
+            const historyMessages = baseConversation?.messages || []
 
             // ✅ 最終防禦：發送前永遠直接從 localStorage 讀取最新設定，完全跳過 React state 閉包陷阱
             let finalSettings = settings;
@@ -1049,15 +1043,10 @@ const App: React.FC = () => {
         }
     }
 
-    // 組件掛載時載入預設配置和模型列表
+    // 組件掛載時載入預設配置
+    // 注意：model 列表由 loadUserSettings（登入後）負責載入，不在這裡呼叫
     useEffect(() => {
-        loadDefaultConfig().then(() => {
-            // 如果用戶還沒登入，先用預設設定載入模型列表
-            // 用戶登入後會通過 loadUserSettings() 重新載入
-            if (!token) {
-                loadAvailableModels()
-            }
-        })
+        loadDefaultConfig()
     }, [])
 
 
@@ -1074,15 +1063,7 @@ const App: React.FC = () => {
     // 點擊外部關閉面板
     useOutsideClickClosePanels({ showConversations, showSettings, setShowConversations, setShowSettings })
 
-    // 當 API URL 變化時重新載入模型列表 (防抖)
-    useEffect(() => {
-        if (settings.apiUrl) {
-            const timeoutId = setTimeout(() => {
-                loadAvailableModels()
-            }, 500) // 500ms 防抖
-            return () => clearTimeout(timeoutId)
-        }
-    }, [settings.apiUrl])
+
 
     // 清理輸入框防抖定時器
     useEffect(() => {
@@ -1129,6 +1110,104 @@ const App: React.FC = () => {
         }
     }
 
+    const handleCompactConversation = async () => {
+        if (currentMessages.length < 3) {
+            alert(t('conversation.compact.tooShort', '對話訊息尚少，無須壓縮！'))
+            return
+        }
+        if (isLoading || isStreaming) {
+            alert(t('conversation.compact.busy', '系統忙碌中，請稍後再試。'))
+            return
+        }
+
+        const confirmed = window.confirm(t('conversation.compact.confirm', '確定要壓縮當前對話歷史以節省空間嗎？舊的對話將被自動摘要以釋放 Context 空間。'))
+        if (!confirmed) return
+
+        setIsLoading(true)
+        
+        // 保留最後兩條訊息，壓縮其餘所有舊訊息
+        const messagesToCompress = currentMessages.slice(0, -2)
+        const preservedMessages = currentMessages.slice(-2)
+
+        const historyText = messagesToCompress
+            .map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
+            .join('\n\n')
+
+        // 插入一個臨時的載入訊息
+        const tempMsgId = 'compact-temp-' + Date.now()
+        const tempMessage: Message = {
+            id: tempMsgId,
+            role: 'assistant',
+            content: '⏳ ' + t('conversation.compact.processing', '正在壓縮歷史對話中，請稍候...'),
+            timestamp: new Date()
+        }
+        
+        appendMessage(currentConversationId, tempMessage)
+
+        try {
+            // 解析當前的 LLM 設定
+            const adminSettings = localStorage.getItem('adminProviderSettings')
+            let finalSettings = { ...settings }
+            if (adminSettings) {
+                try {
+                    const parsed = JSON.parse(adminSettings)
+                    finalSettings = {
+                        ...settings,
+                        type: parsed.type || settings.type,
+                        apiUrl: parsed.baseUrl ?? settings.apiUrl,
+                        apiKey: parsed.apiKey || settings.apiKey,
+                        temperature: parsed.temperature ?? settings.temperature,
+                        maxTokens: parsed.maxTokens ?? settings.maxTokens,
+                        topP: parsed.topP ?? settings.topP,
+                        topK: parsed.topK ?? settings.topK
+                    }
+                } catch (e) {}
+            }
+
+            const prompt = t('system.summarizationPrompt', '請對以下對話歷史進行結構化的詳細摘要。摘要中必須保留：1. 討論的核心主題與上下文脈絡；2. 使用者特別提出的具體需求、偏好與關鍵設定；3. 雙方達成的最終結論、產出的程式碼關鍵段落或解決方案。請使用與對話相同的語言撰寫，直接輸出摘要，不要包含任何引言或解釋，確保 AI 閱讀此摘要後能完全承接先前的記憶與細節。')
+            
+            const result = await streamChat({
+                message: historyText,
+                settings: {
+                    ...finalSettings,
+                    systemPrompt: prompt,
+                    temperature: 0.3
+                },
+                history: [],
+                language: i18n.language
+            })
+
+            const summaryText = result.content.trim()
+            const summaryMessage: Message = {
+                id: 'summary-' + Date.now(),
+                role: 'assistant',
+                content: `📝 **${t('conversation.compact.summaryTitle', '先前對話歷史摘要')}**:\n\n${summaryText}\n\n---`,
+                timestamp: new Date()
+            }
+
+            // 更新 Conversation 狀態
+            const newMessages = [summaryMessage, ...preservedMessages]
+            setConversations(prev =>
+                prev.map(c =>
+                    c.id === currentConversationId ? { ...c, messages: newMessages, updatedAt: new Date() } : c
+                )
+            )
+        } catch (error) {
+            console.error('Failed to compact conversation:', error)
+            alert(t('conversation.compact.failed', '壓縮歷史對話時發生錯誤。') + '\n\nDetails: ' + (error instanceof Error ? error.message : String(error)))
+            // 移除臨時訊息
+            setConversations(prev =>
+                prev.map(c =>
+                    c.id === currentConversationId
+                        ? { ...c, messages: c.messages.filter(m => m.id !== tempMsgId), updatedAt: new Date() }
+                        : c
+                )
+            )
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
     // 如果正在檢查認證狀態，顯示加載畫面
     if (authLoading) {
         return (
@@ -1159,6 +1238,11 @@ const App: React.FC = () => {
         return <Admin onBack={() => setCurrentView('chat')} />
     }
 
+    const tokenUsage = {
+        used: estimateConversationTokens(currentMessages, settings.systemPrompt, streamingMessage, streamingThinking, isStreaming),
+        max: settings.maxTokens || 8192
+    }
+
     return (
         <div className={`flex flex-col h-full transition-colors ${isFullscreen ? 'fullscreen-app' : ''} ${isMobileView && !isFullscreen ? 'pt-16' : ''}`}>
             {/* OAuth 授權結果 Toast 通知 */}
@@ -1173,6 +1257,8 @@ const App: React.FC = () => {
                 conversations={conversations}
                 availableModels={availableModels}
                 isLoadingModels={isLoadingModels}
+                tokenUsage={tokenUsage}
+                onCompactConversation={handleCompactConversation}
                 currentTheme={(userSettings.theme as 'auto' | 'light' | 'dark')}
                 onToggleTheme={toggleTheme}
                 onToggleFullscreen={toggleFullscreen}
@@ -1911,6 +1997,68 @@ const App: React.FC = () => {
             </div>
         </div>
     )
+}
+
+// Token estimation helpers
+function estimateTokens(text: string): number {
+    if (!text) return 0
+    let tokens = 0
+    // CJK characters match range: Chinese, Japanese, Korean
+    const cjkRegex = /[\u3000-\u303f\u3040-\u309f\u30a0-\u30ff\uff00-\uff9f\u4e00-\u9faf\u3400-\u4dbf\uac00-\ud7a3]/g
+    const cjkMatches = text.match(cjkRegex)
+    const cjkCount = cjkMatches ? cjkMatches.length : 0
+    
+    const remainingText = text.replace(cjkRegex, ' ')
+    const words = remainingText.trim().split(/\s+/)
+    let englishTokens = 0
+    if (words.length > 0 && words[0] !== '') {
+        englishTokens = Math.ceil(words.length * 1.3)
+    }
+    
+    tokens = Math.ceil(cjkCount * 1.2) + englishTokens
+    return tokens
+}
+
+function estimateConversationTokens(
+    messages: Message[], 
+    baseSystemPrompt?: string, 
+    streamingMessage?: string, 
+    streamingThinking?: string,
+    isStreaming?: boolean
+): number {
+    let total = 0
+    // Estimate System Prompt
+    const systemPrompt = baseSystemPrompt || 'You are a helpful AI assistant.'
+    total += estimateTokens(systemPrompt)
+    total += 10 // buffer for system date/time warning suffix
+    
+    // Add messages in history
+    for (const msg of messages) {
+        if (msg.role === 'assistant') {
+            total += estimateTokens(msg.content)
+            if (msg.thinking) {
+                total += estimateTokens(msg.thinking)
+            }
+        } else {
+            total += estimateTokens(msg.hiddenContent || msg.content)
+        }
+        total += 4 // overhead per message
+    }
+    
+    // Add active streaming message
+    if (isStreaming) {
+        if (streamingMessage) {
+            total += estimateTokens(streamingMessage)
+        }
+        if (streamingThinking) {
+            total += estimateTokens(streamingThinking)
+        }
+        if (streamingMessage || streamingThinking) {
+            total += 4 // overhead
+        }
+    }
+    
+    return total
 }
 
 export default App
