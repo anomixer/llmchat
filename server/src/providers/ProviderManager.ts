@@ -827,7 +827,8 @@ export class OpenAIProvider extends BaseProvider {
         const { message, history, images, settings = {} } = params
         const {
             model = this.config.model,
-            maxTokens = this.config.maxTokens || 8192,
+            temperature = settings.temperature ?? this.config.temperature ?? 0.7,
+            maxTokens = settings.maxTokens || this.config.maxTokens || 8192,
             systemPrompt = settings.systemPrompt || 'You are a helpful AI assistant.'
         } = settings
 
@@ -852,8 +853,8 @@ export class OpenAIProvider extends BaseProvider {
             model,
             messages,
             stream: false,
-            temperature: parseFloat(temperature.toString()),
-            max_tokens: Math.min(parseInt(maxTokens.toString()), 4096)
+            temperature: parseFloat((temperature ?? 0.7).toString()),
+            max_tokens: Math.min(parseInt((maxTokens || 8192).toString()), 8192)
         }
 
         const response = await this.client.post(this.chatPath, requestData)
@@ -878,7 +879,8 @@ export class OpenAIProvider extends BaseProvider {
         const { message, history, images, settings = {}, abortSignal } = params
         const {
             model = this.config.model,
-            maxTokens = this.config.maxTokens || 8192,
+            temperature = settings.temperature ?? this.config.temperature ?? 0.7,
+            maxTokens = settings.maxTokens || this.config.maxTokens || 8192,
             systemPrompt = settings.systemPrompt || 'You are a helpful AI assistant.'
         } = settings
 
@@ -903,8 +905,8 @@ export class OpenAIProvider extends BaseProvider {
             model,
             messages,
             stream: true,
-            temperature: parseFloat(temperature.toString()),
-            max_tokens: Math.min(parseInt(maxTokens.toString()), 4096)
+            temperature: parseFloat((temperature ?? 0.7).toString()),
+            max_tokens: Math.min(parseInt((maxTokens || 8192).toString()), 8192)
         }
 
         const response = await this.client.post(this.chatPath, requestData, {
