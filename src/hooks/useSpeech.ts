@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 type SpeechQueueItem = {
     id: string
@@ -81,6 +81,17 @@ export function useSpeech(args: UseSpeechArgs) {
     useEffect(() => {
         isProcessingQueueRef.current = isProcessingQueue
     }, [isProcessingQueue])
+
+    // 元件卸載時停止語音輸出與語音辨識，避免 voice 續播 / 辨識器泄漏
+    useEffect(() => {
+        return () => {
+            if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+                window.speechSynthesis.cancel()
+            }
+            recognitionRef.current?.stop?.()
+            recognitionRef.current = null
+        }
+    }, [])
 
     useEffect(() => {
         if (typeof BroadcastChannel === 'undefined') return
@@ -363,10 +374,6 @@ export function useSpeech(args: UseSpeechArgs) {
         [globalSpeakingMessageId, isSpeaking]
     )
 
-    const voiceButtonIcon = useMemo(() => {
-        return isRecording
-    }, [isRecording])
-
     return {
         isRecording,
         startVoiceInput,
@@ -375,7 +382,6 @@ export function useSpeech(args: UseSpeechArgs) {
         globalSpeakingMessageId,
         currentPlayingMessageId,
         currentPlayingItemRef,
-        voiceButtonIcon,
         addToSpeechQueue,
         speakText,
         removeFromSpeechQueue,

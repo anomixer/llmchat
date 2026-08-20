@@ -24,7 +24,17 @@
     "export": {
       "button": "导出对话",
       "json": "导出为 JSON",
-      "markdown": "导出为 Markdown"
+      "markdown": "导出为 Markdown",
+      "created": "创建时间",
+      "updated": "最后更新"
+    },
+    "compact": {
+      "tooShort": "对话消息还少，无需压缩！",
+      "busy": "系统忙碌中，请稍后再试。",
+      "confirm": "确定要压缩当前对话历史以节省空间吗？旧的对话将被自动摘要以释放 Context 空间。",
+      "processing": "正在压缩历史对话中，请稍候...",
+      "summaryTitle": "先前对话历史摘要",
+      "failed": "压缩历史对话时发生错误。"
     }
   },
   "buttons": {
@@ -37,7 +47,9 @@
     "model": {
       "none": "未选择模型",
       "openSettings": "点击开启设置",
-      "closeSettings": "点击关闭设置"
+      "closeSettings": "点击关闭设置",
+      "loading": "(加载中...)",
+      "noModels": "(找不到模型)"
     },
     "conversations": {
       "button": "对话列表 (Ctrl + B)",
@@ -57,7 +69,8 @@
     "github": "在 GitHub 上查看",
     "menu": "菜单",
     "adminBadge": "管理员",
-    "adminButton": "用户管理"
+    "adminButton": "用户管理",
+    "contextUsage": "上下文用量 (已用/最大)，点击压缩 (/compact)"
   },
   "settings": {
     "panels": {
@@ -238,7 +251,8 @@
       "role": "角色",
       "registrationDate": "注册时间",
       "lastLogin": "最后登录",
-      "actions": "操作"
+      "actions": "操作",
+      "createdAt": "创建时间"
     },
     "status": {
       "enabled": "启用",
@@ -259,7 +273,8 @@
     "pagination": {
       "showing": "显示第 {{start}} 到 {{end}} 项，共 {{total}} 项",
       "previous": "上一页",
-      "next": "下一页"
+      "next": "下一页",
+      "prev": "上一页"
     },
     "close": "关闭",
     "error": {
@@ -333,7 +348,22 @@
       "authMethod": "认证方法",
       "advancedParams": "进阶参数"
     },
-    "addUser": "新增用户"
+    "addUser": "新增用户",
+    "userManagement": "用户管理",
+    "users": "位用户",
+    "never": "从未",
+    "editUser": "编辑用户",
+    "newPassword": "新密码（留空不修改）",
+    "password": "密码",
+    "you": "你"
   },
-  "systemPrompt": "你是一个有用的AI助手，请用简体中文回答用户的问题。"
+  "systemPrompt": "你是一个有用的AI助手，请用简体中文回答用户的问题。",
+  "system": {
+    "summarizationPrompt": "请对以下对话历史进行结构化的详细摘要。摘要中必须保留：1. 讨论的核心主题与上下文脉络；2. 使用者特别提出的具体需求、偏好与关键设置；3. 双方达成的最终结论、产出的代码关键段落或解决方案。请使用与对话相同的语言撰写，直接输出摘要，不要包含任何引言或解释，确保 AI 阅读此摘要后能完全承接先前的记忆与细节。"
+  },
+  "common": {
+    "cancel": "取消",
+    "save": "保存",
+    "saving": "处理中..."
+  }
 }

@@ -9,7 +9,7 @@ export function createApiMiscRouter(deps: {
     defaultApiUrl: string
     defaultApiKey: string
 }) {
-    const { userService, emailService, defaultApiUrl, defaultApiKey } = deps
+    const { userService, emailService, defaultApiUrl } = deps
     const router = Router()
 
     // 健康檢查端點
@@ -25,7 +25,7 @@ export function createApiMiscRouter(deps: {
 
         res.json({
             apiUrl: defaultApiUrl,
-            apiKey: defaultApiKey || '',
+            apiKey: '',
             smtpEnabled: smtpEnabled,
             hasUsers: hasUsers
         })

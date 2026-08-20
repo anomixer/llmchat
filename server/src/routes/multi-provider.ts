@@ -1,5 +1,6 @@
 import { Router, type Request, type Response } from 'express'
 import { ProviderFactory, AVAILABLE_PROVIDERS } from '../providers/ProviderManager.js'
+import { authenticateToken, type AuthedRequest } from '../middlewares/authenticateToken.js'
 
 export function createMultiProviderRouter(deps: any) {
     const { userService } = deps
@@ -17,7 +18,7 @@ export function createMultiProviderRouter(deps: any) {
     })
 
     // 獲取當前 Provider 配置（從環境變數）
-    router.get('/providers/current', (_req: Request, res: Response) => {
+    router.get('/providers/current', authenticateToken(userService), (_req: AuthedRequest, res: Response) => {
         try {
             // 優先從管理員設定中讀取
             const adminSettings = userService ? userService.getAdminSettings() : null
@@ -56,8 +57,13 @@ export function createMultiProviderRouter(deps: any) {
     })
 
     // 更新 Provider 配置
-    router.post('/providers/update', async (req: Request, res: Response) => {
+    router.post('/providers/update', authenticateToken(userService), async (req: AuthedRequest, res: Response) => {
         try {
+            // 只有管理員才能改動全域 Provider 配置
+            if (!userService.isAdmin(req.user!.userId)) {
+                return res.status(403).json({ error: '需要管理員權限' })
+            }
+
             const { type, baseUrl, apiKey, model, temperature, maxTokens, authMethod, oauthConfig } = req.body
             
             // 保存配置到環境變數（作為緩存）
@@ -155,7 +161,7 @@ export function createMultiProviderRouter(deps: any) {
     })
 
     // 檢查 Provider 連接
-    router.post('/providers/check', async (req: Request, res: Response) => {
+    router.post('/providers/check', authenticateToken(userService), async (req: AuthedRequest, res: Response) => {
         try {
             const { type, baseUrl, apiKey, model, authMethod, oauthConfig } = req.body || {}
             
@@ -201,21 +207,25 @@ export function createMultiProviderRouter(deps: any) {
     })
 
     // 獲取可用模型列表
-    router.get('/models', async (req: Request, res: Response) => {
+    router.get('/models', authenticateToken(userService), async (req: AuthedRequest, res: Response) => {
         try {
             const adminSettings = userService ? userService.getAdminSettings() : null
             const providerType = req.query.type as string || adminSettings?.type || process.env.LLM_PROVIDER || 'ollama'
             const providerBaseUrl = req.query.baseUrl as string || adminSettings?.apiUrl || process.env.LLM_BASE_URL || 
                 (AVAILABLE_PROVIDERS.find(p => p.type === providerType)?.baseUrl || 'https://api.openai.com/v1')
             
-            const providerApiKey = req.query.apiKey as string === '********' ? adminSettings?.apiKey : (req.query.apiKey as string || adminSettings?.apiKey || process.env.LLM_API_KEY || '')
+            // API Key 優先從 header 讀（避免放進 URL query 洩漏到日誌/瀏覽器歷史）；query 作為舊版相容 fallback
+            const rawApiKey = (req.headers['x-provider-api-key'] as string) || (req.query.apiKey as string) || ''
+            const providerApiKey = rawApiKey === '********' ? adminSettings?.apiKey : (rawApiKey || adminSettings?.apiKey || process.env.LLM_API_KEY || '')
             const providerModel = req.query.model as string || adminSettings?.model || process.env.LLM_MODEL || 'llama2'
 
             let authMethod = req.query.authMethod as string || adminSettings?.authMethod || 'api-key'
             let oauthConfig = adminSettings?.oauthConfig
-            if (req.query.oauthConfig && req.query.oauthConfig !== 'undefined') {
+            // oauthConfig 可能含 token，優先從 header 讀（避免放進 URL 洩漏）；query 作為舊版相容 fallback
+            const oauthConfigRaw = (req.headers['x-provider-oauth-config'] as string) || req.query.oauthConfig as string || ''
+            if (oauthConfigRaw && oauthConfigRaw !== 'undefined') {
                 try {
-                    const parsed = JSON.parse(req.query.oauthConfig as string)
+                    const parsed = JSON.parse(oauthConfigRaw)
                     if (parsed && typeof parsed === 'object') {
                         oauthConfig = { ...adminSettings?.oauthConfig, ...parsed }
                         if (parsed.googleJson === '********') oauthConfig.googleJson = adminSettings?.oauthConfig?.googleJson
@@ -250,7 +260,7 @@ export function createMultiProviderRouter(deps: any) {
     })
 
     // 聊天端點
-    router.post('/chat', async (req: Request, res: Response) => {
+    router.post('/chat', authenticateToken(userService), async (req: AuthedRequest, res: Response) => {
         try {
             const { message, history, settings } = req.body
 

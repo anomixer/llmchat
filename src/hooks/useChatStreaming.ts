@@ -143,12 +143,13 @@ export function useChatStreaming(args: { token: string | null }) {
             fetch('/api/chat/stop', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
                 },
                 body: JSON.stringify({ requestId })
             }).catch(() => { })
         }
-    }, [clearStopTimer, isStreaming, stopRequested])
+    }, [clearStopTimer, isStreaming, stopRequested, token])
 
     const streamChat = useCallback(async (input: StreamChatInput): Promise<StreamChatResult> => {
         if (!token) {

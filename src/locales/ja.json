@@ -24,7 +24,17 @@
     "export": {
       "button": "会話をエクスポート",
       "json": "JSONとしてエクスポート",
-      "markdown": "Markdownとしてエクスポート"
+      "markdown": "Markdownとしてエクスポート",
+      "created": "作成日時",
+      "updated": "最終更新"
+    },
+    "compact": {
+      "tooShort": "まだメッセージが少ないため、圧縮は不要です！",
+      "busy": "システムが混み合っています。しばらくしてからもう一度お試しください。",
+      "confirm": "現在のチャット履歴を圧縮してトークンを節約しますか？古いメッセージは自動的に要約され、コンテキストの容量を空けます。",
+      "processing": "チャット履歴を圧縮しています。少々お待ちください...",
+      "summaryTitle": "過去のチャット履歴の要約",
+      "failed": "チャット履歴を圧縮中にエラーが発生しました。"
     }
   },
   "buttons": {
@@ -37,7 +47,9 @@
     "model": {
       "none": "モデルが選択されていません",
       "openSettings": "クリックして設定を開く",
-      "closeSettings": "クリックして設定を閉じる"
+      "closeSettings": "クリックして設定を閉じる",
+      "loading": "(読み込み中...)",
+      "noModels": "(モデルが見つかりません)"
     },
     "conversations": {
       "button": "会話リスト (Ctrl + B)",
@@ -57,7 +69,8 @@
     "github": "GitHubで表示",
     "menu": "メニュー",
     "adminBadge": "管理者",
-    "adminButton": "ユーザー管理"
+    "adminButton": "ユーザー管理",
+    "contextUsage": "コンテキスト使用量 (使用/最大)。クリックして圧縮 (/compact)"
   },
   "settings": {
     "panels": {
@@ -155,7 +168,8 @@
     "files": {
       "button": "ファイルを添付 (画像、テキスト、PDF、JSONをサポート、最大50MB)",
       "sizeError": "ファイル {{name}} が大きすぎます。50MB未満のファイルを選択してください",
-      "typeError": "ファイルタイプ {{type}} はサポートされていません"
+      "typeError": "ファイルタイプ {{type}} はサポートされていません",
+      "pdfNote": "注：PDF の内容はブラウザ内で直接解析できません。PDF の内容を分析するには、テキストファイルに変換してアップロードするか、PDF 解析に対応したサービスをご使用ください。"
     },
     "stopDoubleConfirm": "もう一度押して停止"
   },
@@ -237,7 +251,8 @@
       "role": "役割",
       "registrationDate": "登録日",
       "lastLogin": "最終ログイン",
-      "actions": "アクション"
+      "actions": "アクション",
+      "createdAt": "作成日"
     },
     "status": {
       "enabled": "有効",
@@ -258,7 +273,8 @@
     "pagination": {
       "showing": "{{start}} から {{end}} までを表示、合計 {{total}} 件",
       "previous": "前へ",
-      "next": "次へ"
+      "next": "次へ",
+      "prev": "前へ"
     },
     "close": "閉じる",
     "error": {
@@ -332,7 +348,22 @@
       "authMethod": "認証方法",
       "advancedParams": "詳細パラメータ"
     },
-    "addUser": "ユーザー追加"
+    "addUser": "ユーザー追加",
+    "userManagement": "ユーザー管理",
+    "users": "名",
+    "never": "未",
+    "editUser": "ユーザー編集",
+    "newPassword": "新しいパスワード（空欄の場合は変更しません）",
+    "password": "パスワード",
+    "you": "あなた"
   },
-  "systemPrompt": "あなたは役立つAIアシスタントです。ユーザーの質問に日本語で答えてください。"
+  "systemPrompt": "あなたは役立つAIアシスタントです。ユーザーの質問に日本語で答えてください。",
+  "system": {
+    "summarizationPrompt": "以下のチャット履歴を構造化された詳細な要約としてまとめてください。要約では次の内容を必ず残してください：1. 議論の中心テーマと文脈；2. ユーザーが特に求めた具体的な要望・好み・重要な設定；3. 最終的に合意された結論、生成されたコードの重要な部分、または解決策。元の会話と同じ言語で、前置きや説明をつけず、要約のみを直接出力してください。AIがこの要約を読むことで、以前の記憶と詳細を完全に引き継げるようにしてください。"
+  },
+  "common": {
+    "cancel": "キャンセル",
+    "save": "保存",
+    "saving": "処理中..."
+  }
 }

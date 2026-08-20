@@ -95,7 +95,9 @@ export function createAuthRouter(deps: { userService: UserService; emailService:
 
     // 驗證會話
     router.get('/auth/verify', authenticateToken(userService), (req: AuthedRequest, res: Response) => {
-        res.json({ user: req.user })
+        const u = req.user!
+        // 回傳與 /auth/login 一致的 user 物件（含 id），避免前端 user.id 在重新整理後變 undefined
+        res.json({ user: { id: u.userId, email: u.email, role: u.role, createdAt: u.createdAt } })
     })
 
     // Email 驗證
@@ -175,7 +177,7 @@ export function createAuthRouter(deps: { userService: UserService; emailService:
             }
 
             const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/google/callback`
-            const userId = req.user?.id || ''
+            const userId = req.user?.userId || ''
             
             const scopes = [
                 'https://www.googleapis.com/auth/generative-language',
@@ -238,6 +240,13 @@ export function createAuthRouter(deps: { userService: UserService; emailService:
                 return res.status(400).send('<h1>授權失敗：未取得 refresh_token。請在 Google 同意畫面中重新授權。</h1>')
             }
 
+            // 防止 IDOR：state 是使用者 ID，只允許寫入該使用者自己的設定；
+            // 且該帳號必須真實存在（本應由 /auth/google 帶入的合法 ID）。
+            const targetUser = (userService.users as any[]).find((u) => u.id === userId)
+            if (!targetUser) {
+                return res.status(400).send('<h1>授權失敗：找不到對應的使用者，請重新授權。</h1>')
+            }
+
             const userSettings = userService.getUserSettings(userId)
             if (userSettings) {
                 const oauthConfig = userSettings.oauthConfig || {}
@@ -297,7 +306,7 @@ export function createAuthRouter(deps: { userService: UserService; emailService:
                 })
             }
 
-            const userId = req.user?.id || ''
+            const userId = req.user?.userId || ''
             const userSettings = userService.getUserSettings(userId)
             if (userSettings) {
                 const oauthConfig = userSettings.oauthConfig || {}
@@ -693,7 +702,7 @@ export function createAuthRouter(deps: { userService: UserService; emailService:
                 return res.status(400).json({ error: '請提供 Access Token' })
             }
 
-            const userId = req.user?.id || ''
+            const userId = req.user?.userId || ''
             const userSettings = userService.getUserSettings(userId)
             if (userSettings) {
                 const oauthConfig = userSettings.oauthConfig || {}

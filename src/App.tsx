@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { flushSync } from 'react-dom'
-import { Send, Bot, User, Settings, Trash2, Moon, Sun, Plus, MessageSquare, Paperclip, X, Mic, MicOff, Volume2, VolumeX, Download, Square, Maximize2, Minimize2, LogOut, Globe } from 'lucide-react'
+import { Send, Settings, Trash2, Moon, Sun, Paperclip, X, Mic, MicOff, Square, Globe } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import MarkdownMessage from './MarkdownMsg'
 import { Header } from './components/Header'
 import { Auth } from './components/Auth'
 import { Admin } from './components/Admin'
+import { ConversationsPanel } from './components/ConversationsPanel'
+import { SettingsPanel } from './components/SettingsPanel'
+import { MessagesPanel } from './components/MessagesPanel'
 
 import { useAuth } from './AuthContext'
 import { useChatStreaming } from './hooks/useChatStreaming'
@@ -17,6 +18,7 @@ import { useOutsideClickClosePanels } from './hooks/useOutsideClickClosePanels'
 import { useMobileView } from './hooks/useMobileView'
 import { useAutoScroll } from './hooks/useAutoScroll'
 import { useApplyThemeClasses, usePrefersColorSchemeSync } from './hooks/useThemeEffects'
+import { estimateConversationTokens } from './utils/tokenEstimate'
 
 interface ChatSettings {
     type?: string
@@ -28,6 +30,14 @@ interface ChatSettings {
     topP: number
     topK: number
     showTokenStats: boolean
+    systemPrompt?: string
+    visionModel?: string
+}
+
+// 訊息 ID：時間戳 + 遞增計數，避免同一毫秒內建立多則訊息時 ID 碰撞
+let _msgIdCounter = 0
+function makeMessageId(): string {
+    return `${Date.now()}-${_msgIdCounter++}`
 }
 
 const App: React.FC = () => {
@@ -63,7 +73,6 @@ const App: React.FC = () => {
         isSpeaking,
         speechQueue,
         globalSpeakingMessageId,
-        currentPlayingItemRef,
         toggleSpeechForMessage,
         getSpeechButtonState,
         isSpeechButtonDisabled
@@ -97,7 +106,6 @@ const App: React.FC = () => {
         }, 100) // 100ms 防抖
     }, [])
     const [showSettings, setShowSettings] = useState(false)
-    const [showModelOnly, setShowModelOnly] = useState(false)
     const [showConversations, setShowConversations] = useState(false)
     const [isDarkMode, setIsDarkMode] = useState(() => {
         try {
@@ -161,7 +169,8 @@ const App: React.FC = () => {
             apiKey: '',
             topP: 0.9,
             topK: 40,
-            showTokenStats: true
+            showTokenStats: true,
+            visionModel: ''
         }
     })
     const [attachedFiles, setAttachedFiles] = useState<File[]>([])
@@ -291,7 +300,9 @@ const App: React.FC = () => {
 
             console.log('載入模型列表 - type:', providerType, 'apiUrl:', apiUrl, 'apiKey:', apiKey ? '***' : '')
 
-            const response = await fetch(`/api/models?type=${encodeURIComponent(providerType)}&baseUrl=${encodeURIComponent(apiUrl)}&apiKey=${encodeURIComponent(apiKey)}&t=${Date.now()}`)
+            const response = await fetch(`/api/models?type=${encodeURIComponent(providerType)}&baseUrl=${encodeURIComponent(apiUrl)}&t=${Date.now()}`, {
+                headers: { 'Authorization': `Bearer ${token}`, 'X-Provider-ApiKey': apiKey }
+            })
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`)
             }
@@ -682,7 +693,8 @@ const App: React.FC = () => {
                 apiKey: '',
                 topP: 0.9,
                 topK: 40,
-                showTokenStats: true
+                showTokenStats: true,
+                visionModel: ''
             }
             setUserSettings(initialSettings)
             setSettings(initialSettings)
@@ -943,7 +955,7 @@ const App: React.FC = () => {
         }
 
         const userMessage: Message = {
-            id: Date.now().toString(),
+            id: makeMessageId(),
             role: 'user',
             content: messageContent,
             hiddenContent: hiddenContent !== messageContent ? hiddenContent : undefined,
@@ -1007,7 +1019,7 @@ const App: React.FC = () => {
             })
 
             const assistantMessage: Message = {
-                id: (Date.now() + 1).toString(),
+                id: makeMessageId(),
                 role: 'assistant',
                 content: result.wasInterrupted ? result.content + '\n\n**' + t('messages.interrupted') + '**' : result.content,
                 thinking: result.thinking || undefined,
@@ -1028,7 +1040,7 @@ const App: React.FC = () => {
         } catch (error) {
             console.error('Error sending streaming message:', error)
             const errorMessage: Message = {
-                id: (Date.now() + 1).toString(),
+                id: makeMessageId(),
                 role: 'assistant',
                 content: `${t('messages.error')}\n\n${(error as any)?.message || ''}`,
                 timestamp: new Date()
@@ -1263,10 +1275,6 @@ const App: React.FC = () => {
                 onToggleTheme={toggleTheme}
                 onToggleFullscreen={toggleFullscreen}
                 onToggleSettings={() => setShowSettings(!showSettings)}
-                onToggleModelOnly={() => {
-                    setShowModelOnly(!showModelOnly)
-                    setShowSettings(false) // 關閉完整設定面板
-                }}
                 onToggleConversations={() => setShowConversations(!showConversations)}
                 onNewConversation={createNewConversation}
                 onClearChat={clearChat}
@@ -1305,565 +1313,61 @@ const App: React.FC = () => {
 
             {/* Conversations Panel */}
             {showConversations && (
-                <div data-panel="conversations" className={`border-b px-4 py-3 transition-colors ${isDarkMode
-                    ? 'bg-gray-800 border-gray-700'
-                    : 'bg-white border-gray-200'
-                    }`}>
-                    <div className="space-y-2">
-                        <h3 className={`text-sm font-semibold transition-colors ${isDarkMode ? 'text-gray-200' : 'text-gray-800'
-                            }`}>
-                            {t('conversation.list')}
-                        </h3>
-                        <div className="max-h-60 overflow-y-auto space-y-1">
-                            {conversations.length === 0 ? (
-                                <p className={`text-sm transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                                    }`}>
-                                    {t('conversation.empty')}
-                                </p>
-                            ) : (
-                                conversations
-                                    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-                                    .map((conversation) => (
-                                        <div
-                                            key={conversation.id}
-                                            className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors ${currentConversationId === conversation.id
-                                                ? (isDarkMode ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800')
-                                                : (isDarkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700')
-                                                }`}
-                                            onClick={() => switchConversation(conversation.id)}
-                                        >
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-medium truncate">
-                                                    {conversation.title}
-                                                </p>
-                                                <p className="text-xs opacity-70">
-                                                    {conversation.messages.length} {t('conversation.messages')} · {conversation.updatedAt.toLocaleDateString(i18n.language)}
-                                                </p>
-                                            </div>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation()
-                                                    deleteConversation(conversation.id)
-                                                }}
-                                                className={`p-1 rounded transition-colors ${isDarkMode
-                                                    ? 'text-gray-400 hover:text-red-400 hover:bg-gray-600'
-                                                    : 'text-gray-500 hover:text-red-600 hover:bg-red-50'
-                                                    }`}
-                                                title={t('conversation.delete.button')}
-                                            >
-                                                <Trash2 className="h-3 w-3" />
-                                            </button>
-                                        </div>
-                                    ))
-                            )}
-                        </div>
-                    </div>
-                </div>
+                <ConversationsPanel
+                    isDarkMode={isDarkMode}
+                    conversations={conversations}
+                    currentConversationId={currentConversationId}
+                    onSwitch={switchConversation}
+                    onDelete={deleteConversation}
+                />
             )}
 
             {/* Settings Dropdown */}
-            {(showSettings || showModelOnly) && (
-                <div 
-                    data-panel="settings" 
-                    className={`absolute top-16 right-4 w-72 md:w-80 rounded-lg shadow-xl z-50 border overflow-hidden transition-all duration-200 ease-in-out ${isDarkMode
-                    ? 'bg-gray-800 border-gray-700'
-                    : 'bg-white border-gray-200'
-                    }`}>
-                    <div className="p-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
-                        <div className="space-y-6">
-                        {/* 只有在完整設定模式下才顯示用戶設定 */}
-                        {!showModelOnly && (
-                            <>
-                                {/* 左側：用戶設定 */}
-                                <div className="space-y-4">
-                                    <h3 className={`text-sm font-semibold transition-colors ${isDarkMode ? 'text-gray-200' : 'text-gray-800'
-                                        }`}>
-                                        {t('settings.panels.user')}
-                                    </h3>
-
-                                    <div>
-                                        <label className={`block text-sm font-medium mb-1 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                                            }`}>
-                                            {t('settings.language.label')}
-                                        </label>
-                                        <select
-                                            value={i18n.language}
-                                            onChange={async (e) => {
-                                                const newLanguage = e.target.value
-                                                await updateAndSaveSettings('language', newLanguage)
-                                                
-                                                // 立即應用語言變更
-                                                await i18n.changeLanguage(newLanguage)
-                                                try { localStorage.setItem('llmchat_language', newLanguage) } catch {}
-                                                const htmlElement = document.getElementById('html-root') as HTMLHtmlElement
-                                                if (htmlElement) {
-                                                    htmlElement.lang = newLanguage
-                                                }
-                                            }}
-                                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDarkMode
-                                                ? 'bg-gray-700 border-gray-600 text-white'
-                                                : 'bg-white border-gray-300'
-                                                }`}
-                                        >
-                                            <option value="zh-TW">🇹🇼 繁體中文</option>
-                                            <option value="zh-CN">🇨🇳 简体中文</option>
-                                            <option value="en">🇺🇸 English</option>
-                                            <option value="ja">🇯🇵 日本語</option>
-                                            <option value="ko">🇰🇷 한국어</option>
-                                        </select>
-                                    </div>
-
-                                    <div>
-                                        <label className={`block text-sm font-medium mb-1 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                                            }`}>
-                                            {t('settings.theme.label')}
-                                        </label>
-                                        <select
-                                            value={userSettings.theme}
-                                            onChange={async (e) => {
-                                                const newTheme = e.target.value
-                                                await updateAndSaveSettings('theme', newTheme)
-                                                
-                                                // 應用主題變更
-                                                if (newTheme === 'auto') {
-                                                    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-                                                    setIsDarkMode(mediaQuery.matches)
-                                                } else {
-                                                    setIsDarkMode(newTheme === 'dark')
-                                                }
-                                            }}
-                                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDarkMode
-                                                ? 'bg-gray-700 border-gray-600 text-white'
-                                                : 'bg-white border-gray-300'
-                                                }`}
-                                        >
-                                            <option value="auto">{t('settings.theme.auto')}</option>
-                                            <option value="light">{t('settings.theme.light')}</option>
-                                            <option value="dark">{t('settings.theme.dark')}</option>
-                                        </select>
-                                    </div>
-
-                                    {/* 密碼更改區域 */}
-                                    <div className="border-t border-gray-200 dark:border-gray-600 pt-4 mt-4">
-                                        <h4 className={`text-sm font-medium mb-3 transition-colors ${isDarkMode ? 'text-gray-200' : 'text-gray-800'
-                                            }`}>
-                                            {t('settings.password.label')}
-                                        </h4>
-
-                                        <div className="space-y-3">
-                                            <div>
-                                                <label className={`block text-sm font-medium mb-1 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                                                    }`}>
-                                                    {t('settings.password.current')}
-                                                </label>
-                                                <input
-                                                    type="password"
-                                                    value={currentPassword}
-                                                    onChange={(e) => setCurrentPassword(e.target.value)}
-                                                    placeholder={t('settings.password.currentPlaceholder')}
-                                                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDarkMode
-                                                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
-                                                        : 'bg-white border-gray-300'
-                                                        }`}
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <label className={`block text-sm font-medium mb-1 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                                                    }`}>
-                                                    {t('settings.password.new')}
-                                                </label>
-                                                <input
-                                                    type="password"
-                                                    value={newPassword}
-                                                    onChange={(e) => setNewPassword(e.target.value)}
-                                                    placeholder={t('settings.password.newPlaceholder')}
-                                                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDarkMode
-                                                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
-                                                        : 'bg-white border-gray-300'
-                                                        }`}
-                                                />
-                                            </div>
-
-
-                                            {/* 錯誤和成功消息 */}
-                                            {passwordChangeError && (
-                                                <div className="text-red-600 dark:text-red-400 text-sm">
-                                                    {passwordChangeError}
-                                                </div>
-                                            )}
-                                            {passwordChangeMessage && (
-                                                <div className="text-green-600 dark:text-green-400 text-sm">
-                                                    {passwordChangeMessage}
-                                                </div>
-                                            )}
-
-                                            <button
-                                                onClick={handlePasswordChange}
-                                                disabled={isChangingPassword || !currentPassword || !newPassword}
-                                                className={`w-full px-4 py-2 rounded-md font-medium transition-colors ${isChangingPassword || !currentPassword || !newPassword
-                                                    ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                                                    : 'bg-blue-600 hover:bg-blue-700 text-white'
-                                                    }`}
-                                            >
-                                                {isChangingPassword ? t('auth.processing') : t('settings.password.button')}
-                                            </button>
-
-                                            {/* 顯示 Token 統計 */}
-                                            <div className="mt-4">
-                                                <label className={`block text-sm font-medium mb-2 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                                                    }`}>
-                                                    {t('settings.parameters.showTokenStats')}
-                                                </label>
-                                                <div className="flex items-center space-x-2">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            updateAndSaveSettings('showTokenStats', !userSettings.showTokenStats)
-                                                        }}
-                                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${settings.showTokenStats
-                                                            ? 'bg-blue-600'
-                                                            : isDarkMode
-                                                                ? 'bg-gray-600'
-                                                                : 'bg-gray-200'
-                                                            }`}
-                                                    >
-                                                        <span
-                                                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.showTokenStats ? 'translate-x-6' : 'translate-x-1'
-                                                                }`}
-                                                        />
-                                                    </button>
-                                                    <span className={`text-sm transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                                                        }`}>
-                                                        {settings.showTokenStats ? t('settings.parameters.on') : t('settings.parameters.off')}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                            </>
-                        )}
-                        </div>
-                    </div>
-                </div>
+            {showSettings && (
+                <SettingsPanel
+                    isDarkMode={isDarkMode}
+                    theme={userSettings.theme}
+                    userShowTokenStats={userSettings.showTokenStats}
+                    settingsShowTokenStats={settings.showTokenStats}
+                    currentPassword={currentPassword}
+                    newPassword={newPassword}
+                    passwordChangeError={passwordChangeError}
+                    passwordChangeMessage={passwordChangeMessage}
+                    isChangingPassword={isChangingPassword}
+                    onCurrentPasswordChange={setCurrentPassword}
+                    onNewPasswordChange={setNewPassword}
+                    onPasswordChange={handlePasswordChange}
+                    onChangeSetting={updateAndSaveSettings}
+                    onSetIsDarkMode={setIsDarkMode}
+                />
             )}
 
             {/* Messages */}
-            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4 chat-messages">
-                {currentMessages.length === 0 ? (
-                    <div className={`text-center mt-12 transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-700'
-                        }`}>
-                        <Bot className={`h-12 w-12 mx-auto mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-300'
-                            }`} />
-                        <p className="text-lg mb-2">{t('app.welcome.title')}</p>
-                        <p className="text-sm">{t('app.welcome.subtitle')}</p>
-                        <p className="text-sm">{t('app.welcome.fileHint')}</p>
-                    </div>
-                ) : (
-                    currentMessages.map((message) => (
-                        <div
-                            key={message.id}
-                            className={`flex items-start space-x-3 group ${message.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''
-                                }`}
-                        >
-                            <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${message.role === 'user'
-                                ? 'bg-blue-600 text-white'
-                                : isDarkMode
-                                    ? 'bg-gray-700 text-gray-300'
-                                    : 'bg-gray-200 text-gray-600'
-                                }`}>
-                                {message.role === 'user' ? (
-                                    <User className="h-4 w-4" />
-                                ) : (
-                                    <Bot className="h-4 w-4" />
-                                )}
-                            </div>
-                            <div className={`flex-1 max-w-[90%] ${message.role === 'user' ? 'text-right' : ''
-                                }`}>
-                                <div className={`inline-block px-4 py-2 rounded-lg transition-colors chat-message-content relative ${message.role === 'user'
-                                    ? 'bg-blue-600 text-white'
-                                    : `pr-8 ${isDarkMode
-                                        ? 'bg-gray-800 text-gray-100 border border-gray-700'
-                                        : 'bg-white text-gray-900 border border-gray-200'
-                                    }`
-                                    }`}>
-                                    {(() => {
-                                        const lines = message.content.split('\n')
-                                        const fileLineIndex = lines.findIndex(line => line.startsWith('[附加檔案:'))
-                                        const hasFiles = fileLineIndex !== -1
-
-                                        // 分離內容和檔案部分
-                                        const contentLines = hasFiles ? lines.slice(0, fileLineIndex) : lines
-                                        const fileLines = hasFiles ? lines.slice(fileLineIndex) : []
-
-                                        return (
-                                            <>
-                                                {/* 主要內容使用Markdown渲染 */}
-                                                <MarkdownMessage
-                                                    content={contentLines.join('\n')}
-                                                    isDarkMode={isDarkMode}
-                                                    isUser={message.role === 'user'}
-                                                />
-
-                                                {/* 附加檔案部分 */}
-                                                {fileLines.map((line, index) => {
-                                                    if (line.startsWith('[附加檔案:')) {
-                                                        return (
-                                                            <div key={index} className={`mt-3 border-t pt-3 ${message.role === 'user'
-                                                                ? (isDarkMode ? 'border-blue-200' : 'border-blue-100')
-                                                                : 'border-gray-200 dark:border-gray-600'
-                                                                }`}>
-                                                                <button
-                                                                    onClick={() => toggleFiles(message.id)}
-                                                                    className={`flex items-center space-x-2 text-sm font-medium transition-colors ${message.role === 'user'
-                                                                        ? (isDarkMode ? 'text-blue-200 hover:text-blue-100' : 'text-blue-100 hover:text-white')
-                                                                        : (isDarkMode
-                                                                            ? 'text-gray-400 hover:text-gray-200'
-                                                                            : 'text-gray-600 hover:text-gray-800')
-                                                                        }`}
-                                                                >
-                                                                    <span>{t('messages.files')}</span>
-                                                                    <svg
-                                                                        className={`w-4 h-4 transition-transform ${expandedFiles.has(message.id) ? 'rotate-90' : ''}`}
-                                                                        fill="none"
-                                                                        stroke="currentColor"
-                                                                        viewBox="0 0 24 24"
-                                                                    >
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                                                    </svg>
-                                                                </button>
-                                                                {expandedFiles.has(message.id) && (
-                                                                    <div className={`mt-2 p-3 rounded-md text-sm transition-colors ${isDarkMode
-                                                                        ? 'bg-gray-700 text-gray-300 border border-gray-600'
-                                                                        : 'bg-gray-100 text-gray-800 border border-gray-300'
-                                                                        }`}>
-                                                                        <pre className="whitespace-pre-wrap break-words font-mono text-xs">{line}</pre>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        )
-                                                    }
-                                                    return null
-                                                })}
-                                            </>
-                                        )
-                                    })()}
-                                    {message.role === 'assistant' && (
-                                        <>
-                                            {message.thinking && (
-                                                <div className="mt-3 border-t border-gray-200 dark:border-gray-600 pt-3">
-                                                    <button
-                                                        onClick={() => toggleThinking(message.id)}
-                                                        className={`flex items-center space-x-2 text-sm font-medium transition-colors ${isDarkMode
-                                                            ? 'text-gray-400 hover:text-gray-200'
-                                                            : 'text-gray-600 hover:text-gray-800'
-                                                            }`}
-                                                    >
-                                                        <span>{t('messages.thinking')}</span>
-                                                        <svg
-                                                            className={`w-4 h-4 transition-transform ${expandedThinking.has(message.id) ? 'rotate-90' : ''}`}
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            viewBox="0 0 24 24"
-                                                        >
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                                        </svg>
-                                                    </button>
-                                                    {expandedThinking.has(message.id) && (
-                                                        <div className={`mt-2 p-3 rounded-md text-sm transition-colors ${isDarkMode
-                                                            ? 'bg-gray-700 text-gray-300 border border-gray-600'
-                                                            : 'bg-gray-50 text-gray-700 border border-gray-200'
-                                                            }`}>
-                                                            <pre className="whitespace-pre-wrap break-words font-mono text-xs">{message.thinking}</pre>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </>
-                                    )}
-
-                                    {/* 語音按鈕 - 放在對話框右上角，不遮擋內容 */}
-                                    {message.role === 'assistant' && (
-                                        <div className="absolute top-1 right-1 flex flex-col items-center space-y-1 z-10">
-                                            <button
-                                                key={`speech-btn-${message.id}`}
-                                                onClick={(e) => {
-                                                    e.stopPropagation()
-
-                                                    toggleSpeechForMessage({ messageId: message.id, text: message.content })
-                                                }}
-                                                className={`p-1 rounded-full transition-colors shadow-sm ${(() => {
-                                                    const { isPlayingThis, isGlobalPlaying, isInQueue } = getSpeechButtonState(message.id)
-
-                                                    if (isPlayingThis) {
-                                                        return 'bg-green-500 text-white hover:bg-green-600' // 本session播放中 - 綠色 (最高優先級)
-                                                    } else if (isInQueue) {
-                                                        return 'bg-orange-500 text-white hover:bg-red-400' // 隊列中 - 橘色
-                                                    } else if (isGlobalPlaying) {
-                                                        return 'bg-red-500 text-white' // 其他session播放中 - 紅色
-                                                    } else {
-                                                        return isDarkMode
-                                                            ? 'bg-gray-600 text-gray-300 hover:text-green-400 hover:bg-gray-500'
-                                                            : 'bg-gray-200 text-gray-600 hover:text-green-600 hover:bg-gray-300'
-                                                    }
-                                                })()
-                                                    }`}
-                                                title={
-                                                    isSpeaking && currentPlayingItemRef.current?.messageId === message.id
-                                                        ? t('messages.voice.stop')
-                                                        : globalSpeakingMessageId === message.id
-                                                            ? t('messages.voice.otherTabPlaying')
-                                                            : speechQueue.some(item => item.messageId === message.id)
-                                                                ? t('messages.voice.removeFromQueue')
-                                                                : t('messages.voice.play')
-                                                }
-                                                disabled={isSpeechButtonDisabled(message.id)} // 只有其他session播放時才禁用，本session播放時不禁用
-                                                style={{ zIndex: 10, pointerEvents: 'auto' }}
-                                            >
-                                                <Volume2 className="h-3 w-3" />
-                                            </button>
-                                            {/* 刪除按鈕 - 在語音按鈕下方 */}
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation()
-                                                    handleDeleteMessage(currentConversationId, message.id)
-                                                }}
-                                                className={`p-1 rounded-full transition-colors shadow-sm opacity-0 group-hover:opacity-100 ${isDarkMode
-                                                    ? 'text-gray-400 hover:text-red-400 hover:bg-gray-700'
-                                                    : 'text-gray-500 hover:text-red-600 hover:bg-red-50'
-                                                    }`}
-                                                title={t('messages.delete.button')}
-                                            >
-                                                <Trash2 className="h-3 w-3" />
-                                            </button>
-                                        </div>
-                                    )}
-
-                                    {/* 刪除按鈕 - 用戶訊息右上角 */}
-                                    {message.role === 'user' && (
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation()
-                                                handleDeleteMessage(currentConversationId, message.id)
-                                            }}
-                                            className={`absolute top-1 right-1 p-1 rounded-full transition-colors shadow-sm opacity-0 group-hover:opacity-100 ${isDarkMode
-                                                ? 'text-gray-400 hover:text-red-400 hover:bg-gray-600'
-                                                : 'text-gray-500 hover:text-red-600 hover:bg-gray-200'
-                                                }`}
-                                            title={t('messages.delete.button')}
-                                        >
-                                            <Trash2 className="h-3 w-3" />
-                                        </button>
-                                    )}
-
-                                    {/* Token 統計 - AI 消息才顯示，根據設定控制 */}
-                                    {message.role === 'assistant' && message.tokenCount !== undefined && settings.showTokenStats && (
-                                        <div className={`mt-2 text-xs font-mono transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                                            <span className="inline-block px-2 py-1 rounded-sm bg-gray-100 dark:bg-gray-700">
-                                                {message.tokenCount} tokens | {(message.tokensPerSecond || 0).toFixed(2)} tokens/s
-                                            </span>
-                                        </div>
-                                    )}
-                                </div>
-
-
-                                <p className={`text-xs mt-1 transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                                    }`}>
-                                    {message.timestamp.toLocaleTimeString(i18n.language)}
-                                </p>
-                            </div>
-                        </div>
-                    ))
-                )}
-                {false && (
-                    <div className="flex items-start space-x-3">
-                        <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${isDarkMode
-                            ? 'bg-gray-700 text-gray-300'
-                            : 'bg-gray-200 text-gray-600'
-                            }`}>
-                            <Bot className="h-4 w-4" />
-                        </div>
-                        <div className={`border rounded-lg px-4 py-2 transition-colors ${isDarkMode
-                            ? 'bg-gray-800 border-gray-700'
-                            : 'bg-white border-gray-200'
-                            }`}>
-                            <div className="flex space-x-1">
-                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-                {isStreaming && (
-                    <div className="flex items-start space-x-3">
-                        <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${isDarkMode
-                            ? 'bg-gray-700 text-gray-300'
-                            : 'bg-gray-200 text-gray-600'
-                            }`}>
-                            <Bot className="h-4 w-4" />
-                        </div>
-                        <div className={`flex-1 max-w-[90%] transition-colors`}>
-                            <div className={`inline-block px-4 py-2 rounded-lg transition-colors ${isDarkMode
-                                ? 'bg-gray-800 text-gray-100 border border-gray-700'
-                                : 'bg-white text-gray-900 border border-gray-200'
-                                }`}>
-                                <MarkdownMessage
-                                    content={streamingMessage || t('messages.generating')}
-                                    isDarkMode={isDarkMode}
-                                    isUser={false}
-                                />
-                                <div className="flex space-x-1 mt-2">
-                                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
-                                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                                </div>
-                                {streamingThinking && (
-                                    <div className="mt-3 border-t border-gray-200 dark:border-gray-600 pt-3">
-                                        <button
-                                            onClick={() => setShowStreamingThinking(!showStreamingThinking)}
-                                            className={`flex items-center space-x-2 text-sm font-medium transition-colors ${isDarkMode
-                                                ? 'text-gray-400 hover:text-gray-200'
-                                                : 'text-gray-600 hover:text-gray-800'
-                                                }`}
-                                        >
-                                            <span>{t('messages.thinking')}</span>
-                                            <svg
-                                                className={`w-4 h-4 transition-transform ${showStreamingThinking ? 'rotate-90' : ''}`}
-                                                fill="none"
-                                                stroke="currentColor"
-                                                viewBox="0 0 24 24"
-                                            >
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                            </svg>
-                                        </button>
-                                        {showStreamingThinking && (
-                                            <div className={`mt-2 p-3 rounded-md text-sm transition-colors ${isDarkMode
-                                                ? 'bg-gray-700 text-gray-300 border border-gray-600'
-                                                : 'bg-gray-50 text-gray-700 border border-gray-200'
-                                                }`}>
-                                                <pre className="whitespace-pre-wrap break-words font-mono text-xs">{streamingThinking}</pre>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                {/* Token 統計 - 串流中即時顯示 */}
-                                {settings.showTokenStats && (
-                                    <div className={`mt-2 text-xs font-mono transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                                        <span className="inline-block px-2 py-1 rounded-sm bg-gray-100 dark:bg-gray-700">
-                                            {tokenCount} tokens | {tokensPerSecond.toFixed(2)} tokens/s
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                )}
-                <div ref={messagesEndRef} />
-            </div>
+            <MessagesPanel
+                isDarkMode={isDarkMode}
+                messagesContainerRef={messagesContainerRef}
+                messagesEndRef={messagesEndRef}
+                currentMessages={currentMessages}
+                currentConversationId={currentConversationId}
+                expandedThinking={expandedThinking}
+                expandedFiles={expandedFiles}
+                showTokenStats={settings.showTokenStats}
+                onToggleThinking={toggleThinking}
+                onToggleFiles={toggleFiles}
+                onDeleteMessage={handleDeleteMessage}
+                onToggleSpeech={toggleSpeechForMessage}
+                getSpeechButtonState={getSpeechButtonState}
+                isSpeechButtonDisabled={isSpeechButtonDisabled}
+                globalSpeakingMessageId={globalSpeakingMessageId}
+                speechQueue={speechQueue}
+                isStreaming={isStreaming}
+                streamingMessage={streamingMessage}
+                streamingThinking={streamingThinking}
+                showStreamingThinking={showStreamingThinking}
+                onSetShowStreamingThinking={setShowStreamingThinking}
+                tokenCount={tokenCount}
+                tokensPerSecond={tokensPerSecond}
+            />
 
             {/* Input */}
             <div className={`border-t px-4 py-4 transition-colors ${isDarkMode
@@ -1954,7 +1458,7 @@ const App: React.FC = () => {
                         title={webSearchEnabled ? '網路搜尋已啟用' : '啟用網路搜尋'}
                         disabled={isLoading}
                     >
-                        <Globe className={`h-5 w-5 ${webSearchEnabled ? 'animate-pulse' : ''}`} />
+                        <Globe className="h-5 w-5" />
                     </button>
                     {/* 檔案上傳按鈕 */}
                     <button
@@ -1997,68 +1501,6 @@ const App: React.FC = () => {
             </div>
         </div>
     )
-}
-
-// Token estimation helpers
-function estimateTokens(text: string): number {
-    if (!text) return 0
-    let tokens = 0
-    // CJK characters match range: Chinese, Japanese, Korean
-    const cjkRegex = /[\u3000-\u303f\u3040-\u309f\u30a0-\u30ff\uff00-\uff9f\u4e00-\u9faf\u3400-\u4dbf\uac00-\ud7a3]/g
-    const cjkMatches = text.match(cjkRegex)
-    const cjkCount = cjkMatches ? cjkMatches.length : 0
-    
-    const remainingText = text.replace(cjkRegex, ' ')
-    const words = remainingText.trim().split(/\s+/)
-    let englishTokens = 0
-    if (words.length > 0 && words[0] !== '') {
-        englishTokens = Math.ceil(words.length * 1.3)
-    }
-    
-    tokens = Math.ceil(cjkCount * 1.2) + englishTokens
-    return tokens
-}
-
-function estimateConversationTokens(
-    messages: Message[], 
-    baseSystemPrompt?: string, 
-    streamingMessage?: string, 
-    streamingThinking?: string,
-    isStreaming?: boolean
-): number {
-    let total = 0
-    // Estimate System Prompt
-    const systemPrompt = baseSystemPrompt || 'You are a helpful AI assistant.'
-    total += estimateTokens(systemPrompt)
-    total += 10 // buffer for system date/time warning suffix
-    
-    // Add messages in history
-    for (const msg of messages) {
-        if (msg.role === 'assistant') {
-            total += estimateTokens(msg.content)
-            if (msg.thinking) {
-                total += estimateTokens(msg.thinking)
-            }
-        } else {
-            total += estimateTokens(msg.hiddenContent || msg.content)
-        }
-        total += 4 // overhead per message
-    }
-    
-    // Add active streaming message
-    if (isStreaming) {
-        if (streamingMessage) {
-            total += estimateTokens(streamingMessage)
-        }
-        if (streamingThinking) {
-            total += estimateTokens(streamingThinking)
-        }
-        if (streamingMessage || streamingThinking) {
-            total += 4 // overhead
-        }
-    }
-    
-    return total
 }
 
 export default App

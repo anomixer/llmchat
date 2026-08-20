@@ -6,6 +6,7 @@
 import { Router, type Request, type Response } from 'express'
 import axios from 'axios'
 import crypto from 'crypto'
+import { authenticateToken, type AuthedRequest } from '../middlewares/authenticateToken.js'
 
 // In-memory state store（防 CSRF）
 const oauthStateStore = new Map<string, { createdAt: number }>()
@@ -38,7 +39,7 @@ export function createOAuthRouter(deps: any) {
 
     // ── Google OAuth Step 1: 回傳授權 URL（前端自行開 popup）────────────
     // GET /api/oauth/google/start
-    router.get('/oauth/google/start', (req: Request, res: Response) => {
+    router.get('/oauth/google/start', authenticateToken(userService), (req: AuthedRequest, res: Response) => {
         const clientId = process.env.GOOGLE_CLIENT_ID
         const clientSecret = process.env.GOOGLE_CLIENT_SECRET
 
@@ -155,7 +156,7 @@ export function createOAuthRouter(deps: any) {
 
     // ── Google OAuth 狀態查詢 ─────────────────────────────────
     // GET /api/oauth/google/status
-    router.get('/oauth/google/status', (req: Request, res: Response) => {
+    router.get('/oauth/google/status', authenticateToken(userService), (req: AuthedRequest, res: Response) => {
         try {
             const admin = userService?.users?.find((u: any) => u.role === 'admin')
             const settings = admin ? userService.getUserSettings(admin.id) : null
@@ -170,7 +171,7 @@ export function createOAuthRouter(deps: any) {
 
     // ── Google OAuth 撤銷授權 ──────────────────────────────
     // POST /api/oauth/google/revoke
-    router.post('/oauth/google/revoke', async (req: Request, res: Response) => {
+    router.post('/oauth/google/revoke', authenticateToken(userService), async (req: AuthedRequest, res: Response) => {
         try {
             if (userService) {
                 const admin = userService.users.find((u: any) => u.role === 'admin')
@@ -199,7 +200,7 @@ export function createOAuthRouter(deps: any) {
 
     // ── ChatGPT Web Session — 儲存 Access Token ────────────────
     // POST /api/oauth/chatgpt/session
-    router.post('/oauth/chatgpt/session', async (req: Request, res: Response) => {
+    router.post('/oauth/chatgpt/session', authenticateToken(userService), async (req: AuthedRequest, res: Response) => {
         try {
             const { accessToken, proxyUrl } = req.body
             if (!accessToken) return res.status(400).json({ error: '缺少 accessToken' })
@@ -244,7 +245,7 @@ export function createOAuthRouter(deps: any) {
     })
 
     // ── ChatGPT Session 狀態查詢 ────────────────────────────
-    router.get('/oauth/chatgpt/status', (req: Request, res: Response) => {
+    router.get('/oauth/chatgpt/status', authenticateToken(userService), (req: AuthedRequest, res: Response) => {
         try {
             const admin = userService?.users?.find((u: any) => u.role === 'admin')
             const settings = admin ? userService.getUserSettings(admin.id) : null
@@ -258,7 +259,7 @@ export function createOAuthRouter(deps: any) {
     })
 
     // ── ChatGPT Session 清除 ────────────────────────────────
-    router.post('/oauth/chatgpt/revoke', (req: Request, res: Response) => {
+    router.post('/oauth/chatgpt/revoke', authenticateToken(userService), (req: AuthedRequest, res: Response) => {
         try {
             if (userService) {
                 const admin = userService.users.find((u: any) => u.role === 'admin')

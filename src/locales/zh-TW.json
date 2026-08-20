@@ -27,6 +27,14 @@
       "markdown": "導出為 Markdown",
       "created": "創建時間",
       "updated": "最後更新"
+    },
+    "compact": {
+      "tooShort": "對話訊息尚少，無須壓縮！",
+      "busy": "系統忙碌中，請稍後再試。",
+      "confirm": "確定要壓縮當前對話歷史以節省空間嗎？舊的對話將被自動摘要以釋放 Context 空間。",
+      "processing": "正在壓縮歷史對話中，請稍候...",
+      "summaryTitle": "先前對話歷史摘要",
+      "failed": "壓縮歷史對話時發生錯誤。"
     }
   },
   "buttons": {
@@ -39,7 +47,9 @@
     "model": {
       "none": "未選擇模型",
       "openSettings": "點擊開啟設定",
-      "closeSettings": "點擊關閉設定"
+      "closeSettings": "點擊關閉設定",
+      "loading": "(載入中...)",
+      "noModels": "(找不到模型)"
     },
     "conversations": {
       "button": "對話列表 (Ctrl + B)",
@@ -59,7 +69,8 @@
     "github": "在 GitHub 上查看",
     "menu": "選單",
     "adminBadge": "管理員",
-    "adminButton": "用戶管理"
+    "adminButton": "用戶管理",
+    "contextUsage": "上下文用量 (已用/最大)，點擊壓縮 (/compact)"
   },
   "settings": {
     "panels": {
@@ -353,7 +364,17 @@
       "authApiKey": "🔑 靜態 API 金鑰 (Static API Key)",
       "gcpServiceAccount": "GCP 服務帳號金鑰 (Service Account JSON)",
       "sessionToken": "Session Token（選填）"
-    }
+    },
+    "newPassword": "新密碼（留空不修改）",
+    "password": "密碼"
   },
-  "systemPrompt": "你是一個有用的AI助手，請用繁體中文回答用戶的問題。"
+  "systemPrompt": "你是一個有用的AI助手，請用繁體中文回答用戶的問題。",
+  "system": {
+    "summarizationPrompt": "請對以下對話歷史進行結構化的詳細摘要。摘要中必須保留：1. 討論的核心主題與上下文脈絡；2. 使用者特別提出的具體需求、偏好與關鍵設定；3. 雙方達成的最終結論、產出的程式碼關鍵段落或解決方案。請使用與對話相同的語言撰寫，直接輸出摘要，不要包含任何引言或解釋，確保 AI 閱讀此摘要後能完全承接先前的記憶與細節。"
+  },
+  "common": {
+    "cancel": "取消",
+    "save": "儲存",
+    "saving": "處理中..."
+  }
 }

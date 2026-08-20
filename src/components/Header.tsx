@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Send, Bot, Settings, Trash2, Plus, MessageSquare, Download, Maximize2, Minimize2, LogOut, Users, ChevronDown, Moon, Sun, Monitor } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { APP_CONFIG } from '../constants'
 
 interface User {
     id: string
@@ -23,7 +24,6 @@ interface HeaderProps {
     onToggleTheme: () => void
     onToggleFullscreen: () => void
     onToggleSettings: () => void
-    onToggleModelOnly: () => void
     onToggleConversations: () => void
     onNewConversation: () => void
     onClearChat: () => void
@@ -50,7 +50,6 @@ export const Header: React.FC<HeaderProps> = ({
     onToggleTheme,
     onToggleFullscreen,
     onToggleSettings,
-    onToggleModelOnly,
     onToggleConversations,
     onNewConversation,
     onClearChat,
@@ -101,8 +100,8 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="flex items-center space-x-2">
                 <Bot className={`h-6 w-6 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
                 <h1 className={`text-xl font-semibold transition-colors ${isDarkMode ? 'text-white' : 'text-gray-900'
-                    }`}>{t('app.title')} <span className={`text-xs font-extralight transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                        }`}>{t('app.version')}</span></h1>
+                    }`}>{APP_CONFIG.title} <span className={`text-xs font-extralight transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                        }`}>{APP_CONFIG.version}</span></h1>
                 <div className="relative">
                     <button
                         onClick={() => {

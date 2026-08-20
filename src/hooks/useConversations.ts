@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 export interface Message {
     id: string
@@ -55,6 +55,15 @@ export function useConversations(args: UseConversationsArgs) {
 
     const [conversations, setConversations] = useState<Conversation[]>([initialConversation])
     const [conversationsLoaded, setConversationsLoaded] = useState(false)
+
+    // 保存防抖：避免每次 conversations 改變都立即 POST（串流時一輪會觸發多次）
+    const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const latestConversationsRef = useRef<Conversation[]>(conversations)
+    latestConversationsRef.current = conversations
+    const tokenRef = useRef(token)
+    tokenRef.current = token
+    // 載入完成後的第一次 save 是「把剛載入的資料再存回去」，純多餘 → 跳過
+    const skipSaveRef = useRef(false)
 
     const [currentConversationId, setCurrentConversationId] = useState<string>(() => {
         try {
@@ -113,8 +122,21 @@ export function useConversations(args: UseConversationsArgs) {
         [token]
     )
 
+    // 立即保存（元件卸載時用，確保防抖窗口內的變更不被丟失）
+    const flushSave = useCallback(() => {
+        if (saveTimerRef.current) {
+            clearTimeout(saveTimerRef.current)
+            saveTimerRef.current = null
+        }
+        if (tokenRef.current) {
+            saveConversationsToServer(latestConversationsRef.current)
+        }
+    }, [saveConversationsToServer])
+
     useEffect(() => {
         if (token && !conversationsLoaded) {
+            // 載入前先把「載入後的第一次 save」標記為跳過（那只是把剛載入的資料再存回去）
+            skipSaveRef.current = true
             loadUserConversations()
         } else if (!token && conversationsLoaded) {
             setConversations([])
@@ -123,11 +145,24 @@ export function useConversations(args: UseConversationsArgs) {
         }
     }, [conversationsLoaded, loadUserConversations, token])
 
+    // 防抖保存：串流時一輪的多個 appendMessage 會合併成一次 POST
     useEffect(() => {
-        if (conversationsLoaded && token) {
-            saveConversationsToServer(conversations)
+        if (!conversationsLoaded || !token) return
+        if (skipSaveRef.current) {
+            skipSaveRef.current = false
+            return
         }
+        if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+        saveTimerRef.current = setTimeout(() => {
+            saveConversationsToServer(conversations)
+        }, 800)
+        return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current) }
     }, [conversations, conversationsLoaded, saveConversationsToServer, token])
+
+    // 卸載時把防抖窗口內的變更補存一次
+    useEffect(() => {
+        return () => flushSave()
+    }, [flushSave])
 
     useEffect(() => {
         try {

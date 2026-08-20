@@ -18,9 +18,10 @@ interface AdminProps {
 
 const isVisionModel = (modelName: string): boolean => {
     const name = modelName.toLowerCase();
+    // 明確的視覺模型標記（避免 'vl'/'gemini' 等子串誤傷純文字模型）
     return (
         name.includes('vision') ||
-        name.includes('vl') ||
+        name.includes('vl') && !name.includes('vllm') ||
         name.includes('llava') ||
         name.includes('moondream') ||
         name.includes('gpt-4o') ||
@@ -34,6 +35,31 @@ const isVisionModel = (modelName: string): boolean => {
         name.includes('internvl') ||
         name.includes('pixtral')
     );
+};
+
+// Provider → 預設 Base URL（key 用 provider type，select 的 value 就是 type）
+const PROVIDER_URLS: Record<string, string> = {
+    'ollama': 'http://127.0.0.1:11434',
+    'ollama-cloud': 'https://ollama.com',
+    'openai': 'https://api.openai.com/v1',
+    'anthropic': 'https://api.anthropic.com/v1',
+    'google-gemini': 'https://generativelanguage.googleapis.com/v1beta/openai',
+    'mistral': 'https://api.mistral.ai/v1',
+    'groq': 'https://api.groq.com/openai/v1',
+    'xai-grok': 'https://api.x.ai/v1',
+    'deepseek': 'https://api.deepseek.com/v1',
+    'nvidia': 'https://integrate.api.nvidia.com/v1',
+    'together': 'https://api.together.xyz/v1',
+    'openrouter': 'https://openrouter.ai/api/v1',
+    'kilo-gateway': 'https://api.kilo.ai/api/gateway',
+    'synthetic': 'https://api.synthetic.new/anthropic',
+    'moonshot': 'https://api.moonshot.ai/v1',
+    'vercel-gateway': 'https://gateway.ai.vercel.com/v1',
+    'cloudflare-gateway': 'https://gateway.ai.cloudflare.com/v1',
+    'vllm': 'http://127.0.0.1:8000/v1',
+    'sglang': 'http://127.0.0.1:30000/v1',
+    'lm-studio': 'http://127.0.0.1:1234/v1',
+    'custom': 'http://127.0.0.1:11434/v1'
 };
 
 export const Admin: React.FC<AdminProps> = ({ onBack }) => {
@@ -124,34 +150,10 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
         setImportAdcError('')
     }
 
-    const PROVIDER_DEFAULTS: Record<string, string> = {
-        'OpenAI': 'https://api.openai.com/v1',
-        'Anthropic Claude': 'https://api.anthropic.com/v1',
-        'Google Gemini': 'https://generativelanguage.googleapis.com/v1beta/openai',
-        'Mistral': 'https://api.mistral.ai/v1',
-        'Groq': 'https://api.groq.com/openai/v1',
-        'xAI (Grok)': 'https://api.x.ai/v1',
-        'DeepSeek': 'https://api.deepseek.com/v1',
-        'NVIDIA NIM': 'https://integrate.api.nvidia.com/v1',
-        'Together AI': 'https://api.together.xyz/v1',
-        'OpenRouter': 'https://openrouter.ai/api/v1',
-        'Kilo Gateway': 'https://api.kilo.ai/api/gateway',
-        'Synthetic (Anthropic-compatible)': 'https://api.synthetic.new/anthropic',
-        'Moonshot AI (Kimi)': 'https://api.moonshot.ai/v1',
-        'Vercel AI Gateway': 'https://gateway.ai.vercel.com/v1',
-        'Cloudflare AI Gateway': 'https://gateway.ai.cloudflare.com/v1',
-        'Ollama Cloud': 'https://ollama.com',
-        'Ollama': 'http://127.0.0.1:11434',
-        'vLLM': 'http://127.0.0.1:8000/v1',
-        'SGLang': 'http://127.0.0.1:30000/v1',
-        'LM Studio': 'http://127.0.0.1:1234/v1',
-        'Custom Provider (自訂)': 'http://127.0.0.1:11434/v1'
-    }
-
     const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const providerType = e.target.value
         setSelectedProvider(providerType)
-        
+
         let validMethods = ['api-key']
         if (providerType === 'google-gemini' || providerType === 'custom') validMethods.push('google-service-account')
         if (providerType === 'custom') {
@@ -165,40 +167,23 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
         }
 
         const provider = providers.find(p => p.type === providerType)
-        if (provider) {
-            const defaultUrl = PROVIDER_DEFAULTS[provider.name] || provider.baseUrl || 'http://127.0.0.1:11434/v1'
-            setProviderBaseUrl(defaultUrl)
-            fetchAvailableModels(providerType, defaultUrl, providerApiKey, '', newAuthMethod)
-        } else {
-            const hardcodedUrls: Record<string, string> = {
-                'ollama': 'http://127.0.0.1:11434',
-                'ollama-cloud': 'https://ollama.com',
-                'openai': 'https://api.openai.com/v1',
-                'anthropic': 'https://api.anthropic.com/v1',
-                'google-gemini': 'https://generativelanguage.googleapis.com/v1beta/openai',
-                'mistral': 'https://api.mistral.ai/v1',
-                'groq': 'https://api.groq.com/openai/v1',
-                'xai-grok': 'https://api.x.ai/v1',
-                'deepseek': 'https://api.deepseek.com/v1',
-                'nvidia': 'https://integrate.api.nvidia.com/v1',
-                'together': 'https://api.together.xyz/v1',
-                'openrouter': 'https://openrouter.ai/api/v1',
-                'kilo-gateway': 'https://api.kilo.ai/api/gateway',
-                'synthetic': 'https://api.synthetic.new/anthropic',
-                'moonshot': 'https://api.moonshot.ai/v1',
-                'vercel-gateway': 'https://gateway.ai.vercel.com/v1',
-                'cloudflare-gateway': 'https://gateway.ai.cloudflare.com/v1',
-                'vllm': 'http://127.0.0.1:8000/v1',
-                'sglang': 'http://127.0.0.1:30000/v1',
-                'lm-studio': 'http://127.0.0.1:1234/v1',
-                'custom': 'http://127.0.0.1:11434/v1'
-            }
-            const defaultUrl = hardcodedUrls[providerType] || 'http://127.0.0.1:11434/v1'
-            setProviderBaseUrl(defaultUrl)
+        // 優先用 type 對照表；找不到則用 server 回傳的 baseUrl；最後才預設
+        const defaultUrl = PROVIDER_URLS[providerType] || provider?.baseUrl || 'http://127.0.0.1:11434/v1'
+        setProviderBaseUrl(defaultUrl)
+        if (!provider) {
             setProviderApiKey('')
             fetchAvailableModels(providerType, defaultUrl, '', '', newAuthMethod)
+        } else {
+            fetchAvailableModels(providerType, defaultUrl, providerApiKey, '', newAuthMethod)
         }
     }
+
+    // 初始化載入資料（必須在所有 hooks 之後、任何條件 return 之前，否則違反 React Hooks 順序）
+    useEffect(() => {
+        if (!currentUser || currentUser.role !== 'admin') return
+        fetchUsers()
+        fetchProviders().then(() => { fetchCurrentProvider() })
+    }, [])
 
     if (!currentUser || currentUser.role !== 'admin') {
         return (
@@ -514,10 +499,10 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                     setConnectionStatus('success')
                     setConnectionMessage(t('admin.llm.saveSuccess', '✅ 設定已保存'))
                     try {
-                        const oauthConfigQuery = encodeURIComponent(JSON.stringify(providerOauthConfig))
+                        const oauthConfigHeader = JSON.stringify(providerOauthConfig)
                         const modelsResponse = await fetch(
-                            `/api/models?type=${encodeURIComponent(selectedProvider)}&baseUrl=${encodeURIComponent(providerBaseUrl)}&apiKey=${encodeURIComponent(providerApiKey)}&authMethod=${encodeURIComponent(providerAuthMethod)}&oauthConfig=${oauthConfigQuery}`,
-                            { headers: { 'Authorization': `Bearer ${token}` } }
+                            `/api/models?type=${encodeURIComponent(selectedProvider)}&baseUrl=${encodeURIComponent(providerBaseUrl)}&authMethod=${encodeURIComponent(providerAuthMethod)}`,
+                            { headers: { 'Authorization': `Bearer ${token}`, 'X-Provider-ApiKey': providerApiKey, 'X-Provider-Oauth-Config': oauthConfigHeader } }
                         )
                         if (modelsResponse.ok) {
                             const modelsData = await modelsResponse.json()
@@ -530,6 +515,12 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
                     setConnectionStatus('error')
                     setConnectionMessage(t('admin.llm.saveWarning', '⚠️ 設定已保存，但連接失敗'))
                 }
+            } else {
+                // 保存失敗（例如非管理員 403、參數錯誤 400、伺服器 500）— 原本會被靜默吞掉
+                let msg = t('admin.llm.saveError', '❌ 保存失敗')
+                try { const e = await response.json(); if (e?.error) msg = e.error } catch { /* ignore */ }
+                setConnectionStatus('error')
+                setConnectionMessage(msg)
             }
         } catch (error) {
             console.error('Failed to save provider configuration:', error)
@@ -548,10 +539,10 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
         if (!baseUrl) return
         try {
             setLoadingModels(true)
-            const oauthConfigQuery = encodeURIComponent(JSON.stringify(oauthConfig))
+            const oauthConfigHeader = JSON.stringify(oauthConfig)
             const response = await fetch(
-                `/api/models?type=${encodeURIComponent(type)}&baseUrl=${encodeURIComponent(baseUrl)}&apiKey=${encodeURIComponent(apiKey)}&authMethod=${encodeURIComponent(authMethod)}&oauthConfig=${oauthConfigQuery}`,
-                { headers: { 'Authorization': `Bearer ${token}` } }
+                `/api/models?type=${encodeURIComponent(type)}&baseUrl=${encodeURIComponent(baseUrl)}&authMethod=${encodeURIComponent(authMethod)}`,
+                { headers: { 'Authorization': `Bearer ${token}`, 'X-Provider-ApiKey': apiKey, 'X-Provider-Oauth-Config': oauthConfigHeader } }
             )
             if (response.ok) {
                 const data = await response.json()
@@ -575,11 +566,6 @@ export const Admin: React.FC<AdminProps> = ({ onBack }) => {
             setLoadingModels(false)
         }
     }
-
-    useEffect(() => {
-        fetchUsers()
-        fetchProviders().then(() => { fetchCurrentProvider() })
-    }, [])
 
     const totalPages = Math.ceil(users.length / usersPerPage)
     const startIndex = (currentPage - 1) * usersPerPage

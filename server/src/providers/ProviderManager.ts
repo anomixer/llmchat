@@ -24,8 +24,10 @@ export type ProviderType =
     | 'ollama' 
     | 'vllm' 
     | 'sglang' 
-    | 'lm-studio' 
+    | 'lm-studio'
     | 'custom'
+    | 'gemini-oauth'
+    | 'chatgpt-web'
 
 // 所有支援的 Provider 完整列表
 export const AVAILABLE_PROVIDERS = [
@@ -217,7 +219,7 @@ export const LOCAL_NOAUTH_PROVIDERS = [
 ]
 
 export interface ProviderConfig {
-    name: string
+    name?: string
     type: ProviderType
     baseUrl: string
     apiKey?: string
@@ -226,7 +228,7 @@ export interface ProviderConfig {
     maxTokens?: number
     visionModel?: string
     authConfig?: any
-    authMethod?: 'api-key' | 'google-service-account' | 'azure-entra-id' | 'aws-iam' | 'github-copilot-oauth' | 'google-oauth-user'
+    authMethod?: 'api-key' | 'google-service-account' | 'azure-entra-id' | 'aws-iam' | 'github-copilot-oauth' | 'google-oauth-user' | 'chatgpt-web-session'
     oauthConfig?: {
         googleJson?: string
         azureTenantId?: string
@@ -296,6 +298,14 @@ const PROVIDER_ENDPOINTS: Record<ProviderType, {
     },
     // Gemini OAuth：路徑與 google-gemini 相同，Authorization 由 interceptor 注入
     'gemini-oauth': {
+        list: '/models',
+        chat: '/chat/completions',
+        headers: (_config) => ({
+            'Content-Type': 'application/json'
+        })
+    },
+    // ChatGPT 網頁版 session：OpenAI 相容路徑，token 由 interceptor 注入
+    'chatgpt-web': {
         list: '/models',
         chat: '/chat/completions',
         headers: (_config) => ({
@@ -640,7 +650,7 @@ export class OllamaProvider extends BaseProvider {
             const response = await this.client.get('/api/version')
             console.log('Ollama 版本:', response.data.version)
             return true
-        } catch (error) {
+        } catch (error: any) {
             console.error('Ollama 連接失敗:', error.message)
             return false
         }
@@ -649,11 +659,11 @@ export class OllamaProvider extends BaseProvider {
     async getAvailableModels(): Promise<Array<{ name: string; size: number }>> {
         try {
             const response = await this.client.get('/api/tags')
-            return response.data.models.map(model => ({
+            return response.data.models.map((model: { name: string; size: number }) => ({
                 name: model.name,
                 size: model.size
             }))
-        } catch (error) {
+        } catch (error: any) {
             console.error('獲取模型列表失敗:', error.message)
             return []
         }
@@ -789,7 +799,7 @@ export class OpenAIProvider extends BaseProvider {
         try {
             await this.client.get(this.listPath)
             return true
-        } catch (error) {
+        } catch (error: any) {
             console.error('API 連接失敗:', error.message)
             return false
         }
@@ -812,7 +822,7 @@ export class OpenAIProvider extends BaseProvider {
                 }))
             }
             return []
-        } catch (error) {
+        } catch (error: any) {
             console.error('獲取模型列表失敗:', error.message)
             return []
         }
@@ -1005,7 +1015,7 @@ export class AnthropicProvider extends BaseProvider {
         try {
             await this.client.get(this.listPath)
             return true
-        } catch (error) {
+        } catch (error: any) {
             console.error('Anthropic 連接失敗:', error.message)
             return false
         }
@@ -1021,7 +1031,7 @@ export class AnthropicProvider extends BaseProvider {
                 }))
             }
             return []
-        } catch (error) {
+        } catch (error: any) {
             console.error('獲取模型列表失敗:', error.message)
             return []
         }
@@ -1178,6 +1188,7 @@ export class ProviderFactory {
                 return new GitHubCopilotProvider(config)
             case 'openai':
             case 'chatgpt-web':       // ChatGPT 網頁版 session，使用 OpenAI 相容路徑
+            case 'gemini-oauth':     // Gemini OAuth，使用 OpenAI 相容路徑（與 google-gemini 相同）
             case 'google-gemini':
             case 'mistral':
             case 'groq':

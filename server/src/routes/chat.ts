@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from 'express'
 import type UserService from '../services/userService.js'
-import { ProviderFactory } from '../providers/ProviderManager.js'
+import { ProviderFactory, type ProviderType } from '../providers/ProviderManager.js'
 import { type ChatSettings } from '../providers/ollamaProvider.js'
 import { ChatProvider } from '../providers/chatProvider.js'
 import { getSystemPrompt, normalizeLanguage } from '../prompts.js'
@@ -9,7 +9,7 @@ import { searchWeb } from '../services/searchService.js'
 
 const DEBUG_STREAM = process.env.DEBUG_STREAM === '1'
 
-function buildChatSettings(payload: any, userService: UserService, userId: string, defaultApiUrl: string, defaultApiKey: string): Required<ChatSettings> {
+function buildChatSettings(payload: any, userService: UserService, userId: string, defaultApiUrl: string, defaultApiKey: string): Required<ChatSettings> & { providerType: ProviderType } {
     const language = normalizeLanguage(payload?.language || payload?.settings?.language)
 
     // 獲取各層級配置
@@ -93,7 +93,7 @@ function buildChatSettings(payload: any, userService: UserService, userId: strin
         topK: parseInt(payload?.settings?.topK || (userSettings as any)?.topK || 40),
         showTokenStats: payload?.settings?.showTokenStats ?? (userSettings as any)?.showTokenStats ?? true,
         language
-    } as Required<ChatSettings> & { providerType: string }
+    } as Required<ChatSettings> & { providerType: ProviderType }
 }
 
 export function createChatRouter(deps: { userService: UserService; defaultApiUrl: string; defaultApiKey: string }) {
@@ -159,7 +159,7 @@ ${message}`
     })
 
     // 停止流式請求端點
-    router.post('/chat/stop', (req: Request, res: Response) => {
+    router.post('/chat/stop', authenticateToken(userService), (req: AuthedRequest, res: Response) => {
         try {
             const { requestId } = req.body
 

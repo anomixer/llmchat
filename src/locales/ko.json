@@ -24,7 +24,17 @@
     "export": {
       "button": "대화 내보내기",
       "json": "JSON으로 내보내기",
-      "markdown": "Markdown으로 내보내기"
+      "markdown": "Markdown으로 내보내기",
+      "created": "생성일",
+      "updated": "마지막 업데이트"
+    },
+    "compact": {
+      "tooShort": "아직 메시지가 부족하여 압축할 필요가 없습니다!",
+      "busy": "시스템이 바쁘므로 잠시 후 다시 시도해 주세요.",
+      "confirm": "현재 대화 기록을 압축하여 토큰을 절약하시겠습니까? 오래된 메시지는 자동으로 요약되어 컨텍스트 공간을 확보합니다.",
+      "processing": "대화 기록을 압축하는 중입니다. 잠시만 기다려 주세요...",
+      "summaryTitle": "이전 대화 기록 요약",
+      "failed": "대화 기록 압축 중 오류가 발생했습니다."
     }
   },
   "buttons": {
@@ -37,7 +47,9 @@
     "model": {
       "none": "모델이 선택되지 않음",
       "openSettings": "클릭하여 설정 열기",
-      "closeSettings": "클릭하여 설정 닫기"
+      "closeSettings": "클릭하여 설정 닫기",
+      "loading": "(불러오는 중...)",
+      "noModels": "(모델을 찾을 수 없습니다)"
     },
     "conversations": {
       "button": "대화 목록 (Ctrl + B)",
@@ -57,7 +69,8 @@
     "github": "GitHub에서 보기",
     "menu": "메뉴",
     "adminBadge": "관리자",
-    "adminButton": "사용자 관리"
+    "adminButton": "사용자 관리",
+    "contextUsage": "컨텍스트 사용량 (사용/최대). 클릭하여 압축 (/compact)"
   },
   "settings": {
     "panels": {
@@ -155,7 +168,8 @@
     "files": {
       "button": "파일 첨부 (이미지, 텍스트, PDF, JSON 지원, 최대 50MB)",
       "sizeError": "파일 {{name}}이(가) 너무 큽니다. 50MB 미만의 파일을 선택하세요",
-      "typeError": "파일 유형 {{type}}은(는) 지원되지 않습니다"
+      "typeError": "파일 유형 {{type}}은(는) 지원되지 않습니다",
+      "pdfNote": "참고: PDF 내용은 브라우저에서 직접 분석할 수 없습니다. PDF 내용을 분석하려면 텍스트 파일로 변환 후 업로드하거나, PDF 분석을 지원하는 서비스를 사용하세요."
     },
     "stopDoubleConfirm": "한 번 더 누르면 중지"
   },
@@ -237,7 +251,8 @@
       "role": "역할",
       "registrationDate": "등록 날짜",
       "lastLogin": "마지막 로그인",
-      "actions": "작업"
+      "actions": "작업",
+      "createdAt": "생성일"
     },
     "status": {
       "enabled": "활성화",
@@ -258,7 +273,8 @@
     "pagination": {
       "showing": "{{start}}에서 {{end}}까지 표시, 총 {{total}}개",
       "previous": "이전",
-      "next": "다음"
+      "next": "다음",
+      "prev": "이전"
     },
     "close": "닫기",
     "error": {
@@ -332,7 +348,22 @@
       "authMethod": "인증 방법",
       "advancedParams": "고급 매개변수"
     },
-    "addUser": "사용자 추가"
+    "addUser": "사용자 추가",
+    "userManagement": "사용자 관리",
+    "users": "명",
+    "never": "없음",
+    "editUser": "사용자 편집",
+    "newPassword": "새 비밀번호 (비워두면 변경되지 않음)",
+    "password": "비밀번호",
+    "you": "당신"
   },
-  "systemPrompt": "당신은 도움이 되는 AI 어시스턴트입니다. 사용자의 질문에 한국어로 답변해 주세요."
+  "systemPrompt": "당신은 도움이 되는 AI 어시스턴트입니다. 사용자의 질문에 한국어로 답변해 주세요.",
+  "system": {
+    "summarizationPrompt": "다음 대화 기록을 구조화된 상세 요약으로 작성하세요. 요약에 반드시 포함할 것: 1. 논의의 핵심 주제와 맥락; 2. 사용자가 특별히 제시한 구체적인 요구사항, 선호도, 주요 설정; 3. 양측이 합의한 최종 결론, 생성된 코드의 핵심 부분 또는 해결책. 대화와 동일한 언어로 작성하고, 서론이나 설명 없이 요약을 직접 출력하며, AI가 이 요약을 읽은 후 이전의 기억과 세부사항을 완전히 이어받을 수 있도록 하세요."
+  },
+  "common": {
+    "cancel": "취소",
+    "save": "저장",
+    "saving": "처리 중..."
+  }
 }

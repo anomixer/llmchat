@@ -24,7 +24,17 @@
     "export": {
       "button": "Export conversation",
       "json": "Export as JSON",
-      "markdown": "Export as Markdown"
+      "markdown": "Export as Markdown",
+      "created": "Created",
+      "updated": "Last Updated"
+    },
+    "compact": {
+      "tooShort": "Not enough messages to compress yet!",
+      "busy": "The system is busy, please try again later.",
+      "confirm": "Compress the current conversation history to save space? Older messages will be auto-summarized to free up Context space.",
+      "processing": "Compressing conversation history, please wait...",
+      "summaryTitle": "Summary of previous conversation history",
+      "failed": "An error occurred while compressing the conversation history."
     }
   },
   "buttons": {
@@ -37,7 +47,9 @@
     "model": {
       "none": "No model selected",
       "openSettings": "Click to open settings",
-      "closeSettings": "Click to close settings"
+      "closeSettings": "Click to close settings",
+      "loading": "(Loading...)",
+      "noModels": "(No models found)"
     },
     "conversations": {
       "button": "Conversations (Ctrl + B)",
@@ -57,7 +69,8 @@
     "github": "View on GitHub",
     "menu": "Menu",
     "adminBadge": "Admin",
-    "adminButton": "User Management"
+    "adminButton": "User Management",
+    "contextUsage": "Context usage (used/max). Click to compact (/compact)"
   },
   "settings": {
     "panels": {
@@ -155,7 +168,8 @@
     "files": {
       "button": "Attach files (supports images, text, PDF, JSON, max 50MB)",
       "sizeError": "File {{name}} is too large, please select files smaller than 50MB",
-      "typeError": "File type {{type}} is not supported"
+      "typeError": "File type {{type}} is not supported",
+      "pdfNote": "Note: PDF content cannot be parsed directly in the browser. To analyze PDF content, consider converting it to a text file before uploading, or use a service that supports PDF parsing."
     },
     "stopDoubleConfirm": "Press again to stop"
   },
@@ -241,7 +255,8 @@
       "role": "Role",
       "registrationDate": "Registration Date",
       "lastLogin": "Last Login",
-      "actions": "Actions"
+      "actions": "Actions",
+      "createdAt": "Created"
     },
     "status": {
       "enabled": "Enabled",
@@ -262,7 +277,8 @@
     "pagination": {
       "showing": "Showing {{start}} to {{end}} of {{total}} entries",
       "previous": "Previous",
-      "next": "Next"
+      "next": "Next",
+      "prev": "Previous"
     },
     "close": "Close",
     "error": {
@@ -336,7 +352,18 @@
       "authMethod": "Authentication Method",
       "advancedParams": "Advanced Parameters"
     },
-    "addUser": "Add User"
+    "addUser": "Add User",
+    "editUser": "Edit User",
+    "newPassword": "New Password (leave blank to keep)",
+    "password": "Password"
   },
-  "systemPrompt": "You are a helpful AI assistant. Please answer user questions in English."
+  "systemPrompt": "You are a helpful AI assistant. Please answer user questions in English.",
+  "system": {
+    "summarizationPrompt": "Please provide a structured, detailed summary of the following conversation history. The summary must preserve: 1. the core topics and contextual context of the discussion; 2. the specific requirements, preferences, and key settings the user explicitly raised; 3. the final conclusions reached, the key code snippets produced, or the solutions. Write in the same language as the conversation, output the summary directly without any preamble or explanation, so that after reading this summary the AI can fully carry over the previous memory and details."
+  },
+  "common": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving..."
+  }
 }

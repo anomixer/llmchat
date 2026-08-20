@@ -453,7 +453,7 @@ async function searchBaidu(query: string): Promise<SearchResult[]> {
         let snippet = '';
         if (jsonTextMatch) {
             snippet = jsonTextMatch[1]
-                .replace(/\\u([0-9a-fA-F]{4})/g, (m, grp) => String.fromCharCode(parseInt(grp, 16)))
+                .replace(/\\u([0-9a-fA-F]{4})/g, (m: string, grp: string) => String.fromCharCode(parseInt(grp, 16)))
                 .replace(/<[^>]*>/g, '')
                 .replace(/\\n/g, ' ')
                 .trim();
