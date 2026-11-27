@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400">
+  <!-- Dark background -->
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0F172A;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1a1f3a;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="400" fill="url(#bgGrad)"/>
+
+  <!-- Navbar -->
+  <rect width="1200" height="64" fill="rgba(15, 23, 42, 0.8)" stroke="#334155" stroke-width="1"/>
+  <circle cx="40" cy="32" r="18" fill="url(#accentGrad)"/>
+  <text x="70" y="40" font-family="Inter, sans-serif" font-size="20" font-weight="800" fill="#FFFFFF">LLMChat</text>
+
+  <!-- Hero section -->
+  <text x="600" y="120" font-family="Inter, sans-serif" font-size="48" font-weight="800" fill="#FFFFFF" text-anchor="middle">
+    精美的企業級本地 LLM 聊天
+  </text>
+  
+  <text x="600" y="175" font-family="Inter, sans-serif" font-size="20" fill="#94A3B8" text-anchor="middle">
+    玻璃擬態設計，隱私完全掌握
+  </text>
+
+  <!-- Buttons -->
+  <rect x="450" y="220" width="150" height="45" rx="8" fill="#3B82F6" />
+  <text x="525" y="250" font-family="Inter, sans-serif" font-size="16" font-weight="600" fill="#FFFFFF" text-anchor="middle">🚀 快速開始</text>
+
+  <rect x="620" y="220" width="150" height="45" rx="8" fill="#1E293B" stroke="#334155" stroke-width="1" />
+  <text x="695" y="250" font-family="Inter, sans-serif" font-size="16" font-weight="600" fill="#E2E8F0" text-anchor="middle">GitHub</text>
+
+  <!-- Feature icons -->
+  <g transform="translate(150, 300)">
+    <circle cx="0" cy="0" r="20" fill="rgba(59, 130, 246, 0.15)"/>
+    <text x="-5" y="8" font-size="20">🎨</text>
+    <text x="-30" y="30" font-family="Inter, sans-serif" font-size="12" fill="#E2E8F0">玻璃擬態</text>
+  </g>
+
+  <g transform="translate(350, 300)">
+    <circle cx="0" cy="0" r="20" fill="rgba(59, 130, 246, 0.15)"/>
+    <text x="-5" y="8" font-size="20">⚡</text>
+    <text x="-30" y="30" font-family="Inter, sans-serif" font-size="12" fill="#E2E8F0">即時串流</text>
+  </g>
+
+  <g transform="translate(550, 300)">
+    <circle cx="0" cy="0" r="20" fill="rgba(59, 130, 246, 0.15)"/>
+    <text x="-5" y="8" font-size="20">🌐</text>
+    <text x="-20" y="30" font-family="Inter, sans-serif" font-size="12" fill="#E2E8F0">20+ 服務商</text>
+  </g>
+
+  <g transform="translate(750, 300)">
+    <circle cx="0" cy="0" r="20" fill="rgba(59, 130, 246, 0.15)"/>
+    <text x="-5" y="8" font-size="20">🔊</text>
+    <text x="-30" y="30" font-family="Inter, sans-serif" font-size="12" fill="#E2E8F0">語音互動</text>
+  </g>
+
+  <g transform="translate(950, 300)">
+    <circle cx="0" cy="0" r="20" fill="rgba(59, 130, 246, 0.15)"/>
+    <text x="-5" y="8" font-size="20">🔐</text>
+    <text x="-30" y="30" font-family="Inter, sans-serif" font-size="12" fill="#E2E8F0">企業級安全</text>
+  </g>
+</svg>

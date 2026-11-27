@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LLMChat — Enterprise-Grade On-Premise LLM Chat Solution</title>
+  <meta name="description" content="Beautiful glassmorphism UI for local LLM chat. React + Node.js + Ollama. Multi-provider support, real-time streaming, voice interaction, file uploads up to 50MB, and enterprise-grade security. Perfect for on-premise AI deployment.">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --llm-blue: #3B82F6;
+      --llm-blue-hover: #2563EB;
+      --llm-blue-light: rgba(59, 130, 246, 0.15);
+      --llm-purple: #8B5CF6;
+      --llm-dark-bg: #0F172A;
+      --llm-card-bg: #1E293B;
+      --llm-card-border: #334155;
+      --llm-header-bg: #0F1118;
+      --llm-subcard-bg: #334155;
+      --text-main: #E2E8F0;
+      --text-muted: #94A3B8;
+      --text-bright: #FFFFFF;
+      --code-bg: #1E293B;
+      --success: #10B981;
+      --success-light: rgba(16, 185, 129, 0.15);
+      --warning: #F59E0B;
+      --danger: #EF4444;
+      --border-radius: 12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, var(--llm-dark-bg) 0%, #1a1f3a 100%);
+      color: var(--text-main);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* Light mode theme */
+    body.light-theme {
+      --llm-dark-bg: #FFFFFF;
+      --llm-card-bg: #F8FAFC;
+      --llm-card-border: #E2E8F0;
+      --llm-header-bg: #F1F5F9;
+      --llm-subcard-bg: #E2E8F0;
+      --text-main: #1E293B;
+      --text-muted: #64748B;
+      --text-bright: #0F172A;
+      --code-bg: #F1F5F9;
+    }
+
+    /* Fixed Navigation */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 64px;
+      background-color: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--llm-card-border);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+    }
+
+    body.light-theme nav {
+      background-color: rgba(255, 255, 255, 0.8);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--llm-blue), var(--llm-purple));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 800;
+      font-size: 20px;
+      box-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
+    }
+    .brand-text {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text-bright);
+      letter-spacing: -0.5px;
+    }
+    .brand-tag {
+      background: var(--llm-blue-light);
+      color: var(--llm-blue);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      text-transform: uppercase;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      list-style: none;
+    }
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.95rem;
+      font-weight: 600;
+      padding: 7px 12px;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+    }
+    .nav-links a:hover {
+      color: var(--llm-blue);
+      background: rgba(59, 130, 246, 0.12);
+    }
+
+    .nav-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .lang-btn, .theme-btn {
+      background: var(--llm-subcard-bg);
+      border: 1px solid var(--llm-card-border);
+      color: var(--text-main);
+      padding: 7px 13px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .lang-btn:hover, .theme-btn:hover {
+      border-color: var(--llm-blue);
+      color: var(--llm-blue);
+    }
+
+    /* Hero Section */
+    .hero {
+      margin-top: 64px;
+      padding: 5rem 2rem 4rem;
+      text-align: center;
+      background: radial-gradient(circle at 50% 20%, rgba(59, 130, 246, 0.1) 0%, transparent 60%);
+      border-bottom: 1px solid var(--llm-card-border);
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--llm-subcard-bg);
+      border: 1px solid var(--llm-card-border);
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--success);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--success);
+    }
+    .hero h1 {
+      font-size: 3rem;
+      font-weight: 800;
+      color: var(--text-bright);
+      letter-spacing: -1px;
+      margin-bottom: 1rem;
+      line-height: 1.2;
+    }
+    .hero h1 span {
+      background: linear-gradient(135deg, var(--llm-blue), var(--llm-purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      font-size: 1.25rem;
+      color: var(--text-muted);
+      max-width: 750px;
+      margin: 0 auto 2.5rem;
+    }
+
+    .cta-group {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 3rem;
+      flex-wrap: wrap;
+    }
+    .btn {
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: none;
+    }
+    .btn-primary {
+      background: var(--llm-blue);
+      color: white;
+      box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
+    }
+    .btn-primary:hover {
+      background: var(--llm-blue-hover);
+      transform: translateY(-1px);
+    }
+    .btn-secondary {
+      background: var(--llm-card-bg);
+      color: var(--text-main);
+      border: 1px solid var(--llm-card-border);
+    }
+    .btn-secondary:hover {
+      background: var(--llm-subcard-bg);
+      border-color: var(--text-muted);
+    }
+
+    /* Container */
+    .container {
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 4rem 2rem;
+    }
+
+    .section-title {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--text-bright);
+      text-align: center;
+      margin-bottom: 0.5rem;
+      scroll-margin-top: 90px;
+    }
+    .section-desc {
+      text-align: center;
+      color: var(--text-muted);
+      margin-bottom: 3rem;
+      font-size: 16px;
+    }
+
+    /* Grid Cards */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 4rem;
+    }
+    .card {
+      background: var(--llm-card-bg);
+      border: 1px solid var(--llm-card-border);
+      border-radius: var(--border-radius);
+      padding: 1.75rem;
+      transition: border-color 0.2s, transform 0.2s;
+      backdrop-filter: blur(10px);
+    }
+    .card:hover {
+      border-color: var(--llm-blue);
+      transform: translateY(-2px);
+    }
+    .card-icon {
+      width: 44px;
+      height: 44px;
+      background: var(--llm-blue-light);
+      color: var(--llm-blue);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      margin-bottom: 1.25rem;
+    }
+    .card h3 {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-bright);
+      margin-bottom: 0.5rem;
+    }
+    .card p {
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* Screenshots Section */
+    .screenshot-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-bottom: 4rem;
+    }
+    .ss-box {
+      background: var(--llm-card-bg);
+      border: 1px solid var(--llm-card-border);
+      border-radius: var(--border-radius);
+      overflow: hidden;
+    }
+    .ss-box:hover .ss-img { transform: scale(1.02); }
+    .ss-header {
+      padding: 12px 16px;
+      background: var(--llm-header-bg);
+      border-bottom: 1px solid var(--llm-card-border);
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .ss-img {
+      width: 100%;
+      height: auto;
+      display: block;
+      transition: transform 0.3s;
+      background: linear-gradient(135deg, var(--llm-card-bg), var(--llm-subcard-bg));
+      min-height: 300px;
+    }
+
+    /* Step Cards */
+    .steps-container {
+      margin-bottom: 4rem;
+    }
+    .step-card {
+      background: var(--llm-card-bg);
+      border: 1px solid var(--llm-card-border);
+      border-radius: var(--border-radius);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .step-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 1rem;
+    }
+    .step-num {
+      width: 28px;
+      height: 28px;
+      background: var(--llm-blue);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    .step-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-bright);
+    }
+    
+    .code-block {
+      background: var(--code-bg);
+      border: 1px solid var(--llm-card-border);
+      border-radius: 6px;
+      padding: 14px 18px;
+      font-family: 'Fira Code', monospace;
+      font-size: 13.5px;
+      color: #A5D6FF;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 0.5rem;
+      overflow-x: auto;
+    }
+    .code-block code { color: #A5D6FF; }
+    .copy-btn {
+      background: var(--llm-subcard-bg);
+      border: 1px solid var(--llm-card-border);
+      color: var(--text-muted);
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+      flex-shrink: 0;
+      white-space: nowrap;
+      margin-left: 10px;
+    }
+    .copy-btn:hover {
+      color: var(--text-bright);
+      border-color: var(--llm-blue);
+    }
+
+    /* Comparison Table */
+    .table-responsive {
+      width: 100%;
+      overflow-x: auto;
+      margin-bottom: 4rem;
+      border: 1px solid var(--llm-card-border);
+      border-radius: var(--border-radius);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--llm-card-bg);
+      text-align: left;
+      font-size: 14px;
+    }
+    th, td {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--llm-card-border);
+    }
+    th {
+      background: var(--llm-header-bg);
+      color: var(--text-bright);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255, 255, 255, 0.02); }
+    .badge-check { color: var(--success); font-weight: 700; }
+    .badge-cross { color: var(--danger); font-weight: 700; }
+
+    /* FAQ Section */
+    .faq-list {
+      max-width: 850px;
+      margin: 0 auto 4rem;
+    }
+    .faq-item {
+      background: var(--llm-card-bg);
+      border: 1px solid var(--llm-card-border);
+      border-radius: var(--border-radius);
+      margin-bottom: 1rem;
+      overflow: hidden;
+    }
+    .faq-question {
+      padding: 18px 22px;
+      font-weight: 600;
+      color: var(--text-bright);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      user-select: none;
+    }
+    .faq-question:hover { color: var(--llm-blue); }
+    .faq-answer {
+      padding: 0 22px 18px;
+      color: var(--text-muted);
+      font-size: 14px;
+      display: none;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding-top: 14px;
+    }
+    .faq-item.active .faq-answer { display: block; }
+    .faq-icon { transition: transform 0.3s; }
+    .faq-item.active .faq-icon { transform: rotate(180deg); }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--llm-card-border);
+      padding: 3rem 2rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 14px;
+      background: var(--llm-header-bg);
+    }
+    footer a { color: var(--llm-blue); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    .nav-toggle {
+      display: none;
+      background: var(--llm-card-bg);
+      border: 1px solid var(--llm-card-border);
+      color: var(--text-bright);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 18px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .nav-toggle:hover {
+      border-color: var(--llm-blue);
+      color: var(--llm-blue);
+    }
+
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 2.2rem; }
+      .screenshot-grid { grid-template-columns: 1fr; }
+
+      .nav-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .nav-links {
+        display: none;
+        position: absolute;
+        top: 70px;
+        left: 0;
+        right: 0;
+        background: rgba(15, 23, 42, 0.96);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--llm-card-border);
+        padding: 16px;
+        flex-direction: column;
+        gap: 10px;
+        z-index: 999;
+      }
+
+      body.light-theme .nav-links {
+        background: rgba(255, 255, 255, 0.96);
+      }
+
+      .nav-links.active {
+        display: flex;
+      }
+
+      .nav-links a {
+        font-size: 1rem;
+        padding: 12px 16px;
+        width: 100%;
+        border: 1px solid var(--llm-card-border);
+        background: var(--llm-card-bg);
+        border-radius: 8px;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav>
+    <a href="#" class="brand">
+      <div class="brand-logo">💬</div>
+      <span class="brand-text">LLMChat</span>
+      <span class="brand-tag">On-Premise</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#features" data-en="Features" data-tw="核心功能">核心功能</a></li>
+      <li><a href="#providers" data-en="Providers" data-tw="支援服務商">支援服務商</a></li>
+      <li><a href="#setup" data-en="Setup" data-tw="快速開始">快速開始</a></li>
+      <li><a href="#faq" data-en="FAQ" data-tw="常見問題">常見問題</a></li>
+    </ul>
+    <div class="nav-controls">
+      <button class="theme-btn" onclick="toggleTheme()" aria-label="Toggle theme">
+        <span id="theme-icon">🌙</span>
+      </button>
+      <button class="lang-btn" onclick="toggleLanguage()">
+        🌐 <span id="lang-text">English</span>
+      </button>
+      <a href="https://github.com/anomixer/llmchat" target="_blank" class="lang-btn" style="text-decoration:none;" aria-label="GitHub Repository">
+        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+      </a>
+      <button class="nav-toggle" onclick="toggleMobileNav()" aria-label="Toggle Navigation">☰</button>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-badge">
+      <span class="status-dot"></span>
+      <span data-en="React 18 + Node.js + Ollama & 20+ LLM Providers" data-tw="React 18 + Node.js + Ollama 和 20+ LLM 服務商支援">React 18 + Node.js + Ollama 和 20+ LLM 服務商支援</span>
+    </div>
+    <h1 data-en="Beautiful On-Premise <span>LLM Chat</span><br>Glassmorphism UI for Enterprise Privacy" data-tw="精美的企業級 <span>本地 LLM 聊天</span><br>玻璃擬態設計，隱私完全掌握">
+      精美的企業級 <span>本地 LLM 聊天</span><br>玻璃擬態設計，隱私完全掌握
+    </h1>
+    <p data-en="Deploy an AI chat application on your own servers. Modern glassmorphism UI, real-time streaming, multi-provider LLM support, voice interaction, file uploads up to 50MB, and enterprise-grade security—all with zero cloud vendor lock-in."
+       data-tw="在自己的伺服器上部署 AI 聊天應用。現代玻璃擬態設計、即時串流、多服務商支援、語音互動、50MB 檔案上傳，以及企業級安全認證 — 完全自主掌握您的 AI。">
+      在自己的伺服器上部署 AI 聊天應用。現代玻璃擬態設計、即時串流、多服務商支援、語音互動、50MB 檔案上傳，以及企業級安全認證 — 完全自主掌握您的 AI。
+    </p>
+    <div class="cta-group">
+      <a href="#setup" class="btn btn-primary" data-en="🚀 Get Started" data-tw="🚀 快速開始">🚀 快速開始</a>
+      <a href="https://github.com/anomixer/llmchat" target="_blank" class="btn btn-secondary">
+        <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        GitHub Repository
+      </a>
+    </div>
+  </section>
+
+  <!-- Main Container -->
+  <div class="container">
+
+    <!-- Screenshots Gallery -->
+    <h2 class="section-title" data-en="See LLMChat in Action" data-tw="實際應用展示">實際應用展示</h2>
+    <p class="section-desc" data-en="Beautiful glassmorphism UI with responsive design, dark/light themes, and smooth interactions." data-tw="精美的玻璃擬態介面，響應式設計、暗色/亮色主題、流暢互動體驗。">精美的玻璃擬態介面，響應式設計、暗色/亮色主題、流暢互動體驗。</p>
+
+    <div class="screenshot-grid">
+      <div class="ss-box">
+        <div class="ss-header" data-en="🇹🇼 Chinese • Dark Theme" data-tw="🇹🇼 繁體中文 • 暗色主題">🇹🇼 繁體中文 • 暗色主題</div>
+        <img src="https://raw.githubusercontent.com/anomixer/llmchat/main/public/screenshot-1.png" alt="Chinese Dark Theme" class="ss-img">
+      </div>
+      <div class="ss-box">
+        <div class="ss-header" data-en="🇺🇸 English • Light Theme" data-tw="🇺🇸 English • 亮色主題">🇺🇸 English • 亮色主題</div>
+        <img src="https://raw.githubusercontent.com/anomixer/llmchat/main/public/screenshot-2.png" alt="English Light Theme" class="ss-img">
+      </div>
+    </div>
+
+    <!-- Core Features Grid -->
+    <h2 id="features" class="section-title" data-en="Powerful Features for Enterprise" data-tw="為企業打造的強大功能">為企業打造的強大功能</h2>
+    <p class="section-desc" data-en="Everything you need for a modern, secure, and feature-rich LLM chat application." data-tw="現代化、安全且功能豐富的 LLM 聊天應用程式所需的一切。">現代化、安全且功能豐富的 LLM 聊天應用程式所需的一切。</p>
+
+    <div class="grid">
+      <div class="card">
+        <div class="card-icon">🎨</div>
+        <h3 data-en="Modern Glassmorphism UI" data-tw="現代玻璃擬態設計">現代玻璃擬態設計</h3>
+        <p data-en="Beautiful glassmorphism interface with responsive design. Dark/light theme toggle, smooth animations, and adaptive gradient backgrounds for an immersive chat experience." data-tw="精美的玻璃擬態介面搭配響應式設計。暗色/亮色主題切換、流暢動畫和自適應漸層背景，提供沉浸式聊天體驗。">精美的玻璃擬態介面搭配響應式設計。暗色/亮色主題切換、流暢動畫和自適應漸層背景，提供沉浸式聊天體驗。</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">⚡</div>
+        <h3 data-en="Real-Time Streaming" data-tw="即時串流回應">即時串流回應</h3>
+        <p data-en="Server-Sent Events (SSE) for instant token-by-token response streaming. Watch the AI think in real-time with streaming thought process display and intelligent auto-scroll." data-tw="支援伺服器推送事件（SSE）的即時逐詞串流。實時觀看 AI 思考過程，並配備智慧自動滾動功能。">支援伺服器推送事件（SSE）的即時逐詞串流。實時觀看 AI 思考過程，並配備智慧自動滾動功能。</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🌐</div>
+        <h3 data-en="20+ LLM Providers" data-tw="支援 20+ 服務商">支援 20+ 服務商</h3>
+        <p data-en="Seamless integration with Ollama, OpenAI, Claude, Gemini, Microsoft, AWS, and more. Quick model switching, automatic vision model detection, and intelligent multi-modal image encoding." data-tw="無縫整合 Ollama、OpenAI、Claude、Gemini、Microsoft、AWS 等。快速模型切換、自動視覺模型偵測和智慧多模態圖片編碼。">無縫整合 Ollama、OpenAI、Claude、Gemini、Microsoft、AWS 等。快速模型切換、自動視覺模型偵測和智慧多模態圖片編碼。</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🔊</div>
+        <h3 data-en="Voice Interaction" data-tw="語音互動支援">語音互動支援</h3>
+        <p data-en="Multi-language voice input (STT) and voice output (TTS) with intelligent voice queue management. Never miss a response with smart sequential playback that prevents interruptions." data-tw="多語言語音輸入（STT）和語音輸出（TTS），配備智慧語音播放隊列。確保多條語音按順序播放，不會相互中斷。">多語言語音輸入（STT）和語音輸出（TTS），配備智慧語音播放隊列。確保多條語音按順序播放，不會相互中斷。</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">📂</div>
+        <h3 data-en="File Upload & Management" data-tw="檔案上傳與管理">檔案上傳與管理</h3>
+        <p data-en="Upload files up to 50MB including documents, images, and PDFs. Automatic indexing, search capability, and conversation-level backup/restore for data protection and compliance." data-tw="上傳最大 50MB 的檔案，包括文檔、圖片和 PDF。自動索引、搜尋功能和對話級別備份/還原，確保資料保護和合規性。">上傳最大 50MB 的檔案，包括文檔、圖片和 PDF。自動索引、搜尋功能和對話級別備份/還原，確保資料保護和合規性。</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🔐</div>
+        <h3 data-en="Enterprise Security" data-tw="企業級安全">企業級安全</h3>
+        <p data-en="Email verification, OAuth integration, role-based access control, JWT authentication, admin dashboard for user management, and conversation-level privacy isolation." data-tw="電子郵件驗證、OAuth 整合、基於角色的存取控制、JWT 認證、管理員儀表板和對話級別隱私隔離。">電子郵件驗證、OAuth 整合、基於角色的存取控制、JWT 認證、管理員儀表板和對話級別隱私隔離。</p>
+      </div>
+    </div>
+
+    <!-- Multi-Provider Section -->
+    <h2 id="providers" class="section-title" data-en="Extensive Provider Integration" data-tw="廣泛的服務商整合">廣泛的服務商整合</h2>
+    <p class="section-desc" data-en="Choose your preferred LLM providers with flexible configuration and seamless switching." data-tw="選擇您偏好的 LLM 服務商，靈活配置和無縫切換。">選擇您偏好的 LLM 服務商，靈活配置和無縫切換。</p>
+
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th data-en="Category" data-tw="類別">類別</th>
+            <th data-en="Supported Providers" data-tw="支援服務商">支援服務商</th>
+            <th data-en="Features" data-tw="特色">特色</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong data-en="Local Models" data-tw="本地模型">本地模型</strong></td>
+            <td>Ollama, LM Studio, Vllm</td>
+            <td><span class="badge-check">✓</span> <span data-en="100% Private" data-tw="100% 隱私">100% 隱私</span></td>
+          </tr>
+          <tr>
+            <td><strong data-en="Major Cloud LLMs" data-tw="主流雲端 LLM">主流雲端 LLM</strong></td>
+            <td>OpenAI, Claude, Gemini, Microsoft, AWS Bedrock</td>
+            <td><span class="badge-check">✓</span> <span data-en="API Key Support" data-tw="API 金鑰支援">API 金鑰支援</span></td>
+          </tr>
+          <tr>
+            <td><strong data-en="Specialized" data-tw="專業服務">專業服務</strong></td>
+            <td>Together AI, Groq, Mistral, Perplexity</td>
+            <td><span class="badge-check">✓</span> <span data-en="High Performance" data-tw="高效能">高效能</span></td>
+          </tr>
+          <tr>
+            <td><strong data-en="Vision Models" data-tw="視覺模型">視覺模型</strong></td>
+            <td>OpenAI Vision, Claude Vision, Gemini Pro Vision</td>
+            <td><span class="badge-check">✓</span> <span data-en="Auto-Detection" data-tw="自動偵測">自動偵測</span></td>
+          </tr>
+          <tr>
+            <td><strong data-en="Internet Search" data-tw="互聯網搜尋">互聯網搜尋</strong></td>
+            <td>Bing, Google, Perplexity API</td>
+            <td><span class="badge-check">✓</span> <span data-en="Real-Time Data" data-tw="實時資料">實時資料</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Quick Setup -->
+    <h2 id="setup" class="section-title" data-en="Quick Start in 5 Minutes" data-tw="5 分鐘快速開始">5 分鐘快速開始</h2>
+    <p class="section-desc" data-en="Get LLMChat running on your server with these simple steps." data-tw="只需幾個簡單步驟即可在您的伺服器上執行 LLMChat。">只需幾個簡單步驟即可在您的伺服器上執行 LLMChat。</p>
+
+    <div class="steps-container">
+      <div class="step-card">
+        <div class="step-header">
+          <div class="step-num">1</div>
+          <div class="step-title" data-en="Clone the Repository" data-tw="克隆儲存庫">克隆儲存庫</div>
+        </div>
+        <div class="code-block">
+          <code>git clone https://github.com/anomixer/llmchat.git && cd llmchat</code>
+          <button class="copy-btn" onclick="copyToClipboard(this)">📋 Copy</button>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-header">
+          <div class="step-num">2</div>
+          <div class="step-title" data-en="Install Dependencies" data-tw="安裝依賴套件">安裝依賴套件</div>
+        </div>
+        <div class="code-block">
+          <code>npm install</code>
+          <button class="copy-btn" onclick="copyToClipboard(this)">📋 Copy</button>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-header">
+          <div class="step-num">3</div>
+          <div class="step-title" data-en="Configure Environment" data-tw="設定環境變數">設定環境變數</div>
+        </div>
+        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 10px;" data-en="Copy .env.example to .env and configure your LLM providers:" data-tw="複製 .env.example 為 .env 並設定您的 LLM 服務商：">複製 .env.example 為 .env 並設定您的 LLM 服務商：</p>
+        <div class="code-block">
+          <code>cp .env.example .env && nano .env</code>
+          <button class="copy-btn" onclick="copyToClipboard(this)">📋 Copy</button>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-header">
+          <div class="step-num">4</div>
+          <div class="step-title" data-en="Start Ollama (if using local models)" data-tw="啟動 Ollama（若使用本地模型）">啟動 Ollama（若使用本地模型）</div>
+        </div>
+        <div class="code-block">
+          <code>ollama serve</code>
+          <button class="copy-btn" onclick="copyToClipboard(this)">📋 Copy</button>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-header">
+          <div class="step-num">5</div>
+          <div class="step-title" data-en="Run the Application" data-tw="執行應用程式">執行應用程式</div>
+        </div>
+        <div class="code-block">
+          <code>npm run dev</code>
+          <button class="copy-btn" onclick="copyToClipboard(this)">📋 Copy</button>
+        </div>
+      </div>
+    </div>
+
+    <p style="text-align: center; color: var(--text-muted); font-size: 15px; margin-bottom: 4rem;" data-en="🎉 Visit http://localhost:5173 and start chatting! For production deployment, see the full documentation." data-tw="🎉 訪問 http://localhost:5173 開始聊天！如需生產部署，請查閱完整文件。">🎉 訪問 http://localhost:5173 開始聊天！如需生產部署，請查閱完整文件。</p>
+
+    <!-- FAQ Section -->
+    <h2 id="faq" class="section-title" data-en="Frequently Asked Questions" data-tw="常見問題">常見問題</h2>
+
+    <div class="faq-list">
+      <div class="faq-item" onclick="toggleFAQ(this)">
+        <div class="faq-question">
+          <span data-en="Can I use LLMChat with cloud LLM providers?" data-tw="我可以使用雲端 LLM 服務商嗎？">我可以使用雲端 LLM 服務商嗎？</span>
+          <span class="faq-icon">▼</span>
+        </div>
+        <div class="faq-answer" data-en="Yes! LLMChat supports 20+ providers including OpenAI, Claude, Gemini, and others. You can configure API keys in the .env file and switch between providers seamlessly from the UI." data-tw="可以！LLMChat 支援 20+ 個服務商，包括 OpenAI、Claude、Gemini 等。您可以在 .env 檔案中設定 API 金鑰，並從 UI 無縫切換服務商。">Yes! LLMChat supports 20+ providers including OpenAI, Claude, Gemini, and others. You can configure API keys in the .env file and switch between providers seamlessly from the UI.</div>
+      </div>
+
+      <div class="faq-item" onclick="toggleFAQ(this)">
+        <div class="faq-question">
+          <span data-en="Is my data stored in the cloud?" data-tw="我的資料會存儲在雲端嗎？">我的資料會存儲在雲端嗎？</span>
+          <span class="faq-icon">▼</span>
+        </div>
+        <div class="faq-answer" data-en="No. With local models (Ollama), 100% of your data stays on your server. Even with cloud LLM providers, conversations are stored locally and you have full control. No external logging or analytics." data-tw="不會。使用本地模型（Ollama）時，100% 的資料保存在您的伺服器上。即使使用雲端 LLM 服務商，對話也儲存在本地，您完全掌控。沒有外部日誌或分析。">No. With local models (Ollama), 100% of your data stays on your server. Even with cloud LLM providers, conversations are stored locally and you have full control. No external logging or analytics.</div>
+      </div>
+
+      <div class="faq-item" onclick="toggleFAQ(this)">
+        <div class="faq-question">
+          <span data-en="What are the system requirements?" data-tw="系統需求是什麼？">系統需求是什麼？</span>
+          <span class="faq-icon">▼</span>
+        </div>
+        <div class="faq-answer" data-en="Minimum: Node.js 18+, NPM 8+. For local LLM models: Ollama (requires 8GB RAM recommended). For cloud-only setup: minimal requirements. Full instructions in the GitHub repository." data-tw="最低：Node.js 18+、NPM 8+。若使用本地 LLM 模型：Ollama（建議 8GB 記憶體）。若僅使用雲端：最低要求。詳見 GitHub 儲存庫。">Minimum: Node.js 18+, NPM 8+. For local LLM models: Ollama (requires 8GB RAM recommended). For cloud-only setup: minimal requirements. Full instructions in the GitHub repository.</div>
+      </div>
+
+      <div class="faq-item" onclick="toggleFAQ(this)">
+        <div class="faq-question">
+          <span data-en="How do I deploy LLMChat to production?" data-tw="如何將 LLMChat 部署到生產環境？">如何將 LLMChat 部署到生產環境？</span>
+          <span class="faq-icon">▼</span>
+        </div>
+        <div class="faq-answer" data-en="LLMChat supports Docker containerization. Build with: npm run build, then deploy using the provided Dockerfile. Supports nginx/Apache reverse proxy, SSL/TLS certificates, and load balancing. See deployment guide in docs." data-tw="LLMChat 支援 Docker 容器化。使用 npm run build 構建，然後使用提供的 Dockerfile 部署。支援 nginx/Apache 反向代理、SSL/TLS 憑證和負載平衡。查看文件中的部署指南。">LLMChat supports Docker containerization. Build with: npm run build, then deploy using the provided Dockerfile. Supports nginx/Apache reverse proxy, SSL/TLS certificates, and load balancing. See deployment guide in docs.</div>
+      </div>
+
+      <div class="faq-item" onclick="toggleFAQ(this)">
+        <div class="faq-question">
+          <span data-en="Can I customize the UI?" data-tw="我可以自訂 UI 嗎？">我可以自訂 UI 嗎？</span>
+          <span class="faq-icon">▼</span>
+        </div>
+        <div class="faq-answer" data-en="Absolutely! LLMChat is built with React + TypeScript + CSS. All components are modular and well-documented. You can easily customize colors, branding, layout, and functionality to match your organization's needs." data-tw="完全可以！LLMChat 使用 React + TypeScript + CSS 建構。所有元件都是模組化且有良好文件。您可以輕鬆自訂色彩、品牌、版面和功能，以符合組織需求。">Absolutely! LLMChat is built with React + TypeScript + CSS. All components are modular and well-documented. You can easily customize colors, branding, layout, and functionality to match your organization's needs.</div>
+      </div>
+
+      <div class="faq-item" onclick="toggleFAQ(this)">
+        <div class="faq-question">
+          <span data-en="What's the license?" data-tw="授權條款是什麼？">授權條款是什麼？</span>
+          <span class="faq-icon">▼</span>
+        </div>
+        <div class="faq-answer" data-en="LLMChat is open-source and licensed under the MIT License. You're free to use, modify, and distribute it. See LICENSE file for details." data-tw="LLMChat 是開源軟體，採用 MIT 許可證。您可以自由使用、修改和分發。詳見 LICENSE 檔案。">LLMChat is open-source and licensed under the MIT License. You're free to use, modify, and distribute it. See LICENSE file for details.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <p data-en="© 2024 LLMChat. Open-source, privacy-first LLM chat for enterprises." data-tw="© 2024 LLMChat。企業級開源、隱私至上的 LLM 聊天應用。">© 2024 LLMChat. Open-source, privacy-first LLM chat for enterprises.</p>
+    <p style="margin-top: 1rem; font-size: 13px;">
+      <a href="https://github.com/anomixer/llmchat" target="_blank" data-en="GitHub Repository" data-tw="GitHub 儲存庫">GitHub 儲存庫</a> • 
+      <a href="https://github.com/anomixer/llmchat/blob/main/LICENSE" target="_blank" data-en="MIT License" data-tw="MIT 授權">MIT 授權</a> • 
+      <a href="https://github.com/anomixer/llmchat#readme" target="_blank" data-en="Documentation" data-tw="文件">文件</a>
+    </p>
+  </footer>
+
+  <script>
+    // Detect system theme on load
+    function initTheme() {
+      const savedTheme = localStorage.getItem('llmchat-theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      
+      if (savedTheme) {
+        document.body.classList.toggle('light-theme', savedTheme === 'light');
+      } else if (!prefersDark) {
+        document.body.classList.add('light-theme');
+      }
+      updateThemeIcon();
+    }
+
+    function toggleTheme() {
+      document.body.classList.toggle('light-theme');
+      const isLight = document.body.classList.contains('light-theme');
+      localStorage.setItem('llmchat-theme', isLight ? 'light' : 'dark');
+      updateThemeIcon();
+    }
+
+    function updateThemeIcon() {
+      const icon = document.getElementById('theme-icon');
+      const isLight = document.body.classList.contains('light-theme');
+      icon.textContent = isLight ? '☀️' : '🌙';
+    }
+
+    // Language toggle
+    let currentLang = 'zh-TW';
+
+    function toggleLanguage() {
+      currentLang = currentLang === 'zh-TW' ? 'en' : 'zh-TW';
+      localStorage.setItem('llmchat-lang', currentLang);
+      updateLanguage();
+    }
+
+    function updateLanguage() {
+      const isEnglish = currentLang === 'en';
+      document.documentElement.lang = currentLang;
+      document.getElementById('lang-text').textContent = isEnglish ? '中文' : 'English';
+      
+      document.querySelectorAll('[data-en]').forEach(el => {
+        if (isEnglish) {
+          el.innerHTML = el.dataset.en;
+        } else {
+          el.innerHTML = el.dataset.tw || el.dataset.en;
+        }
+      });
+    }
+
+    // Mobile nav toggle
+    function toggleMobileNav() {
+      document.querySelector('.nav-links').classList.toggle('active');
+    }
+
+    // Close nav when link clicked
+    document.querySelectorAll('.nav-links a').forEach(link => {
+      link.addEventListener('click', () => {
+        document.querySelector('.nav-links').classList.remove('active');
+      });
+    });
+
+    // FAQ toggle
+    function toggleFAQ(item) {
+      item.classList.toggle('active');
+    }
+
+    // Copy to clipboard
+    function copyToClipboard(btn) {
+      const code = btn.previousElementSibling.textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        const originalText = btn.textContent;
+        btn.textContent = '✓ Copied!';
+        setTimeout(() => {
+          btn.textContent = originalText;
+        }, 2000);
+      });
+    }
+
+    // Initialize
+    initTheme();
+    const savedLang = localStorage.getItem('llmchat-lang') || 'zh-TW';
+    currentLang = savedLang;
+    updateLanguage();
+  </script>
+</body>
+</html>
